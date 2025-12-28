@@ -1,0 +1,349 @@
+{
+  "weapons": [
+    {
+      "id": "basic_sword",
+      "name": "Basic Sword",
+      "description": "A simple but reliable blade",
+      "rarity": "common",
+      "unlockCost": 0,
+      "isStarter": true,
+      "trailColor": "#ffffff",
+      "trailGlow": "#aaaaaa",
+      "effectiveAgainst": null,
+      "tiers": [
+        {
+          "tier": 1,
+          "upgradeCost": 0,
+          "effects": [],
+          "description": "Standard slash"
+        },
+        {
+          "tier": 2,
+          "upgradeCost": 200,
+          "effects": [
+            {
+              "type": "slash_width",
+              "value": 1.1,
+              "description": "+10% slash width"
+            }
+          ],
+          "description": "Slightly wider slash"
+        },
+        {
+          "tier": 3,
+          "upgradeCost": 500,
+          "effects": [
+            {
+              "type": "slash_width",
+              "value": 1.2,
+              "description": "+20% slash width"
+            }
+          ],
+          "description": "Wider slash radius"
+        }
+      ]
+    },
+    {
+      "id": "silver_blade",
+      "name": "Silver Blade",
+      "description": "Blessed silver burns the undead",
+      "rarity": "uncommon",
+      "unlockCost": 300,
+      "isStarter": false,
+      "trailColor": "#c0c0c0",
+      "trailGlow": "#e8e8e8",
+      "effectiveAgainst": "vampire",
+      "tiers": [
+        {
+          "tier": 1,
+          "upgradeCost": 0,
+          "effects": [
+            {
+              "type": "bonus_damage",
+              "target": "vampire",
+              "value": 1.25,
+              "description": "+25% damage to vampires"
+            }
+          ],
+          "description": "Effective against vampires"
+        },
+        {
+          "tier": 2,
+          "upgradeCost": 400,
+          "effects": [
+            {
+              "type": "bonus_damage",
+              "target": "vampire",
+              "value": 1.5,
+              "description": "+50% damage to vampires"
+            }
+          ],
+          "description": "Silver burns brighter"
+        },
+        {
+          "tier": 3,
+          "upgradeCost": 800,
+          "effects": [
+            {
+              "type": "bonus_damage",
+              "target": "vampire",
+              "value": 1.75,
+              "description": "+75% damage to vampires"
+            },
+            {
+              "type": "stun",
+              "target": "vampire",
+              "duration": 0.5,
+              "description": "Stuns vampires briefly"
+            }
+          ],
+          "description": "Vampires cower in fear"
+        }
+      ]
+    },
+    {
+      "id": "holy_cross_blade",
+      "name": "Holy Cross Blade",
+      "description": "Sanctified steel reveals the hidden",
+      "rarity": "uncommon",
+      "unlockCost": 300,
+      "isStarter": false,
+      "trailColor": "#ffd700",
+      "trailGlow": "#ffec8b",
+      "effectiveAgainst": "ghost",
+      "tiers": [
+        {
+          "tier": 1,
+          "upgradeCost": 0,
+          "effects": [
+            {
+              "type": "ghost_visibility",
+              "value": 1.2,
+              "description": "Ghosts visible 20% longer"
+            }
+          ],
+          "description": "Holy light reveals ghosts"
+        },
+        {
+          "tier": 2,
+          "upgradeCost": 400,
+          "effects": [
+            {
+              "type": "ghost_visibility",
+              "value": 1.4,
+              "description": "Ghosts visible 40% longer"
+            }
+          ],
+          "description": "Stronger holy aura"
+        },
+        {
+          "tier": 3,
+          "upgradeCost": 800,
+          "effects": [
+            {
+              "type": "ghost_visibility",
+              "value": 2.0,
+              "description": "Ghosts always visible when near blade"
+            },
+            {
+              "type": "proximity_reveal",
+              "radius": 150,
+              "description": "Reveals ghosts within range"
+            }
+          ],
+          "description": "No ghost can hide"
+        }
+      ]
+    },
+    {
+      "id": "fire_sword",
+      "name": "Fire Sword",
+      "description": "Flames that cleanse the rotting dead",
+      "rarity": "rare",
+      "unlockCost": 500,
+      "isStarter": false,
+      "trailColor": "#ff4500",
+      "trailGlow": "#ff6347",
+      "effectiveAgainst": "zombie",
+      "tiers": [
+        {
+          "tier": 1,
+          "upgradeCost": 0,
+          "effects": [
+            {
+              "type": "damage_over_time",
+              "target": "zombie",
+              "ticks": 1,
+              "damagePerTick": 1,
+              "tickInterval": 0.5,
+              "description": "Burns zombies for 1 extra damage"
+            }
+          ],
+          "description": "Sets zombies ablaze"
+        },
+        {
+          "tier": 2,
+          "upgradeCost": 600,
+          "effects": [
+            {
+              "type": "damage_over_time",
+              "target": "zombie",
+              "ticks": 2,
+              "damagePerTick": 1,
+              "tickInterval": 0.5,
+              "description": "Burns zombies for 2 extra damage"
+            }
+          ],
+          "description": "Hotter flames"
+        },
+        {
+          "tier": 3,
+          "upgradeCost": 1000,
+          "effects": [
+            {
+              "type": "damage_over_time",
+              "target": "zombie",
+              "ticks": 2,
+              "damagePerTick": 1,
+              "tickInterval": 0.5,
+              "description": "Burns zombies"
+            },
+            {
+              "type": "spread_damage",
+              "target": "zombie",
+              "radius": 80,
+              "damage": 1,
+              "description": "Fire spreads to nearby zombies"
+            }
+          ],
+          "description": "Inferno spreads to nearby enemies"
+        }
+      ]
+    },
+    {
+      "id": "ice_blade",
+      "name": "Ice Blade",
+      "description": "Freezing cold slows all who feel its touch",
+      "rarity": "rare",
+      "unlockCost": 500,
+      "isStarter": false,
+      "trailColor": "#00bfff",
+      "trailGlow": "#87ceeb",
+      "effectiveAgainst": null,
+      "tiers": [
+        {
+          "tier": 1,
+          "upgradeCost": 0,
+          "effects": [
+            {
+              "type": "slow",
+              "value": 0.9,
+              "duration": 2.0,
+              "description": "Slows monsters by 10% for 2s"
+            }
+          ],
+          "description": "Chills enemies on hit"
+        },
+        {
+          "tier": 2,
+          "upgradeCost": 600,
+          "effects": [
+            {
+              "type": "slow",
+              "value": 0.8,
+              "duration": 3.0,
+              "description": "Slows monsters by 20% for 3s"
+            }
+          ],
+          "description": "Deeper freeze"
+        },
+        {
+          "tier": 3,
+          "upgradeCost": 1000,
+          "effects": [
+            {
+              "type": "slow",
+              "value": 0.7,
+              "duration": 3.0,
+              "description": "Slows monsters by 30% for 3s"
+            },
+            {
+              "type": "freeze_chance",
+              "value": 0.15,
+              "freezeDuration": 1.5,
+              "description": "15% chance to freeze solid"
+            }
+          ],
+          "description": "May freeze enemies solid"
+        }
+      ]
+    },
+    {
+      "id": "lightning_katana",
+      "name": "Lightning Katana",
+      "description": "Thunder strikes those who stand together",
+      "rarity": "epic",
+      "unlockCost": 800,
+      "isStarter": false,
+      "trailColor": "#9932cc",
+      "trailGlow": "#da70d6",
+      "effectiveAgainst": null,
+      "tiers": [
+        {
+          "tier": 1,
+          "upgradeCost": 0,
+          "effects": [
+            {
+              "type": "chain_damage",
+              "chainCount": 1,
+              "chainRadius": 100,
+              "chainDamage": 1,
+              "description": "Chains to 1 nearby enemy"
+            }
+          ],
+          "description": "Lightning arcs to nearby enemy"
+        },
+        {
+          "tier": 2,
+          "upgradeCost": 900,
+          "effects": [
+            {
+              "type": "chain_damage",
+              "chainCount": 2,
+              "chainRadius": 120,
+              "chainDamage": 1,
+              "description": "Chains to 2 nearby enemies"
+            }
+          ],
+          "description": "Stronger electrical charge"
+        },
+        {
+          "tier": 3,
+          "upgradeCost": 1500,
+          "effects": [
+            {
+              "type": "chain_damage",
+              "chainCount": 3,
+              "chainRadius": 150,
+              "chainDamage": 1,
+              "description": "Chains to 3 nearby enemies"
+            },
+            {
+              "type": "chain_stun",
+              "stunDuration": 0.3,
+              "description": "Chained enemies are briefly stunned"
+            }
+          ],
+          "description": "Lightning storm devastates groups"
+        }
+      ]
+    }
+  ],
+  "rarityColors": {
+    "common": "#9d9d9d",
+    "uncommon": "#1eff00",
+    "rare": "#0070dd",
+    "epic": "#a335ee",
+    "legendary": "#ff8000"
+  }
+}

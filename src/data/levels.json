@@ -1,0 +1,755 @@
+{
+  "levels": [
+    {
+      "id": "1-1",
+      "world": 1,
+      "level": 1,
+      "name": "First Blood",
+      "description": "Learn to slay the undead",
+      "duration": 45,
+      "minKills": 15,
+      "spawnRate": 0.8,
+      "monsterWeights": {
+        "zombie": 100,
+        "vampire": 0,
+        "ghost": 0
+      },
+      "villagerChance": 0,
+      "powerUpInterval": 20,
+      "isBoss": false,
+      "starThresholds": [500, 1000, 1500]
+    },
+    {
+      "id": "1-2",
+      "world": 1,
+      "level": 2,
+      "name": "Rising Dead",
+      "description": "More zombies emerge from the graves",
+      "duration": 50,
+      "minKills": 20,
+      "spawnRate": 1.0,
+      "monsterWeights": {
+        "zombie": 90,
+        "vampire": 10,
+        "ghost": 0
+      },
+      "villagerChance": 0.03,
+      "powerUpInterval": 18,
+      "isBoss": false,
+      "starThresholds": [700, 1400, 2100]
+    },
+    {
+      "id": "1-3",
+      "world": 1,
+      "level": 3,
+      "name": "Midnight Prowl",
+      "description": "Vampires join the hunt",
+      "duration": 55,
+      "minKills": 25,
+      "spawnRate": 1.1,
+      "monsterWeights": {
+        "zombie": 75,
+        "vampire": 25,
+        "ghost": 0
+      },
+      "villagerChance": 0.05,
+      "powerUpInterval": 17,
+      "isBoss": false,
+      "starThresholds": [900, 1800, 2700]
+    },
+    {
+      "id": "1-4",
+      "world": 1,
+      "level": 4,
+      "name": "Graveyard Shift",
+      "description": "The dead rise en masse",
+      "duration": 60,
+      "minKills": 30,
+      "spawnRate": 1.2,
+      "monsterWeights": {
+        "zombie": 70,
+        "vampire": 20,
+        "ghost": 10
+      },
+      "villagerChance": 0.06,
+      "powerUpInterval": 16,
+      "isBoss": false,
+      "starThresholds": [1100, 2200, 3300]
+    },
+    {
+      "id": "1-5",
+      "world": 1,
+      "level": 5,
+      "name": "The Grave Titan",
+      "description": "A massive zombie blocks your path",
+      "duration": 90,
+      "minKills": 20,
+      "spawnRate": 0.7,
+      "monsterWeights": {
+        "zombie": 100,
+        "vampire": 0,
+        "ghost": 0
+      },
+      "villagerChance": 0,
+      "powerUpInterval": 15,
+      "isBoss": true,
+      "bossId": "grave_titan",
+      "bossHealth": 20,
+      "starThresholds": [1500, 2500, 4000]
+    },
+    {
+      "id": "2-1",
+      "world": 2,
+      "level": 1,
+      "name": "Village Outskirts",
+      "description": "Protect the fleeing villagers",
+      "duration": 50,
+      "minKills": 25,
+      "spawnRate": 1.2,
+      "monsterWeights": {
+        "zombie": 60,
+        "vampire": 30,
+        "ghost": 10
+      },
+      "villagerChance": 0.08,
+      "powerUpInterval": 16,
+      "isBoss": false,
+      "starThresholds": [1200, 2400, 3600]
+    },
+    {
+      "id": "2-2",
+      "world": 2,
+      "level": 2,
+      "name": "Abandoned Streets",
+      "description": "The village is overrun",
+      "duration": 55,
+      "minKills": 30,
+      "spawnRate": 1.3,
+      "monsterWeights": {
+        "zombie": 55,
+        "vampire": 30,
+        "ghost": 15
+      },
+      "villagerChance": 0.09,
+      "powerUpInterval": 15,
+      "isBoss": false,
+      "starThresholds": [1400, 2800, 4200]
+    },
+    {
+      "id": "2-3",
+      "world": 2,
+      "level": 3,
+      "name": "Town Square Terror",
+      "description": "Monsters converge at the center",
+      "duration": 60,
+      "minKills": 35,
+      "spawnRate": 1.4,
+      "monsterWeights": {
+        "zombie": 50,
+        "vampire": 30,
+        "ghost": 20
+      },
+      "villagerChance": 0.10,
+      "powerUpInterval": 15,
+      "isBoss": false,
+      "starThresholds": [1600, 3200, 4800]
+    },
+    {
+      "id": "2-4",
+      "world": 2,
+      "level": 4,
+      "name": "Church Grounds",
+      "description": "Even holy ground offers no safety",
+      "duration": 65,
+      "minKills": 40,
+      "spawnRate": 1.5,
+      "monsterWeights": {
+        "zombie": 45,
+        "vampire": 35,
+        "ghost": 20
+      },
+      "villagerChance": 0.11,
+      "powerUpInterval": 14,
+      "isBoss": false,
+      "starThresholds": [1800, 3600, 5400]
+    },
+    {
+      "id": "2-5",
+      "world": 2,
+      "level": 5,
+      "name": "The Headless Horseman",
+      "description": "A legendary terror rides forth",
+      "duration": 100,
+      "minKills": 25,
+      "spawnRate": 0.8,
+      "monsterWeights": {
+        "zombie": 50,
+        "vampire": 50,
+        "ghost": 0
+      },
+      "villagerChance": 0.05,
+      "powerUpInterval": 14,
+      "isBoss": true,
+      "bossId": "headless_horseman",
+      "bossHealth": 25,
+      "starThresholds": [2200, 3500, 5500]
+    },
+    {
+      "id": "3-1",
+      "world": 3,
+      "level": 1,
+      "name": "Castle Gates",
+      "description": "Enter the vampire's domain",
+      "duration": 55,
+      "minKills": 35,
+      "spawnRate": 1.4,
+      "monsterWeights": {
+        "zombie": 30,
+        "vampire": 50,
+        "ghost": 20
+      },
+      "villagerChance": 0.08,
+      "powerUpInterval": 15,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 1,
+        "vampire": 1,
+        "ghost": 1
+      },
+      "starThresholds": [1800, 3600, 5400]
+    },
+    {
+      "id": "3-2",
+      "world": 3,
+      "level": 2,
+      "name": "Grand Hall",
+      "description": "Vampires swarm the ballroom",
+      "duration": 60,
+      "minKills": 40,
+      "spawnRate": 1.5,
+      "monsterWeights": {
+        "zombie": 25,
+        "vampire": 55,
+        "ghost": 20
+      },
+      "villagerChance": 0.09,
+      "powerUpInterval": 14,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 1,
+        "vampire": 2,
+        "ghost": 1
+      },
+      "starThresholds": [2000, 4000, 6000]
+    },
+    {
+      "id": "3-3",
+      "world": 3,
+      "level": 3,
+      "name": "The Catacombs",
+      "description": "Ancient undead stir below",
+      "duration": 65,
+      "minKills": 45,
+      "spawnRate": 1.6,
+      "monsterWeights": {
+        "zombie": 30,
+        "vampire": 50,
+        "ghost": 20
+      },
+      "villagerChance": 0.10,
+      "powerUpInterval": 14,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 1
+      },
+      "starThresholds": [2200, 4400, 6600]
+    },
+    {
+      "id": "3-4",
+      "world": 3,
+      "level": 4,
+      "name": "Tower Ascent",
+      "description": "Climb toward the lord's chamber",
+      "duration": 70,
+      "minKills": 50,
+      "spawnRate": 1.7,
+      "monsterWeights": {
+        "zombie": 25,
+        "vampire": 55,
+        "ghost": 20
+      },
+      "villagerChance": 0.10,
+      "powerUpInterval": 13,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 1
+      },
+      "starThresholds": [2400, 4800, 7200]
+    },
+    {
+      "id": "3-5",
+      "world": 3,
+      "level": 5,
+      "name": "The Vampire Lord",
+      "description": "Face the master of the castle",
+      "duration": 110,
+      "minKills": 30,
+      "spawnRate": 0.9,
+      "monsterWeights": {
+        "zombie": 20,
+        "vampire": 60,
+        "ghost": 20
+      },
+      "villagerChance": 0.05,
+      "powerUpInterval": 13,
+      "isBoss": true,
+      "bossId": "vampire_lord",
+      "bossHealth": 30,
+      "starThresholds": [2800, 4500, 7000]
+    },
+    {
+      "id": "4-1",
+      "world": 4,
+      "level": 1,
+      "name": "Veil Crossing",
+      "description": "Enter the realm between worlds",
+      "duration": 60,
+      "minKills": 40,
+      "spawnRate": 1.5,
+      "monsterWeights": {
+        "zombie": 20,
+        "vampire": 30,
+        "ghost": 50
+      },
+      "villagerChance": 0.08,
+      "powerUpInterval": 14,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 1
+      },
+      "spawnPattern": "ghost_realm",
+      "starThresholds": [2400, 4800, 7200]
+    },
+    {
+      "id": "4-2",
+      "world": 4,
+      "level": 2,
+      "name": "Spectral Gardens",
+      "description": "Ghosts drift among dead flowers",
+      "duration": 65,
+      "minKills": 45,
+      "spawnRate": 1.6,
+      "monsterWeights": {
+        "zombie": 20,
+        "vampire": 25,
+        "ghost": 55
+      },
+      "villagerChance": 0.09,
+      "powerUpInterval": 13,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 2
+      },
+      "spawnPattern": "ghost_realm",
+      "starThresholds": [2600, 5200, 7800]
+    },
+    {
+      "id": "4-3",
+      "world": 4,
+      "level": 3,
+      "name": "Hall of Echoes",
+      "description": "Whispers of the dead surround you",
+      "duration": 70,
+      "minKills": 50,
+      "spawnRate": 1.7,
+      "monsterWeights": {
+        "zombie": 15,
+        "vampire": 25,
+        "ghost": 60
+      },
+      "villagerChance": 0.10,
+      "powerUpInterval": 13,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 2
+      },
+      "spawnPattern": "ghost_realm",
+      "starThresholds": [2800, 5600, 8400]
+    },
+    {
+      "id": "4-4",
+      "world": 4,
+      "level": 4,
+      "name": "Throne of Souls",
+      "description": "Approach the phantom's seat of power",
+      "duration": 75,
+      "minKills": 55,
+      "spawnRate": 1.8,
+      "monsterWeights": {
+        "zombie": 15,
+        "vampire": 25,
+        "ghost": 60
+      },
+      "villagerChance": 0.10,
+      "powerUpInterval": 12,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 2
+      },
+      "spawnPattern": "ghost_realm",
+      "starThresholds": [3000, 6000, 9000]
+    },
+    {
+      "id": "4-5",
+      "world": 4,
+      "level": 5,
+      "name": "The Phantom King",
+      "description": "The ruler of the dead awaits",
+      "duration": 120,
+      "minKills": 35,
+      "spawnRate": 1.0,
+      "monsterWeights": {
+        "zombie": 10,
+        "vampire": 20,
+        "ghost": 70
+      },
+      "villagerChance": 0.05,
+      "powerUpInterval": 12,
+      "isBoss": true,
+      "bossId": "phantom_king",
+      "bossHealth": 35,
+      "spawnPattern": "ghost_realm",
+      "starThresholds": [3500, 5500, 8500]
+    },
+    {
+      "id": "5-1",
+      "world": 5,
+      "level": 1,
+      "name": "Gates of Hell",
+      "description": "Descend into the inferno",
+      "duration": 65,
+      "minKills": 50,
+      "spawnRate": 1.7,
+      "monsterWeights": {
+        "zombie": 33,
+        "vampire": 33,
+        "ghost": 34
+      },
+      "villagerChance": 0.08,
+      "powerUpInterval": 13,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 2
+      },
+      "starThresholds": [3200, 6400, 9600]
+    },
+    {
+      "id": "5-2",
+      "world": 5,
+      "level": 2,
+      "name": "River of Flames",
+      "description": "Cross the burning waters",
+      "duration": 70,
+      "minKills": 55,
+      "spawnRate": 1.8,
+      "monsterWeights": {
+        "zombie": 33,
+        "vampire": 33,
+        "ghost": 34
+      },
+      "villagerChance": 0.09,
+      "powerUpInterval": 12,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 2
+      },
+      "starThresholds": [3400, 6800, 10200]
+    },
+    {
+      "id": "5-3",
+      "world": 5,
+      "level": 3,
+      "name": "Brimstone Pits",
+      "description": "Demons spawn from molten rock",
+      "duration": 75,
+      "minKills": 60,
+      "spawnRate": 1.9,
+      "monsterWeights": {
+        "zombie": 33,
+        "vampire": 33,
+        "ghost": 34
+      },
+      "villagerChance": 0.10,
+      "powerUpInterval": 12,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 2
+      },
+      "starThresholds": [3600, 7200, 10800]
+    },
+    {
+      "id": "5-4",
+      "world": 5,
+      "level": 4,
+      "name": "The Dark Citadel",
+      "description": "The demon's fortress looms",
+      "duration": 80,
+      "minKills": 65,
+      "spawnRate": 2.0,
+      "monsterWeights": {
+        "zombie": 33,
+        "vampire": 33,
+        "ghost": 34
+      },
+      "villagerChance": 0.10,
+      "powerUpInterval": 11,
+      "isBoss": false,
+      "monsterHealth": {
+        "zombie": 2,
+        "vampire": 2,
+        "ghost": 2
+      },
+      "starThresholds": [3800, 7600, 11400]
+    },
+    {
+      "id": "5-5",
+      "world": 5,
+      "level": 5,
+      "name": "The Demon Overlord",
+      "description": "End the nightmare forever",
+      "duration": 150,
+      "minKills": 40,
+      "spawnRate": 1.1,
+      "monsterWeights": {
+        "zombie": 33,
+        "vampire": 33,
+        "ghost": 34
+      },
+      "villagerChance": 0.05,
+      "powerUpInterval": 11,
+      "isBoss": true,
+      "bossId": "demon_overlord",
+      "bossHealth": 50,
+      "starThresholds": [5000, 8000, 12000]
+    }
+  ],
+  "worlds": [
+    {
+      "id": 1,
+      "name": "Graveyard",
+      "description": "Where the dead first rise",
+      "theme": "graveyard",
+      "backgroundKey": "bg_graveyard",
+      "unlockRequirement": null,
+      "spawnPattern": "default"
+    },
+    {
+      "id": 2,
+      "name": "Haunted Village",
+      "description": "An abandoned town of terror",
+      "theme": "village",
+      "backgroundKey": "bg_village",
+      "unlockRequirement": "1-5",
+      "spawnPattern": "default"
+    },
+    {
+      "id": 3,
+      "name": "Vampire Castle",
+      "description": "The lord's gothic domain",
+      "theme": "castle",
+      "backgroundKey": "bg_castle",
+      "unlockRequirement": "2-5",
+      "spawnPattern": "default"
+    },
+    {
+      "id": 4,
+      "name": "Ghost Realm",
+      "description": "The ethereal plane between worlds",
+      "theme": "ghost_realm",
+      "backgroundKey": "bg_ghost_realm",
+      "unlockRequirement": "3-5",
+      "spawnPattern": "ghost_realm"
+    },
+    {
+      "id": 5,
+      "name": "Hell Dimension",
+      "description": "The source of all evil",
+      "theme": "hell",
+      "backgroundKey": "bg_hell",
+      "unlockRequirement": "4-5",
+      "spawnPattern": "default"
+    },
+    {
+      "id": 6,
+      "name": "Coming Soon",
+      "description": "New horrors await...",
+      "theme": "locked",
+      "backgroundKey": null,
+      "unlockRequirement": null,
+      "isPlaceholder": true
+    }
+  ],
+  "bosses": {
+    "grave_titan": {
+      "id": "grave_titan",
+      "name": "Grave Titan",
+      "description": "A massive zombie animated by dark magic",
+      "health": 20,
+      "phases": [
+        {
+          "healthThreshold": 1.0,
+          "attackPattern": "slow_swipe",
+          "minionSpawnRate": 3.0,
+          "minionType": "zombie"
+        },
+        {
+          "healthThreshold": 0.66,
+          "attackPattern": "double_swipe",
+          "minionSpawnRate": 2.5,
+          "minionType": "zombie"
+        },
+        {
+          "healthThreshold": 0.33,
+          "attackPattern": "ground_slam",
+          "minionSpawnRate": 2.0,
+          "minionType": "zombie"
+        }
+      ],
+      "soulsReward": 150
+    },
+    "headless_horseman": {
+      "id": "headless_horseman",
+      "name": "Headless Horseman",
+      "description": "A legendary specter that rides through the night",
+      "health": 25,
+      "phases": [
+        {
+          "healthThreshold": 1.0,
+          "attackPattern": "charge",
+          "minionSpawnRate": 4.0,
+          "minionTypes": ["zombie", "vampire"]
+        },
+        {
+          "healthThreshold": 0.66,
+          "attackPattern": "head_throw",
+          "minionSpawnRate": 3.0,
+          "minionTypes": ["zombie", "vampire"]
+        },
+        {
+          "healthThreshold": 0.33,
+          "attackPattern": "rapid_charge",
+          "minionSpawnRate": 2.5,
+          "minionTypes": ["zombie", "vampire"]
+        }
+      ],
+      "soulsReward": 200
+    },
+    "vampire_lord": {
+      "id": "vampire_lord",
+      "name": "Vampire Lord",
+      "description": "The ancient master of all vampires",
+      "health": 30,
+      "phases": [
+        {
+          "healthThreshold": 1.0,
+          "attackPattern": "bat_wave",
+          "minionSpawnRate": 4.0,
+          "minionTypes": ["vampire", "ghost"]
+        },
+        {
+          "healthThreshold": 0.66,
+          "attackPattern": "teleport_strike",
+          "minionSpawnRate": 3.0,
+          "minionTypes": ["vampire", "ghost"]
+        },
+        {
+          "healthThreshold": 0.33,
+          "attackPattern": "blood_rain",
+          "minionSpawnRate": 2.0,
+          "minionTypes": ["vampire", "ghost"]
+        }
+      ],
+      "soulsReward": 250
+    },
+    "phantom_king": {
+      "id": "phantom_king",
+      "name": "Phantom King",
+      "description": "The ruler of all restless spirits",
+      "health": 35,
+      "phases": [
+        {
+          "healthThreshold": 1.0,
+          "attackPattern": "phase_shift",
+          "minionSpawnRate": 4.0,
+          "minionType": "ghost"
+        },
+        {
+          "healthThreshold": 0.66,
+          "attackPattern": "clone_summon",
+          "cloneCount": 2,
+          "minionSpawnRate": 3.0,
+          "minionType": "ghost"
+        },
+        {
+          "healthThreshold": 0.33,
+          "attackPattern": "soul_storm",
+          "cloneCount": 3,
+          "minionSpawnRate": 2.0,
+          "minionType": "ghost"
+        }
+      ],
+      "soulsReward": 300
+    },
+    "demon_overlord": {
+      "id": "demon_overlord",
+      "name": "Demon Overlord",
+      "description": "The source of all evil in the mortal realm",
+      "health": 50,
+      "phases": [
+        {
+          "healthThreshold": 1.0,
+          "attackPattern": "fire_breath",
+          "minionSpawnRate": 3.5,
+          "minionTypes": ["zombie", "vampire", "ghost"]
+        },
+        {
+          "healthThreshold": 0.75,
+          "attackPattern": "summon_pillars",
+          "minionSpawnRate": 3.0,
+          "minionTypes": ["zombie", "vampire", "ghost"]
+        },
+        {
+          "healthThreshold": 0.50,
+          "attackPattern": "teleport_fire",
+          "minionSpawnRate": 2.5,
+          "minionTypes": ["zombie", "vampire", "ghost"]
+        },
+        {
+          "healthThreshold": 0.25,
+          "attackPattern": "inferno_rage",
+          "minionSpawnRate": 2.0,
+          "minionTypes": ["zombie", "vampire", "ghost"]
+        }
+      ],
+      "soulsReward": 500
+    }
+  }
+}

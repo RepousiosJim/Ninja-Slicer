@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monster Slayer - Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1a1a2e;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #8b0000;
+      font-family: 'Arial Black', sans-serif;
+      font-size: 2.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
+    }
+    
+    .icon {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      color: #cccccc;
+      font-size: 1.1rem;
+      max-width: 400px;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #8b0000, #aa0000);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(139, 0, 0, 0.5);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .tip {
+      margin-top: 3rem;
+      padding: 1rem;
+      background: rgba(74, 0, 128, 0.3);
+      border-radius: 8px;
+      max-width: 400px;
+    }
+    
+    .tip h3 {
+      color: #9932cc;
+      margin-bottom: 0.5rem;
+    }
+    
+    .tip p {
+      font-size: 0.9rem;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="icon">📡</div>
+  <h1>You're Offline</h1>
+  <p>
+    It looks like you've lost your internet connection. 
+    Don't worry - your progress is saved locally!
+  </p>
+  <button onclick="location.reload()">
+    Try Again
+  </button>
+  
+  <div class="tip">
+    <h3>💡 Tip</h3>
+    <p>
+      Install Monster Slayer to your home screen for the best offline experience!
+    </p>
+  </div>
+  
+  <script>
+    // Auto-reload when connection is restored
+    window.addEventListener('online', () => {
+      location.reload();
+    });
+  </script>
+</body>
+</html>

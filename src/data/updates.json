@@ -1,0 +1,58 @@
+{
+  "updates": [
+    {
+      "version": "0.2.0",
+      "date": "2025-01-28",
+      "title": "Major Visibility & UX Update",
+      "type": "major",
+      "changes": [
+        "Complete visual overhaul with bright colored monster backgrounds",
+        "Pure black background for maximum contrast",
+        "Monsters now 2x larger and color-coded (Green=Zombie, Red=Vampire, Cyan=Ghost)",
+        "Villagers have pulsing yellow backgrounds - impossible to miss!",
+        "Added bright slash trail with custom crosshair cursor",
+        "Fixed all gameplay crashes after slicing monsters",
+        "Improved memory management and physics system",
+        "Enhanced responsive UI for all screen sizes",
+        "Better mobile touch support"
+      ]
+    },
+    {
+      "version": "0.1.0",
+      "date": "2025-01-15",
+      "title": "Initial Release",
+      "type": "major",
+      "changes": [
+        "Complete campaign with 25 levels across 5 worlds",
+        "5 epic boss fights",
+        "6 unique weapons with 3 upgrade tiers each",
+        "5 permanent upgrades to boost your power",
+        "4 power-ups: Slow Motion, Frenzy, Shield, Soul Magnet",
+        "Endless mode with difficulty scaling",
+        "Online leaderboards",
+        "Full progression system with souls currency",
+        "3 monster types: Zombies, Vampires, and Ghosts"
+      ]
+    }
+  ],
+  "upcoming": [
+    {
+      "title": "Audio System",
+      "description": "Sound effects and music",
+      "priority": "high",
+      "status": "planned"
+    },
+    {
+      "title": "More Worlds",
+      "description": "Worlds 6-10 with new monsters and bosses",
+      "priority": "medium",
+      "status": "in_development"
+    },
+    {
+      "title": "Achievements",
+      "description": "Unlock badges and special rewards",
+      "priority": "medium",
+      "status": "planned"
+    }
+  ]
+}
