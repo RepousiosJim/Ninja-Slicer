@@ -3,7 +3,7 @@
  * Complete theme system with all color palette, typography, spacing, and animation constants
  */
 
-import { ThemeConfig } from '../config/types';
+import { ThemeConfig, DashboardCardConfig, BackgroundLayerConfig } from '../config/types';
 
 /**
  * Dark Gothic Theme Configuration
@@ -34,6 +34,41 @@ export const DARK_GOTHIC_THEME: ThemeConfig = {
     ghostlyBlue: 0x00a8cc, // For ghost-related elements
     demonGreen: 0x008000, // For demonic elements
     holyWhite: 0xf5f5f5, // For holy/blessed elements
+
+    // Gradient Definitions
+    gradients: {
+      primaryGradient: {
+        start: 0x8b0000, // Dark red
+        end: 0x5a0000, // Darker red
+        angle: 90, // Vertical gradient
+      },
+      secondaryGradient: {
+        start: 0x4a0080, // Dark purple
+        end: 0x2a0050, // Darker purple
+        angle: 90,
+      },
+      cardGradient: {
+        start: 0x2a2a4a, // Current card bg
+        end: 0x1a1a2e, // Darker variant
+        angle: 135, // Diagonal
+      },
+      backgroundGradient: {
+        start: 0x0a0a1e, // Very dark blue-gray
+        end: 0x1a1a2e, // Current background
+        angle: 180, // Bottom to top
+      },
+      glowGradient: {
+        start: { color: 0xffd700, alpha: 0.6 }, // Gold glow
+        end: { color: 0xff8c00, alpha: 0 }, // Orange fade
+      },
+    },
+
+    // Shadow/Depth colors
+    shadows: {
+      deep: 0x000000,
+      medium: 0x0a0a0a,
+      light: 0x1a1a1a,
+    },
   },
 
   fonts: {
@@ -53,8 +88,85 @@ export const DARK_GOTHIC_THEME: ThemeConfig = {
   animations: {
     duration: 200, // Default animation duration in milliseconds
     easing: 'Power2', // Smooth acceleration/deceleration easing function
-    hoverScale: 1.02, // Subtle enlargement on hover
-    pressScale: 0.98, // Subtle compression on press
+    hoverScale: 1.05, // Increased from 1.02
+    pressScale: 0.95, // Decreased from 0.98
+
+    // Enhanced animation presets
+    presets: {
+      cardEntrance: {
+        duration: 600,
+        easing: 'Back.easeOut',
+        from: { alpha: 0, scale: 0.8, y: 50 },
+        to: { alpha: 1, scale: 1, y: 0 },
+      },
+      cardHover: {
+        duration: 300,
+        easing: 'Power2.easeOut',
+        scale: 1.05,
+        y: -8, // Lift effect
+        shadow: { blur: 20 }, // Enhanced shadow
+      },
+      buttonPress: {
+        duration: 100,
+        easing: 'Power2.easeIn',
+        scale: 0.95,
+        brightness: 0.85,
+      },
+      glowPulse: {
+        duration: 2000,
+        easing: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        alpha: { from: 0.6, to: 1.0 },
+      },
+      staggerDelay: 100, // Delay between staggered elements
+    },
+  },
+
+  // Visual effects configuration
+  effects: {
+    glow: {
+      intensity: 8, // Blur radius for glow
+      color: 0xffd700, // Gold glow
+      innerAlpha: 0.8, // Inner glow strength
+      outerAlpha: 0.3, // Outer glow strength
+    },
+    shadow: {
+      offsetX: 4,
+      offsetY: 6,
+      blur: 12,
+      color: 'rgba(0,0,0,0.9)',
+      spread: 2, // Shadow spread
+    },
+    particles: {
+      soulWisp: {
+        color: 0xffd700,
+        count: 30,
+        speed: { min: -20, max: 20 },
+        lifespan: 4000,
+        scale: { start: 0.3, end: 0 },
+        alpha: { start: 0.6, end: 0 },
+        frequency: 200,
+      },
+      ember: {
+        color: 0xff4500,
+        count: 20,
+        speed: { min: -10, max: 10 },
+        lifespan: 3000,
+        scale: { start: 0.2, end: 0 },
+        alpha: { start: 0.8, end: 0 },
+        frequency: 300,
+      },
+      mist: {
+        color: 0x4a0080,
+        count: 15,
+        speed: { min: -5, max: 5 },
+        lifespan: 6000,
+        scale: { start: 1.0, end: 0.5 },
+        alpha: { start: 0.3, end: 0 },
+        frequency: 500,
+      },
+    },
   },
 };
 
@@ -243,6 +355,67 @@ export const ELEMENT_COLORS = {
   lightning: 0xffff00, // Yellow
   holy: 0xffffff, // White
   poison: 0x00ff00, // Green
+} as const;
+
+/**
+ * Card Dashboard Configuration
+ * New constants for card-based main menu layout
+ */
+export const DASHBOARD_CARD_CONFIG: DashboardCardConfig = {
+  // Card dimensions
+  width: 380,
+  height: 280,
+
+  // Layout
+  columns: 3,
+  rows: 2,
+  gap: 20,
+
+  // Visual style
+  borderRadius: 12,
+  borderWidth: 3,
+  innerPadding: 20,
+
+  // Animation
+  hoverLift: -12,
+  hoverScale: 1.03,
+  hoverGlowIntensity: 16,
+
+  // Content
+  iconSize: 80,
+  titleFontSize: 28,
+  descriptionFontSize: 16,
+  statFontSize: 14,
+} as const;
+
+/**
+ * Layered Background Configuration
+ */
+export const BACKGROUND_LAYERS: Record<string, BackgroundLayerConfig> = {
+  base: {
+    type: 'gradient',
+    colors: [0x0a0a1e, 0x1a1a2e],
+    angle: 180,
+  },
+  particles: {
+    type: 'particles',
+    enabled: true,
+    types: ['soulWisp', 'ember', 'mist'],
+  },
+  vignette: {
+    type: 'vignette',
+    enabled: true,
+    color: 0x000000,
+    alpha: 0.5,
+    radius: 0.7,
+  },
+  overlay: {
+    type: 'overlay',
+    enabled: true,
+    texture: 'noise', // Subtle noise texture
+    alpha: 0.1,
+    blend: 'overlay',
+  },
 } as const;
 
 /**

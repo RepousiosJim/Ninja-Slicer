@@ -40,6 +40,47 @@ export class ResponsiveUtils {
   }
 
   /**
+   * Get current screen size category
+   */
+  static getScreenSize(): 'mobile' | 'tablet' | 'desktop' | 'large-desktop' {
+    const width = window.innerWidth;
+
+    if (width < 768) {
+      return 'mobile';
+    } else if (width < 1024) {
+      return 'tablet';
+    } else if (width < 1920) {
+      return 'desktop';
+    } else {
+      return 'large-desktop';
+    }
+  }
+
+  /**
+   * Get current screen orientation
+   */
+  static getOrientation(): 'portrait' | 'landscape' {
+    return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+  }
+
+  /**
+   * Check if screen is small (mobile in portrait or narrow)
+   */
+  static isSmallScreen(): boolean {
+    return window.innerWidth < 768 || (this.isMobile() && this.getOrientation() === 'portrait');
+  }
+
+  /**
+   * Get actual viewport dimensions
+   */
+  static getViewportSize(): { width: number; height: number } {
+    return {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+  }
+
+  /**
    * Get responsive position based on percentage of screen
    */
   static getX(percent: number): number {

@@ -494,6 +494,90 @@ export type Bounds = {
 // THEME
 // =============================================================================
 
+export interface GradientConfig {
+  start: number;
+  end: number;
+  angle: number;
+}
+
+export interface GradientWithAlpha {
+  start: { color: number; alpha: number };
+  end: { color: number; alpha: number };
+}
+
+export interface GradientPalette {
+  primaryGradient: GradientConfig;
+  secondaryGradient: GradientConfig;
+  cardGradient: GradientConfig;
+  backgroundGradient: GradientConfig;
+  glowGradient: GradientWithAlpha;
+}
+
+export interface ShadowConfig {
+  deep: number;
+  medium: number;
+  light: number;
+}
+
+export interface ParticleTypeConfig {
+  color: number;
+  count: number;
+  speed: { min: number; max: number };
+  lifespan: number;
+  scale: { start: number; end: number };
+  alpha: { start: number; end: number };
+  frequency: number;
+}
+
+export interface ParticleSystemConfig {
+  soulWisp: ParticleTypeConfig;
+  ember: ParticleTypeConfig;
+  mist: ParticleTypeConfig;
+}
+
+export interface GlowEffectConfig {
+  intensity: number;
+  color: number;
+  innerAlpha: number;
+  outerAlpha: number;
+}
+
+export interface ShadowEffectConfig {
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  color: string;
+  spread: number;
+}
+
+export interface ThemeEffects {
+  glow: GlowEffectConfig;
+  shadow: ShadowEffectConfig;
+  particles: ParticleSystemConfig;
+}
+
+export interface AnimationPreset {
+  duration: number;
+  easing: string;
+  from?: Record<string, number>;
+  to?: Record<string, number>;
+  yoyo?: boolean;
+  repeat?: number;
+  scale?: number;
+  y?: number;
+  alpha?: { from: number; to: number };
+  shadow?: { blur: number };
+  brightness?: number;
+}
+
+export interface AnimationPresets {
+  cardEntrance: AnimationPreset;
+  cardHover: AnimationPreset;
+  buttonPress: AnimationPreset;
+  glowPulse: AnimationPreset;
+  staggerDelay: number;
+}
+
 export interface ThemeColors {
   primary: number;
   secondary: number;
@@ -510,6 +594,8 @@ export interface ThemeColors {
   ghostlyBlue: number;
   demonGreen: number;
   holyWhite: number;
+  gradients: GradientPalette;
+  shadows: ShadowConfig;
 }
 
 export interface ThemeTypography {
@@ -531,6 +617,7 @@ export interface ThemeAnimations {
   easing: string;
   hoverScale: number;
   pressScale: number;
+  presets: AnimationPresets;
 }
 
 export interface ThemeConfig {
@@ -538,4 +625,36 @@ export interface ThemeConfig {
   fonts: ThemeTypography;
   spacing: ThemeSpacing;
   animations: ThemeAnimations;
+  effects: ThemeEffects;
+}
+
+export interface DashboardCardConfig {
+  width: number;
+  height: number;
+  columns: number;
+  rows: number;
+  gap: number;
+  borderRadius: number;
+  borderWidth: number;
+  innerPadding: number;
+  hoverLift: number;
+  hoverScale: number;
+  hoverGlowIntensity: number;
+  iconSize: number;
+  titleFontSize: number;
+  descriptionFontSize: number;
+  statFontSize: number;
+}
+
+export interface BackgroundLayerConfig {
+  type: string;
+  colors?: number[];
+  angle?: number;
+  enabled?: boolean;
+  types?: string[];
+  color?: number;
+  alpha?: number;
+  radius?: number;
+  texture?: string;
+  blend?: string;
 }

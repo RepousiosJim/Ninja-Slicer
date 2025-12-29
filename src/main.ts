@@ -49,13 +49,18 @@ const config: Phaser.Types.Core.GameConfig = {
     height: GAME_HEIGHT,
     min: {
       width: 320,  // Minimum width (mobile portrait)
-      height: 180, // Minimum height
+      height: 568, // Minimum height (iPhone SE size)
     },
     max: {
-      width: 2560,  // Support larger displays
-      height: 1440,
+      width: 3840,  // Support 4K displays
+      height: 2160,
     },
-    zoom: 1, // No zoom by default
+    // Allow fullscreen on supported devices
+    fullscreenTarget: 'game-container',
+    // Automatically expand to fill available space
+    expandParent: false,
+    // Maintain aspect ratio
+    autoRound: true,
   },
   
   // Physics configuration
@@ -131,10 +136,43 @@ const config: Phaser.Types.Core.GameConfig = {
 const game = new Phaser.Game(config);
 
 /**
- * Handle window resize
+ * Handle window resize and orientation changes
  */
+let resizeTimeout: number;
 window.addEventListener('resize', () => {
-  game.scale.refresh();
+  // Debounce resize events to improve performance
+  clearTimeout(resizeTimeout);
+  resizeTimeout = window.setTimeout(() => {
+    game.scale.refresh();
+
+    // Emit resize event to all active scenes
+    game.scene.scenes.forEach((scene) => {
+      if (scene.scene.isActive()) {
+        scene.events.emit('resize', {
+          width: game.scale.width,
+          height: game.scale.height,
+        });
+      }
+    });
+  }, 100);
+});
+
+/**
+ * Handle orientation changes (mobile devices)
+ */
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    game.scale.refresh();
+
+    // Emit orientation change event to all active scenes
+    game.scene.scenes.forEach((scene) => {
+      if (scene.scene.isActive()) {
+        scene.events.emit('orientationchange', {
+          orientation: screen.orientation?.type || 'unknown',
+        });
+      }
+    });
+  }, 300); // Delay to ensure DOM has updated
 });
 
 /**

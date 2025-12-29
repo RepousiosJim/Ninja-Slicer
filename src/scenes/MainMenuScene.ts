@@ -1,35 +1,33 @@
 /**
- * Main Menu Scene
- * 
- * The main menu scene with game logo, navigation buttons,
- * and souls display.
+ * Main Menu Scene - Card-Based Dashboard Redesign
+ *
+ * Features modern card-based layout with gradient backgrounds,
+ * particle effects, and enhanced visual polish
  */
 
 import Phaser from 'phaser';
-import { SCENE_KEYS, TEXTURE_KEYS, COLORS, FONT_SIZES, UI_ANIMATION_DURATION, GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
-import { DARK_GOTHIC_THEME } from '../config/theme';
-import { Button, ButtonStyle } from '../ui/Button';
+import { SCENE_KEYS, TEXTURE_KEYS, GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { DARK_GOTHIC_THEME, DASHBOARD_CARD_CONFIG } from '../config/theme';
+import { DashboardCard } from '../ui/DashboardCard';
+import { ParticleBackground } from '../ui/ParticleBackground';
+import { GlowEffect } from '../ui/GlowEffect';
+import { TextureGenerator } from '../utils/TextureGenerator';
 import { SaveManager } from '../managers/SaveManager';
 import { AudioManager } from '../managers/AudioManager';
 import { formatNumber } from '../utils/helpers';
 import { ResponsiveUtils } from '../utils/ResponsiveUtils';
-import { UITheme } from '../utils/UITheme';
 
 /**
  * Main Menu Scene
  */
 export class MainMenuScene extends Phaser.Scene {
   // UI elements
-  private logo: Phaser.GameObjects.Text | null = null;
-  private playButton: Button | null = null;
-  private endlessButton: Button | null = null;
-  private leaderboardButton: Button | null = null;
-  private characterButton: Button | null = null;
-  private shopButton: Button | null = null;
-  private settingsButton: Button | null = null;
-  private updatesButton: Button | null = null;
+  private logo: Phaser.GameObjects.Container | null = null;
+  private dashboardCards: Map<string, DashboardCard> = new Map();
   private soulsDisplay: Phaser.GameObjects.Text | null = null;
-  private background: Phaser.GameObjects.Image | null = null;
+  private particleBackground: ParticleBackground | null = null;
+  private backgroundGraphics: Phaser.GameObjects.Graphics | null = null;
+  private vignetteOverlay: Phaser.GameObjects.Image | null = null;
 
   // Managers
   private saveManager: SaveManager;
@@ -48,14 +46,14 @@ export class MainMenuScene extends Phaser.Scene {
     this.audioManager = new AudioManager(this);
     this.audioManager.initialize();
 
-    // Create background
-    this.createBackground();
+    // Create layered background
+    this.createLayeredBackground();
 
-    // Create logo
-    this.createLogo();
+    // Create logo with glow
+    this.createEnhancedLogo();
 
-    // Create buttons
-    this.createButtons();
+    // Create card dashboard
+    this.createCardDashboard();
 
     // Create souls display
     this.createSoulsDisplay();
@@ -65,430 +63,478 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Animate elements in
     this.animateIn();
+
+    // Setup responsive event handlers
+    this.setupResponsiveHandlers();
   }
 
   /**
-   * Create background with theme
+   * Create layered background with gradient, particles, and vignette
    */
-  private createBackground(): void {
-    // Check if texture exists, otherwise use fallback
-    if (this.textures.exists(TEXTURE_KEYS.bgMenu)) {
-      this.background = this.add.image(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2,
-        TEXTURE_KEYS.bgMenu
-      );
-      this.background.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
-      this.background.setDepth(0);
-    } else {
-      // Fallback to solid color if texture doesn't exist
-      const bgRect = this.add.rectangle(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2,
-        GAME_WIDTH,
-        GAME_HEIGHT,
-        DARK_GOTHIC_THEME.colors.background
-      );
-      bgRect.setDepth(0);
-      this.background = bgRect as any;
-    }
+  private createLayeredBackground(): void {
+    // Layer 1: Gradient background
+    this.backgroundGraphics = this.add.graphics();
+    this.backgroundGraphics.fillGradientStyle(
+      DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.start,
+      DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.start,
+      DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.end,
+      DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.end,
+      1
+    );
+    this.backgroundGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    this.backgroundGraphics.setDepth(-20);
+
+    // Layer 2: Particle systems
+    this.particleBackground = new ParticleBackground(this, {
+      types: ['soulWisp', 'ember', 'mist'],
+      depth: -10,
+      interactive: true,
+    });
+    this.add.existing(this.particleBackground);
+
+    // Layer 3: Vignette overlay
+    const vignetteTexture = TextureGenerator.createVignetteTexture(
+      this,
+      GAME_WIDTH,
+      GAME_HEIGHT,
+      0x000000,
+      0.5,
+      0.7
+    );
+
+    this.vignetteOverlay = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, vignetteTexture.key);
+    this.vignetteOverlay.setDepth(-5);
+    this.vignetteOverlay.setAlpha(0.8);
   }
 
   /**
-   * Create animated game logo with theme
+   * Create enhanced logo with glow effect
    */
-  private createLogo(): void {
+  private createEnhancedLogo(): void {
     const padding = ResponsiveUtils.getPadding('large');
     const logoFontSize = ResponsiveUtils.getFontSize('title');
 
-    this.logo = this.add.text(
-      GAME_WIDTH / 2,
-      padding * 4,
-      'MONSTER SLAYER',
-      {
-        fontFamily: DARK_GOTHIC_THEME.fonts.primary,
-        fontSize: `${logoFontSize}px`,
-        color: '#' + DARK_GOTHIC_THEME.colors.accent.toString(16).padStart(6, '0'),
-        fontStyle: 'bold',
-        stroke: '#' + DARK_GOTHIC_THEME.colors.primary.toString(16).padStart(6, '0'),
-        strokeThickness: 8,
-        shadow: {
-          offsetX: 4,
-          offsetY: 4,
-          color: '#000000',
-          blur: 8,
-          stroke: true,
-          fill: true,
-        },
-      }
-    );
+    this.logo = this.add.container(GAME_WIDTH / 2, padding * 4);
 
-    this.logo.setOrigin(0.5);
+    // Glow layer (behind text)
+    const glow = new GlowEffect(this, 0, 0, {
+      color: DARK_GOTHIC_THEME.colors.accent,
+      innerIntensity: 0.9,
+      outerIntensity: 0.4,
+      blur: 20,
+      pulse: true,
+      pulseSpeed: 3000,
+    });
+    glow.setScale(3);
+    this.logo.add(glow);
+
+    // Main logo text
+    const logoText = this.add.text(0, 0, 'MONSTER SLAYER', {
+      fontFamily: DARK_GOTHIC_THEME.fonts.primary,
+      fontSize: `${logoFontSize}px`,
+      color: '#ffd700',
+      fontStyle: 'bold',
+      stroke: '#8b0000',
+      strokeThickness: 8,
+      shadow: {
+        offsetX: 4,
+        offsetY: 6,
+        color: 'rgba(0,0,0,0.9)',
+        blur: 12,
+        stroke: true,
+        fill: true,
+      },
+    });
+    logoText.setOrigin(0.5);
+    this.logo.add(logoText);
+
     this.logo.setAlpha(0);
+    this.logo.setScale(0.8);
     this.logo.setDepth(100);
 
-    // Animate logo with theme animation
+    // Entrance animation
     this.tweens.add({
       targets: this.logo,
       alpha: 1,
+      scale: 1,
       y: padding * 5,
-      duration: DARK_GOTHIC_THEME.animations.duration * 3,
-      ease: DARK_GOTHIC_THEME.animations.easing,
-      delay: DARK_GOTHIC_THEME.animations.duration,
+      duration: 800,
+      delay: 200,
+      ease: 'Back.easeOut',
     });
 
-    // Add subtle floating animation
+    // Floating animation
     this.tweens.add({
       targets: this.logo,
       y: padding * 5.5,
-      duration: 2000,
+      duration: 3000,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
-      delay: DARK_GOTHIC_THEME.animations.duration * 4,
+      delay: 1000,
     });
   }
 
   /**
-   * Create menu buttons with 2-column layout
+   * Create card-based dashboard
    */
-  private createButtons(): void {
-    const centerX = GAME_WIDTH / 2;
-    const startY = GAME_HEIGHT * 0.35; // Start at 35% of screen height
-    const buttonSize = ResponsiveUtils.getButtonSize();
-    const buttonSpacing = ResponsiveUtils.getPadding('large') * 1.8;
+  private createCardDashboard(): void {
+    const cardConfig = DASHBOARD_CARD_CONFIG;
+
+    // Calculate grid positioning
+    const totalWidth = cardConfig.columns * cardConfig.width + (cardConfig.columns - 1) * cardConfig.gap;
+    const totalHeight = cardConfig.rows * cardConfig.height + (cardConfig.rows - 1) * cardConfig.gap;
+
+    const startX = (GAME_WIDTH - totalWidth) / 2 + cardConfig.width / 2;
+    const startY = GAME_HEIGHT * 0.35 + cardConfig.height / 2;
+
+    // Get current stats for cards
+    const saveData = this.saveManager.getSaveData();
+    const lastWorld = this.getLastWorld(saveData);
+    const lastLevel = this.getLastLevel(saveData);
+    const totalStars = this.getTotalStars(saveData);
+
+    // Card configurations
+    const cards = [
+      {
+        id: 'play',
+        title: 'PLAY',
+        icon: '🎮',
+        description: 'Start Your Journey',
+        stats: [
+          { label: 'Progress', value: `World ${lastWorld}-${lastLevel}` },
+          { label: 'Stars', value: `${totalStars} ⭐` },
+        ],
+        onClick: () => this.onPlay(),
+      },
+      {
+        id: 'endless',
+        title: 'ENDLESS',
+        icon: '∞',
+        description: 'Survival Mode',
+        stats: [
+          { label: 'Best', value: formatNumber(saveData.highScores.endless || 0) },
+          { label: 'Rank', value: '#--' }, // TODO: Get from leaderboard
+        ],
+        onClick: () => this.onEndless(),
+      },
+      {
+        id: 'character',
+        title: 'CHARACTER',
+        icon: '👤',
+        description: 'Stats & Upgrades',
+        stats: [
+          { label: 'Souls', value: `${formatNumber(saveData.souls)} 💀` },
+          { label: 'Weapon', value: this.getWeaponName(saveData.equippedWeapon) },
+        ],
+        onClick: () => this.onCharacter(),
+      },
+      {
+        id: 'shop',
+        title: 'SHOP',
+        icon: '🛒',
+        description: 'Buy & Upgrade',
+        badge: this.getNewItemsBadge(saveData),
+        onClick: () => this.onShop(),
+      },
+      {
+        id: 'settings',
+        title: 'SETTINGS',
+        icon: '⚙️',
+        description: 'Audio & Options',
+        onClick: () => this.onSettings(),
+      },
+      {
+        id: 'updates',
+        title: 'UPDATES',
+        icon: '📰',
+        description: "What's New",
+        onClick: () => this.onUpdates(),
+      },
+    ];
+
+    // Create cards in grid
+    cards.forEach((cardData, index) => {
+      const row = Math.floor(index / cardConfig.columns);
+      const col = index % cardConfig.columns;
+
+      const x = startX + col * (cardConfig.width + cardConfig.gap);
+      const y = startY + row * (cardConfig.height + cardConfig.gap);
+
+      const card = new DashboardCard(this, x, y, cardData);
+      card.setAlpha(0);
+      card.setScale(0.8);
+      card.setDepth(50);
+      this.add.existing(card);
+
+      this.dashboardCards.set(cardData.id, card);
+
+      // Staggered entrance animation
+      this.tweens.add({
+        targets: card,
+        alpha: 1,
+        scale: 1,
+        y: y,
+        duration: DARK_GOTHIC_THEME.animations.presets.cardEntrance.duration,
+        delay: 400 + (index * DARK_GOTHIC_THEME.animations.presets.staggerDelay),
+        ease: DARK_GOTHIC_THEME.animations.presets.cardEntrance.easing,
+      });
+    });
+  }
+
+  /**
+   * Create souls display
+   */
+  private createSoulsDisplay(): void {
+    const padding = ResponsiveUtils.getPadding('large');
     const fontSize = ResponsiveUtils.getFontSize('medium');
-    const columnGap = buttonSize.width * 0.6; // Gap between columns
 
-    // Left column X position (game modes)
-    const leftX = centerX - columnGap;
-    // Right column X position (management/settings)
-    const rightX = centerX + columnGap;
+    const saveData = this.saveManager.getSaveData();
+    const soulsText = `💀 ${formatNumber(saveData.souls)}`;
 
-    // Section headers
-    const headerFontSize = ResponsiveUtils.getFontSize('small');
+    this.soulsDisplay = this.add.text(GAME_WIDTH - padding * 2, padding * 2, soulsText, {
+      fontFamily: DARK_GOTHIC_THEME.fonts.primary,
+      fontSize: `${fontSize}px`,
+      color: '#ffd700',
+      fontStyle: 'bold',
+      stroke: '#8b0000',
+      strokeThickness: 4,
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: '#000000',
+        blur: 4,
+        stroke: true,
+        fill: true,
+      },
+    });
 
-    // "PLAY MODES" header
-    const playModesHeader = this.add.text(
-      leftX,
-      startY - buttonSpacing,
-      'PLAY MODES',
-      {
-        fontFamily: DARK_GOTHIC_THEME.fonts.primary,
-        fontSize: `${headerFontSize}px`,
-        color: '#' + DARK_GOTHIC_THEME.colors.accent.toString(16).padStart(6, '0'),
-        fontStyle: 'bold',
-      }
-    );
-    playModesHeader.setOrigin(0.5);
-    playModesHeader.setAlpha(0);
-    playModesHeader.setDepth(100);
+    this.soulsDisplay.setOrigin(1, 0);
+    this.soulsDisplay.setAlpha(0);
+    this.soulsDisplay.setDepth(100);
 
-    // "MANAGE" header
-    const manageHeader = this.add.text(
-      rightX,
-      startY - buttonSpacing,
-      'MANAGE',
-      {
-        fontFamily: DARK_GOTHIC_THEME.fonts.primary,
-        fontSize: `${headerFontSize}px`,
-        color: '#' + DARK_GOTHIC_THEME.colors.accent.toString(16).padStart(6, '0'),
-        fontStyle: 'bold',
-      }
-    );
-    manageHeader.setOrigin(0.5);
-    manageHeader.setAlpha(0);
-    manageHeader.setDepth(100);
-
-    // Animate headers
+    // Fade in
     this.tweens.add({
-      targets: [playModesHeader, manageHeader],
+      targets: this.soulsDisplay,
       alpha: 1,
       duration: DARK_GOTHIC_THEME.animations.duration * 2,
       ease: DARK_GOTHIC_THEME.animations.easing,
-      delay: DARK_GOTHIC_THEME.animations.duration,
-    });
-
-    // LEFT COLUMN - Play Modes
-
-    // Play button (larger, primary)
-    this.playButton = new Button(
-      this,
-      leftX,
-      startY,
-      buttonSize.width * 1.1,
-      buttonSize.height * 1.2,
-      'PLAY',
-      {
-        style: ButtonStyle.PRIMARY,
-        fontSize: fontSize * 1.1,
-        onClick: this.onPlay.bind(this),
-      }
-    );
-    this.playButton.setAlpha(0);
-    this.playButton.setDepth(100);
-    this.add.existing(this.playButton);
-
-    // Endless button
-    this.endlessButton = new Button(
-      this,
-      leftX,
-      startY + buttonSpacing * 1.5,
-      buttonSize.width,
-      buttonSize.height,
-      'ENDLESS',
-      {
-        style: ButtonStyle.SECONDARY,
-        fontSize: fontSize,
-        onClick: this.onEndless.bind(this),
-      }
-    );
-    this.endlessButton.setAlpha(0);
-    this.endlessButton.setDepth(100);
-    this.add.existing(this.endlessButton);
-
-    // Leaderboard button
-    this.leaderboardButton = new Button(
-      this,
-      leftX,
-      startY + buttonSpacing * 2.5,
-      buttonSize.width,
-      buttonSize.height,
-      'LEADERBOARD',
-      {
-        style: ButtonStyle.SECONDARY,
-        fontSize: fontSize,
-        onClick: this.onLeaderboard.bind(this),
-      }
-    );
-    this.leaderboardButton.setAlpha(0);
-    this.leaderboardButton.setDepth(100);
-    this.add.existing(this.leaderboardButton);
-
-    // RIGHT COLUMN - Management
-
-    // Character button
-    this.characterButton = new Button(
-      this,
-      rightX,
-      startY,
-      buttonSize.width,
-      buttonSize.height,
-      'CHARACTER',
-      {
-        style: ButtonStyle.SECONDARY,
-        fontSize: fontSize,
-        onClick: this.onCharacter.bind(this),
-      }
-    );
-    this.characterButton.setAlpha(0);
-    this.characterButton.setDepth(100);
-    this.add.existing(this.characterButton);
-
-    // Shop button
-    this.shopButton = new Button(
-      this,
-      rightX,
-      startY + buttonSpacing,
-      buttonSize.width,
-      buttonSize.height,
-      'SHOP',
-      {
-        style: ButtonStyle.SECONDARY,
-        fontSize: fontSize,
-        onClick: this.onShop.bind(this),
-      }
-    );
-    this.shopButton.setAlpha(0);
-    this.shopButton.setDepth(100);
-    this.add.existing(this.shopButton);
-
-    // Settings button
-    this.settingsButton = new Button(
-      this,
-      rightX,
-      startY + buttonSpacing * 2,
-      buttonSize.width,
-      buttonSize.height,
-      'SETTINGS',
-      {
-        style: ButtonStyle.SECONDARY,
-        fontSize: fontSize,
-        onClick: this.onSettings.bind(this),
-      }
-    );
-    this.settingsButton.setAlpha(0);
-    this.settingsButton.setDepth(100);
-    this.add.existing(this.settingsButton);
-
-    // Updates button
-    this.updatesButton = new Button(
-      this,
-      rightX,
-      startY + buttonSpacing * 3,
-      buttonSize.width,
-      buttonSize.height,
-      'UPDATES',
-      {
-        style: ButtonStyle.SECONDARY,
-        fontSize: fontSize,
-        onClick: this.onUpdates.bind(this),
-      }
-    );
-    this.updatesButton.setAlpha(0);
-    this.updatesButton.setDepth(100);
-    this.add.existing(this.updatesButton);
-  }
-
-  /**
-   * Create souls display with UITheme (consistent with other pages)
-   */
-  private createSoulsDisplay(): void {
-    const saveData = this.saveManager.getSaveData();
-    const souls = saveData?.souls || 0;
-    const padding = ResponsiveUtils.getPadding('large');
-
-    // Use UITheme for consistent styling
-    const soulsBalance = UITheme.createSoulsBalance(
-      this,
-      souls,
-      GAME_WIDTH - padding * 2,
-      padding * 2
-    );
-    soulsBalance.setDepth(1000);
-    soulsBalance.setAlpha(0);
-
-    // Store reference for updateSoulsDisplay method
-    this.soulsDisplay = soulsBalance as any;
-
-    // Animate in with theme animation
-    this.tweens.add({
-      targets: soulsBalance,
-      alpha: 1,
-      duration: DARK_GOTHIC_THEME.animations.duration * 2,
-      delay: DARK_GOTHIC_THEME.animations.duration * 2,
+      delay: 400,
     });
   }
 
   /**
-   * Animate elements in with theme animation (staggered by column)
+   * Animate elements in
    */
   private animateIn(): void {
-    const centerX = GAME_WIDTH / 2;
-    const buttonSize = ResponsiveUtils.getButtonSize();
-    const columnGap = buttonSize.width * 0.6;
-    const leftX = centerX - columnGap;
-    const rightX = centerX + columnGap;
+    // Logo and cards are already animated in their creation methods
+    // This method can be extended for additional animations
+  }
 
-    // Left column buttons (animate from left)
-    const leftButtons = [
-      this.playButton,
-      this.endlessButton,
-      this.leaderboardButton,
-    ];
+  /**
+   * Setup responsive event handlers
+   */
+  private setupResponsiveHandlers(): void {
+    // Listen for resize events
+    this.events.on('resize', this.handleResize, this);
+    this.events.on('orientationchange', this.handleOrientationChange, this);
+  }
 
-    leftButtons.forEach((button, index) => {
-      if (button) {
-        this.tweens.add({
-          targets: button,
-          alpha: 1,
-          x: leftX,
-          duration: DARK_GOTHIC_THEME.animations.duration * 2,
-          ease: DARK_GOTHIC_THEME.animations.easing,
-          delay: DARK_GOTHIC_THEME.animations.duration * (index + 2),
-        });
-      }
-    });
+  /**
+   * Handle window resize
+   */
+  private handleResize(data: { width: number; height: number }): void {
+    // Update background
+    if (this.backgroundGraphics) {
+      this.backgroundGraphics.clear();
+      this.backgroundGraphics.fillGradientStyle(
+        DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.start,
+        DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.start,
+        DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.end,
+        DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.end,
+        1
+      );
+      this.backgroundGraphics.fillRect(0, 0, data.width, data.height);
+    }
 
-    // Right column buttons (animate from right)
-    const rightButtons = [
-      this.characterButton,
-      this.shopButton,
-      this.settingsButton,
-      this.updatesButton,
-    ];
+    // Update vignette overlay
+    if (this.vignetteOverlay) {
+      this.vignetteOverlay.setPosition(data.width / 2, data.height / 2);
+    }
 
-    rightButtons.forEach((button, index) => {
-      if (button) {
-        this.tweens.add({
-          targets: button,
-          alpha: 1,
-          x: rightX,
-          duration: DARK_GOTHIC_THEME.animations.duration * 2,
-          ease: DARK_GOTHIC_THEME.animations.easing,
-          delay: DARK_GOTHIC_THEME.animations.duration * (index + 2),
-        });
-      }
+    // Update logo position
+    if (this.logo) {
+      const padding = ResponsiveUtils.getPadding('large');
+      this.logo.setPosition(data.width / 2, padding * 4);
+    }
+
+    // Update souls display position
+    if (this.soulsDisplay) {
+      const padding = ResponsiveUtils.getPadding('large');
+      this.soulsDisplay.setPosition(data.width - padding * 2, padding * 2);
+    }
+
+    // Reposition dashboard cards
+    this.repositionDashboardCards(data.width, data.height);
+  }
+
+  /**
+   * Handle orientation change
+   */
+  private handleOrientationChange(data: { orientation: string }): void {
+    // Force a full redraw after a short delay to ensure DOM has updated
+    this.time.delayedCall(100, () => {
+      const width = this.scale.width;
+      const height = this.scale.height;
+      this.handleResize({ width, height });
     });
   }
 
   /**
-   * Handle play button click
+   * Reposition dashboard cards based on new screen size
    */
+  private repositionDashboardCards(screenWidth: number, screenHeight: number): void {
+    const cardConfig = DASHBOARD_CARD_CONFIG;
+
+    // Calculate grid positioning
+    const totalWidth = cardConfig.columns * cardConfig.width + (cardConfig.columns - 1) * cardConfig.gap;
+    const startX = (screenWidth - totalWidth) / 2 + cardConfig.width / 2;
+    const startY = screenHeight * 0.35 + cardConfig.height / 2;
+
+    // Reposition each card
+    this.dashboardCards.forEach((card, id) => {
+      const cardIndex = Array.from(this.dashboardCards.keys()).indexOf(id);
+      const row = Math.floor(cardIndex / cardConfig.columns);
+      const col = cardIndex % cardConfig.columns;
+
+      const x = startX + col * (cardConfig.width + cardConfig.gap);
+      const y = startY + row * (cardConfig.height + cardConfig.gap);
+
+      // Smooth transition to new position
+      this.tweens.add({
+        targets: card,
+        x: x,
+        y: y,
+        duration: 300,
+        ease: 'Power2.easeOut',
+        onComplete: () => {
+          // Update card's internal position tracking for hover effects
+          card.updatePosition(x, y);
+        },
+      });
+    });
+  }
+
+  /**
+   * Helper: Get last world from save data
+   */
+  private getLastWorld(saveData: any): number {
+    const completedLevels = saveData.completedLevels || [];
+    if (completedLevels.length === 0) return 1;
+
+    // Parse last completed level (format: "1-1")
+    const lastLevel = completedLevels[completedLevels.length - 1];
+    const world = parseInt(lastLevel.split('-')[0]) || 1;
+    return world;
+  }
+
+  /**
+   * Helper: Get last level from save data
+   */
+  private getLastLevel(saveData: any): number {
+    const completedLevels = saveData.completedLevels || [];
+    if (completedLevels.length === 0) return 1;
+
+    const lastLevel = completedLevels[completedLevels.length - 1];
+    const level = parseInt(lastLevel.split('-')[1]) || 1;
+    return Math.min(level + 1, 5); // Next level, max 5 per world
+  }
+
+  /**
+   * Helper: Get total stars from save data
+   */
+  private getTotalStars(saveData: any): number {
+    const levelStars = saveData.levelStars || {};
+    return Object.values(levelStars).reduce((sum: number, stars: any) => sum + stars, 0);
+  }
+
+  /**
+   * Helper: Get weapon display name
+   */
+  private getWeaponName(weaponId: string): string {
+    const names: Record<string, string> = {
+      basic_sword: 'Basic Sword',
+      silver_blade: 'Silver Blade',
+      holy_cross_blade: 'Holy Cross',
+      fire_sword: 'Fire Sword',
+      ice_blade: 'Ice Blade',
+      lightning_katana: 'Lightning Katana',
+    };
+    return names[weaponId] || 'Unknown';
+  }
+
+  /**
+   * Helper: Get new items badge if applicable
+   */
+  private getNewItemsBadge(saveData: any): { text: string; color: number } | undefined {
+    // TODO: Implement logic to detect new items since last visit
+    // For now, return undefined (no badge)
+    return undefined;
+  }
+
+  // Navigation methods (keep existing functionality)
+
   private onPlay(): void {
     this.audioManager?.playSFX('uiClick');
     this.scene.start(SCENE_KEYS.worldSelect);
   }
 
-  /**
-   * Handle endless button click
-   */
   private onEndless(): void {
     this.audioManager?.playSFX('uiClick');
     this.scene.start(SCENE_KEYS.endlessGameplay);
   }
 
-  /**
-   * Handle leaderboard button click
-   */
   private onLeaderboard(): void {
     this.audioManager?.playSFX('uiClick');
     this.scene.start(SCENE_KEYS.leaderboard);
   }
 
-  /**
-   * Handle character button click
-   */
   private onCharacter(): void {
     this.audioManager?.playSFX('uiClick');
     this.scene.start(SCENE_KEYS.character);
   }
 
-  /**
-   * Handle shop button click
-   */
   private onShop(): void {
     this.audioManager?.playSFX('uiClick');
     this.scene.start(SCENE_KEYS.shop);
   }
 
-  /**
-   * Handle settings button click
-   */
   private onSettings(): void {
     this.audioManager?.playSFX('uiClick');
     this.scene.start(SCENE_KEYS.settings);
   }
 
-  /**
-   * Handle updates button click
-   */
   private onUpdates(): void {
     this.audioManager?.playSFX('uiClick');
     this.scene.start(SCENE_KEYS.updates);
   }
 
   /**
-   * Update souls display
+   * Cleanup
    */
-  public updateSoulsDisplay(): void {
-    const saveData = this.saveManager.getSaveData();
-    const souls = saveData?.souls || 0;
+  public shutdown(): void {
+    // Remove event listeners
+    this.events.off('resize', this.handleResize, this);
+    this.events.off('orientationchange', this.handleOrientationChange, this);
 
-    // Since soulsDisplay is now a container, we need to recreate it
-    if (this.soulsDisplay) {
-      this.soulsDisplay.destroy();
-      this.createSoulsDisplay();
-    }
+    // Clean up particle background
+    this.particleBackground?.destroy();
+
+    // Clean up all cards
+    this.dashboardCards.forEach((card) => card.destroy());
+    this.dashboardCards.clear();
+
+    // Stop music
+    this.audioManager?.stopMusic();
   }
 }
