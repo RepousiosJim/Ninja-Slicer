@@ -19,6 +19,7 @@ import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { SaveManager } from '../managers/SaveManager';
 import { LevelManager } from '../managers/LevelManager';
+import { AudioManager } from '../managers/AudioManager';
 import { EventBus } from '../utils/EventBus';
 import { Boss } from '../entities/Boss';
 import { GraveTitan } from '../entities/GraveTitan';
@@ -38,6 +39,7 @@ export class GameplayScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
   private saveManager!: SaveManager;
   private levelManager!: LevelManager;
+  private audioManager!: AudioManager;
 
   // Campaign mode properties
   private isCampaignMode: boolean = false;
@@ -92,11 +94,16 @@ export class GameplayScene extends Phaser.Scene {
     this.powerUpManager.setUpgradeManager(this.upgradeManager);
     this.hud = new HUD(this);
 
+    // Initialize audio manager
+    this.audioManager = new AudioManager(this);
+    this.audioManager.initialize();
+
     // Connect systems
     this.slashSystem.setComboSystem(this.comboSystem);
     this.slashSystem.setPowerUpManager(this.powerUpManager);
     this.slashSystem.setWeaponManager(this.weaponManager);
     this.slashSystem.setUpgradeManager(this.upgradeManager);
+    this.slashSystem.setAudioManager(this.audioManager);
 
     // Apply starting lives from upgrade
     const playerStats = this.upgradeManager.getPlayerStats();

@@ -19,6 +19,7 @@ import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
+import { AudioManager } from '../managers/AudioManager';
 
 export class SlashSystem {
   private scene: Phaser.Scene;
@@ -32,6 +33,7 @@ export class SlashSystem {
   private powerUpManager: PowerUpManager | null = null;
   private weaponManager: WeaponManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
+  private audioManager: AudioManager | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -64,6 +66,13 @@ export class SlashSystem {
    */
   setUpgradeManager(upgradeManager: UpgradeManager): void {
     this.upgradeManager = upgradeManager;
+  }
+
+  /**
+   * Set audio manager reference
+   */
+  setAudioManager(audioManager: AudioManager): void {
+    this.audioManager = audioManager;
   }
 
   /**
@@ -150,6 +159,13 @@ export class SlashSystem {
         monster.slice();
         this.monstersSliced++;
 
+        // Play monster-type-specific death sound effect
+        const monsterType = monster.getMonsterType();
+        if (this.audioManager) {
+          const sfxKey = `sfx_${monsterType}_death`;
+          this.audioManager.playSFX(sfxKey);
+        }
+
         // Apply weapon effects at impact point
         if (this.weaponManager) {
           this.weaponManager.applyWeaponEffects(
@@ -207,7 +223,6 @@ export class SlashSystem {
         this.score += finalScore;
 
         // Calculate souls
-        const monsterType = monster.getMonsterType();
         const baseSouls = MONSTER_SOULS[monsterType] || 5;
         let finalSouls: number = baseSouls;
 
