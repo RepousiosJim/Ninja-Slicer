@@ -135,6 +135,61 @@ export function lineIntersectsCircle(
 }
 
 /**
+ * Get the intersection point where a line segment intersects a circle
+ * Returns the first intersection point (entry point) or null if no intersection
+ * Used for determining exact impact point for particle effects
+ */
+export function lineCircleIntersectionPoint(
+  lineStart: { x: number; y: number },
+  lineEnd: { x: number; y: number },
+  circleCenter: { x: number; y: number },
+  circleRadius: number
+): { x: number; y: number } | null {
+  const d = {
+    x: lineEnd.x - lineStart.x,
+    y: lineEnd.y - lineStart.y,
+  };
+  const f = {
+    x: lineStart.x - circleCenter.x,
+    y: lineStart.y - circleCenter.y,
+  };
+
+  const a = d.x * d.x + d.y * d.y;
+  const b = 2 * (f.x * d.x + f.y * d.y);
+  const c = f.x * f.x + f.y * f.y - circleRadius * circleRadius;
+
+  let discriminant = b * b - 4 * a * c;
+
+  if (discriminant < 0) {
+    return null;
+  }
+
+  discriminant = Math.sqrt(discriminant);
+  const t1 = (-b - discriminant) / (2 * a);
+  const t2 = (-b + discriminant) / (2 * a);
+
+  // Find the first valid intersection point along the line segment
+  let t: number | null = null;
+
+  if (t1 >= 0 && t1 <= 1) {
+    t = t1;
+  }
+  if (t2 >= 0 && t2 <= 1 && (t === null || t2 < t)) {
+    t = t2;
+  }
+
+  if (t === null) {
+    return null;
+  }
+
+  // Calculate the intersection point
+  return {
+    x: lineStart.x + t * d.x,
+    y: lineStart.y + t * d.y,
+  };
+}
+
+/**
  * Calculate velocity needed to launch object in arc
  * Used for monster spawning
  */

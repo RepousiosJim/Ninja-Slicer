@@ -13,7 +13,7 @@ import { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
 import { MonsterType } from '@config/types';
 import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS } from '@config/constants';
-import { lineIntersectsCircle } from '../utils/helpers';
+import { lineIntersectsCircle, lineCircleIntersectionPoint } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
@@ -130,30 +130,33 @@ export class SlashSystem {
       if (!monster.active || monster.getIsSliced()) {
         continue;
       }
-      
+
       // Check if monster is on screen
       if (monster.y < -50 || monster.y > 800) {
         continue;
       }
-      
+
       // Special check for ghosts - only sliceable when visible
       if (monster instanceof Ghost && !monster.isSliceable()) {
         continue;
       }
-      
-      // Check line-circle intersection
-      if (this.checkCollision(prevPoint, currentPoint, monster)) {
+
+      // Get the exact impact point for particle effects
+      const impactPoint = this.getCollisionPoint(prevPoint, currentPoint, monster);
+
+      // Check if collision occurred
+      if (impactPoint) {
         // Monster was hit
         monster.slice();
         this.monstersSliced++;
-        
-        // Apply weapon effects
+
+        // Apply weapon effects at impact point
         if (this.weaponManager) {
           this.weaponManager.applyWeaponEffects(
-            { position: { x: monster.x, y: monster.y } },
+            { position: { x: impactPoint.x, y: impactPoint.y } },
             {
               type: monster.getMonsterType(),
-              position: { x: monster.x, y: monster.y },
+              position: { x: impactPoint.x, y: impactPoint.y },
               health: monster.getHealth(),
               applyDamage: (damage: number) => monster.applyDamage(damage),
               applyBurn: (damage: number, duration: number) => monster.applyBurn(damage, duration),
@@ -167,78 +170,78 @@ export class SlashSystem {
             }
           );
         }
-        
+
         // Calculate score with combo multiplier
         const basePoints = monster.getPoints();
         let multiplier = 1.0;
-        
+
         if (this.comboSystem) {
           multiplier = this.comboSystem.getMultiplier();
           this.comboSystem.increment();
         }
-        
+
         // Apply frenzy multiplier if active
         if (this.powerUpManager && this.powerUpManager.isFrenzyActive()) {
           multiplier *= 2;
         }
-        
+
         // Apply score multiplier from upgrades
         if (this.upgradeManager) {
           const stats = this.upgradeManager.getPlayerStats();
           multiplier *= stats.scoreMultiplier;
         }
-        
+
         // Check for critical hit
         let isCritical = false;
         if (this.upgradeManager) {
           const stats = this.upgradeManager.getPlayerStats();
           const critChance = stats.criticalHitChance;
-          
+
           if (Math.random() < critChance) {
             isCritical = true;
             multiplier *= stats.criticalHitMultiplier;
           }
         }
-        
+
         const finalScore = Math.floor(basePoints * multiplier);
         this.score += finalScore;
-        
+
         // Calculate souls
         const monsterType = monster.getMonsterType();
         const baseSouls = MONSTER_SOULS[monsterType] || 5;
         let finalSouls: number = baseSouls;
-        
+
         // Apply soul magnet if active
         if (this.powerUpManager && this.powerUpManager.isSoulMagnetActive()) {
           finalSouls = Math.floor(baseSouls * 1.5) as number;
         }
-        
+
         this.souls += finalSouls;
-        
-        // Emit monster sliced event
+
+        // Emit monster sliced event with exact impact position
         EventBus.emit('monster-sliced', {
           monsterType: monsterType,
-          position: { x: monster.x, y: monster.y },
+          position: { x: impactPoint.x, y: impactPoint.y },
           points: finalScore,
           souls: finalSouls,
           isCritical: isCritical,
           comboCount: this.comboSystem ? this.comboSystem.getCombo() : 0,
         });
-        
+
         // Emit score updated event
         EventBus.emit('score-updated', {
           score: this.score,
           delta: finalScore,
         });
-        
+
         // Emit souls updated event
         EventBus.emit('souls-updated', {
           souls: this.souls,
           delta: finalSouls,
         });
-        
-        // Create visual feedback
-        this.createHitEffect(monster.x, monster.y, isCritical);
+
+        // Create visual feedback at exact impact point
+        this.createHitEffect(impactPoint.x, impactPoint.y, isCritical);
       }
     }
   }
@@ -349,8 +352,28 @@ export class SlashSystem {
   ): boolean {
     const monsterType = monster.getMonsterType();
     const radius = MONSTER_HITBOX_RADIUS[monsterType] || 40;
-    
+
     return lineIntersectsCircle(
+      { x: lineStart.x, y: lineStart.y },
+      { x: lineEnd.x, y: lineEnd.y },
+      { x: monster.x, y: monster.y },
+      radius
+    );
+  }
+
+  /**
+   * Get the exact collision point where slash intersects monster's hitbox
+   * Returns the impact point or null if no collision
+   */
+  private getCollisionPoint(
+    lineStart: Phaser.Math.Vector2,
+    lineEnd: Phaser.Math.Vector2,
+    monster: Monster
+  ): { x: number; y: number } | null {
+    const monsterType = monster.getMonsterType();
+    const radius = MONSTER_HITBOX_RADIUS[monsterType] || 40;
+
+    return lineCircleIntersectionPoint(
       { x: lineStart.x, y: lineStart.y },
       { x: lineEnd.x, y: lineEnd.y },
       { x: monster.x, y: monster.y },
