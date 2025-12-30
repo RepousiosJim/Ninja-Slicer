@@ -9,6 +9,7 @@
 import Phaser from 'phaser';
 import { ParticleSystem, ParticleType } from '../systems/ParticleSystem';
 import { EventBus } from '../utils/EventBus';
+import { COMBO_EFFECT_INTENSITY } from '../config/constants';
 
 /**
  * Milestone effect configuration
@@ -29,88 +30,90 @@ interface MilestoneEffectConfig {
 
 /**
  * Milestone configuration map
+ * Uses tuned values from COMBO_EFFECT_INTENSITY in constants.ts
  */
 const MILESTONE_CONFIGS: { [key: number]: MilestoneEffectConfig } = {
   5: {
     text: 'COMBO x5!',
     color: '#ffff00',
-    fontSize: 48,
-    particleCount: 20,
+    fontSize: COMBO_EFFECT_INTENSITY.fontSize.tier1,
+    particleCount: COMBO_EFFECT_INTENSITY.particles.tier1,
     particleType: ParticleType.SPARKLE,
-    screenFlash: false,
-    screenFlashAlpha: 0,
+    screenFlash: COMBO_EFFECT_INTENSITY.screenFlash.tier1 > 0,
+    screenFlashAlpha: COMBO_EFFECT_INTENSITY.screenFlash.tier1,
     screenFlashColor: 0xffffff,
     secondaryParticles: false,
   },
   10: {
     text: 'COMBO x10!',
     color: '#ff9900',
-    fontSize: 56,
-    particleCount: 35,
+    fontSize: COMBO_EFFECT_INTENSITY.fontSize.tier2,
+    particleCount: COMBO_EFFECT_INTENSITY.particles.tier2,
     particleType: ParticleType.SPARKLE,
     screenFlash: true,
-    screenFlashAlpha: 0.2,
+    screenFlashAlpha: COMBO_EFFECT_INTENSITY.screenFlash.tier2,
     screenFlashColor: 0xff9900,
     secondaryParticles: true,
     secondaryParticleType: ParticleType.FIRE,
-    secondaryParticleCount: 15,
+    secondaryParticleCount: COMBO_EFFECT_INTENSITY.secondaryParticles.tier2,
   },
   15: {
     text: 'LEGENDARY!',
     color: '#ff0066',
-    fontSize: 64,
-    particleCount: 50,
+    fontSize: COMBO_EFFECT_INTENSITY.fontSize.tier3,
+    particleCount: COMBO_EFFECT_INTENSITY.particles.tier3,
     particleType: ParticleType.SPARKLE,
     screenFlash: true,
-    screenFlashAlpha: 0.4,
+    screenFlashAlpha: COMBO_EFFECT_INTENSITY.screenFlash.tier3,
     screenFlashColor: 0xff0066,
     secondaryParticles: true,
     secondaryParticleType: ParticleType.FIRE,
-    secondaryParticleCount: 30,
+    secondaryParticleCount: COMBO_EFFECT_INTENSITY.secondaryParticles.tier3,
   },
   20: {
     text: 'UNSTOPPABLE!',
     color: '#ff00ff',
-    fontSize: 64,
-    particleCount: 60,
+    fontSize: COMBO_EFFECT_INTENSITY.fontSize.tier4,
+    particleCount: COMBO_EFFECT_INTENSITY.particles.tier4,
     particleType: ParticleType.LIGHTNING,
     screenFlash: true,
-    screenFlashAlpha: 0.5,
+    screenFlashAlpha: COMBO_EFFECT_INTENSITY.screenFlash.tier4,
     screenFlashColor: 0xff00ff,
     secondaryParticles: true,
     secondaryParticleType: ParticleType.FIRE,
-    secondaryParticleCount: 40,
+    secondaryParticleCount: COMBO_EFFECT_INTENSITY.secondaryParticles.tier4,
   },
   25: {
     text: 'GODLIKE!',
     color: '#00ffff',
-    fontSize: 72,
-    particleCount: 75,
+    fontSize: COMBO_EFFECT_INTENSITY.fontSize.tier5,
+    particleCount: COMBO_EFFECT_INTENSITY.particles.tier5,
     particleType: ParticleType.LIGHTNING,
     screenFlash: true,
-    screenFlashAlpha: 0.6,
+    screenFlashAlpha: COMBO_EFFECT_INTENSITY.screenFlash.tier5,
     screenFlashColor: 0x00ffff,
     secondaryParticles: true,
     secondaryParticleType: ParticleType.FIRE,
-    secondaryParticleCount: 50,
+    secondaryParticleCount: COMBO_EFFECT_INTENSITY.secondaryParticles.tier5,
   },
 };
 
 /**
  * Default configuration for milestones not explicitly defined
+ * Uses tier4 values as a reasonable default for high combos
  */
 const DEFAULT_CONFIG: MilestoneEffectConfig = {
   text: 'INCREDIBLE!',
   color: '#ffffff',
-  fontSize: 64,
-  particleCount: 60,
+  fontSize: COMBO_EFFECT_INTENSITY.fontSize.tier4,
+  particleCount: COMBO_EFFECT_INTENSITY.particles.tier4,
   particleType: ParticleType.LIGHTNING,
   screenFlash: true,
-  screenFlashAlpha: 0.5,
+  screenFlashAlpha: COMBO_EFFECT_INTENSITY.screenFlash.tier4,
   screenFlashColor: 0xffffff,
   secondaryParticles: true,
   secondaryParticleType: ParticleType.FIRE,
-  secondaryParticleCount: 35,
+  secondaryParticleCount: COMBO_EFFECT_INTENSITY.secondaryParticles.tier4,
 };
 
 export class ComboEffectsManager {

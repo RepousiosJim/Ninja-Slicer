@@ -86,9 +86,49 @@ export const MAX_LIVES = 10;
 // COMBO SYSTEM
 // =============================================================================
 
-export const COMBO_TIMEOUT = 2.0; // seconds before combo resets
-export const COMBO_MULTIPLIER_RATE = 0.1; // +0.1x per combo
-export const COMBO_MILESTONES = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
+// Tuned values based on playtesting:
+// - 2.5s timeout gives players breathing room while still requiring skill
+// - 0.15x rate makes combo multiplier growth feel more rewarding
+// - Milestones balanced for achievable early wins and challenging late-game goals
+export const COMBO_TIMEOUT = 2.5; // seconds before combo resets (increased from 2.0 for better flow)
+export const COMBO_MULTIPLIER_RATE = 0.15; // +0.15x per combo (increased from 0.1 for more impact)
+export const COMBO_MILESTONES = [5, 10, 15, 20, 25, 35, 50, 75, 100]; // Smoothed progression
+
+// Visual effect intensities for combo milestones
+// Tuned to provide satisfying feedback without being distracting
+export const COMBO_EFFECT_INTENSITY = {
+  // Particle counts per milestone tier
+  particles: {
+    tier1: 25,   // 5x milestone (increased from 20)
+    tier2: 40,   // 10x milestone (increased from 35)
+    tier3: 55,   // 15x milestone (increased from 50)
+    tier4: 70,   // 20x milestone (increased from 60)
+    tier5: 85,   // 25x+ milestone (increased from 75)
+  },
+  // Screen flash alpha per milestone tier (0-1)
+  screenFlash: {
+    tier1: 0,      // 5x: no flash (keeps focus on gameplay)
+    tier2: 0.15,   // 10x: subtle edge flash (reduced from 0.2)
+    tier3: 0.30,   // 15x: moderate flash (reduced from 0.4)
+    tier4: 0.40,   // 20x: noticeable flash (reduced from 0.5)
+    tier5: 0.50,   // 25x+: strong flash (reduced from 0.6)
+  },
+  // Secondary particle counts (fire effects at 10x+)
+  secondaryParticles: {
+    tier2: 18,   // 10x milestone (increased from 15)
+    tier3: 35,   // 15x milestone (increased from 30)
+    tier4: 45,   // 20x milestone (increased from 40)
+    tier5: 55,   // 25x+ milestone (increased from 50)
+  },
+  // Text font sizes for milestone announcements
+  fontSize: {
+    tier1: 52,   // 5x milestone (increased from 48)
+    tier2: 60,   // 10x milestone (increased from 56)
+    tier3: 68,   // 15x milestone (increased from 64)
+    tier4: 68,   // 20x milestone (unchanged)
+    tier5: 76,   // 25x+ milestone (increased from 72)
+  },
+} as const;
 
 // =============================================================================
 // MULTI-KILL BONUS
@@ -96,10 +136,11 @@ export const COMBO_MILESTONES = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
 
 // Bonus multiplier applied to all kills when multiple monsters are sliced in one swipe
 // Keys are kill counts, values are bonus multipliers
+// Tuned values: increased bonuses to make multi-kills feel more rewarding and skillful
 export const MULTI_KILL_BONUS = {
-  2: 1.5,  // Double kill: 1.5x bonus
-  3: 2.0,  // Triple kill: 2.0x bonus
-  4: 2.5,  // Quad+ kill: 2.5x bonus (used for 4 or more)
+  2: 1.75, // Double kill: 1.75x bonus (increased from 1.5x)
+  3: 2.25, // Triple kill: 2.25x bonus (increased from 2.0x)
+  4: 3.0,  // Quad+ kill: 3.0x bonus (increased from 2.5x for high-skill plays)
 } as const;
 
 // Get multi-kill bonus multiplier for a given kill count
