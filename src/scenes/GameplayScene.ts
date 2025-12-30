@@ -513,6 +513,11 @@ export class GameplayScene extends Phaser.Scene {
     // Save game state
     this.saveManager.save();
 
+    // Reset combo and clear milestones before transitioning
+    // (max combo is already captured in finalStats)
+    this.comboSystem.reset();
+    this.comboSystem.resetMilestones();
+
     // Transition to level complete scene
     this.scene.start(SCENE_KEYS.levelComplete, {
       world: this.currentWorld,
@@ -580,6 +585,10 @@ export class GameplayScene extends Phaser.Scene {
     // Stop spawning
     this.spawnSystem.stopSpawning();
 
+    // Reset combo and clear milestones (preserve max combo for stats display)
+    this.comboSystem.reset();
+    this.comboSystem.resetMilestones();
+
     // Dramatic pause before showing game over
     this.time.delayedCall(1000, () => {
       this.showGameOver();
@@ -638,8 +647,8 @@ export class GameplayScene extends Phaser.Scene {
     this.slashTrail.clear();
     this.spawnSystem.reset();
     this.slashSystem.resetScore();
-    this.comboSystem.reset();
-    this.comboSystem.resetMaxCombo();
+    // Full combo reset: clears combo, max combo, and milestone tracking
+    this.comboSystem.fullReset();
     this.powerUpManager.reset();
     this.hud.updateScore(0);
 
@@ -730,6 +739,10 @@ export class GameplayScene extends Phaser.Scene {
     EventBus.off('monster-sliced');
     EventBus.off('boss-hit');
     EventBus.off('boss-defeated');
+
+    // Full reset combo system (clears combo, max combo, and milestones)
+    // This ensures clean state when returning to this scene
+    this.comboSystem.fullReset();
 
     // Destroy all systems
     this.slashTrail.destroy();
