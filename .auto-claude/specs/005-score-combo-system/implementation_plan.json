@@ -163,7 +163,7 @@
           "id": "4.3",
           "title": "Integrate ComboEffectsManager with GameplayScene",
           "description": "Initialize ComboEffectsManager in GameplayScene, connect to combo-milestone events, trigger effects at appropriate times.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 0.5,
           "files_to_modify": [
             "src/scenes/GameplayScene.ts"
@@ -172,7 +172,8 @@
           "dependencies": [
             "4.2"
           ],
-          "notes": "Listen to EventBus 'combo-milestone' event"
+          "notes": "Integrated ComboEffectsManager with GameplayScene: Added import, private property, initialization after ParticleSystem (line 98-99), connected to ParticleSystem via setParticleSystem(), and added destroy() call in shutdown() method. The ComboEffectsManager automatically listens to 'combo-milestone' EventBus events and triggers visual effects at milestones.",
+          "updated_at": "2025-12-30T14:41:45.931813+00:00"
         }
       ]
     },
@@ -185,7 +186,7 @@
           "id": "5.1",
           "title": "Add floating score text on kill",
           "description": "Show '+X points' floating text at monster death position. Include combo multiplier in display. Scale text based on point value.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 1,
           "files_to_modify": [
             "src/systems/SlashSystem.ts"
@@ -194,7 +195,8 @@
           "dependencies": [
             "1.1"
           ],
-          "notes": "Animate text floating up and fading. Use different colors for different point values."
+          "notes": "Floating score text already implemented in SlashSystem.ts. Features: SCORE_TEXT_COLORS config for color thresholds (100+=purple, 50+=orange, 25+=yellow, 0+=white), createFloatingScoreText() method with font scaling (18-36px based on points), combo multiplier display when >1.0x, scale-up/fade-out animations, critical hit styling. Called in checkMonsterCollisions() at line 319.",
+          "updated_at": "2025-12-30T19:00:30.320766+00:00"
         },
         {
           "id": "5.2",
@@ -392,5 +394,5 @@
       ]
     }
   },
-  "last_updated": "2025-12-30T14:39:05.806045+00:00"
+  "last_updated": "2025-12-30T19:00:30.320777+00:00"
 }

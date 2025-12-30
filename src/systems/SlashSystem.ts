@@ -29,6 +29,14 @@ const MULTI_KILL_TEXT: { [key: number]: { text: string; color: string } } = {
   5: { text: 'ULTRA KILL!', color: '#ff0066' },
 };
 
+// Floating score text color configuration based on point value thresholds
+const SCORE_TEXT_COLORS: { threshold: number; color: string }[] = [
+  { threshold: 100, color: '#ff00ff' }, // Purple for 100+ points
+  { threshold: 50, color: '#ff9900' },  // Orange for 50-99 points
+  { threshold: 25, color: '#ffff00' },  // Yellow for 25-49 points
+  { threshold: 0, color: '#ffffff' },   // White for base scores
+];
+
 export class SlashSystem {
   private scene: Phaser.Scene;
   private score: number = 0;
@@ -306,6 +314,9 @@ export class SlashSystem {
         
         // Create visual feedback
         this.createHitEffect(monster.x, monster.y, isCritical);
+
+        // Create floating score text at monster death position
+        this.createFloatingScoreText(monster.x, monster.y, finalScore, multiplier, isCritical);
       }
     }
   }
@@ -503,6 +514,101 @@ export class SlashSystem {
         onComplete: () => {
           critText.destroy();
         },
+      });
+    }
+  }
+
+  /**
+   * Create floating score text at monster death position
+   * Shows "+X" with optional multiplier display, scaled based on point value
+   */
+  private createFloatingScoreText(
+    x: number,
+    y: number,
+    points: number,
+    multiplier: number,
+    isCritical: boolean
+  ): void {
+    // Determine text color based on point value
+    let textColor = '#ffffff';
+    for (const colorConfig of SCORE_TEXT_COLORS) {
+      if (points >= colorConfig.threshold) {
+        textColor = colorConfig.color;
+        break;
+      }
+    }
+
+    // Critical hits get red color override
+    if (isCritical) {
+      textColor = '#ff0000';
+    }
+
+    // Scale font size based on point value (min 18px, max 36px)
+    const baseFontSize = 18;
+    const scaleFactor = Math.min(points / 100, 1); // Cap at 100 points for scaling
+    const fontSize = Math.floor(baseFontSize + scaleFactor * 18);
+
+    // Build score text with multiplier display if applicable
+    let scoreText = `+${points}`;
+    if (multiplier > 1.0) {
+      // Show multiplier with 1 decimal place
+      const multiplierDisplay = multiplier.toFixed(1);
+      scoreText = `+${points} x${multiplierDisplay}`;
+    }
+
+    // Create the floating score text
+    const floatingText = this.scene.add.text(x, y - 30, scoreText, {
+      fontSize: `${fontSize}px`,
+      color: textColor,
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: Math.floor(fontSize / 6),
+      shadow: {
+        offsetX: 1,
+        offsetY: 1,
+        color: '#000000',
+        blur: 2,
+        fill: true,
+      },
+    });
+    floatingText.setOrigin(0.5);
+    floatingText.setDepth(100);
+
+    // Scale up animation on spawn
+    floatingText.setScale(0);
+    this.scene.tweens.add({
+      targets: floatingText,
+      scale: 1,
+      duration: 100,
+      ease: 'Back.easeOut',
+    });
+
+    // Add slight horizontal movement for visual interest
+    const horizontalOffset = Phaser.Math.Between(-20, 20);
+
+    // Float up and fade out animation
+    this.scene.tweens.add({
+      targets: floatingText,
+      y: y - 100,
+      x: x + horizontalOffset,
+      alpha: 0,
+      duration: 800,
+      delay: 100,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        floatingText.destroy();
+      },
+    });
+
+    // For critical hits, add extra scale pulse
+    if (isCritical) {
+      this.scene.tweens.add({
+        targets: floatingText,
+        scale: { from: 1.0, to: 1.3 },
+        duration: 100,
+        delay: 100,
+        yoyo: true,
+        ease: 'Sine.easeInOut',
       });
     }
   }
