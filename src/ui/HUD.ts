@@ -10,6 +10,7 @@ import { DARK_GOTHIC_THEME } from '../config/theme';
 import { EventBus } from '../utils/EventBus';
 import { Button, ButtonStyle } from './Button';
 import { ResponsiveUtils } from '../utils/ResponsiveUtils';
+import { ComboSystem } from '../systems/ComboSystem';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -227,6 +228,19 @@ export class HUD {
 
     // Listen for events
     this.setupEventListeners();
+  }
+
+  /**
+   * Update HUD elements that need continuous updates
+   * @param delta - Time since last update in milliseconds
+   * @param comboSystem - The combo system to get timer state from
+   */
+  update(delta: number, comboSystem: ComboSystem): void {
+    // Update combo timer bar based on remaining time
+    if (comboSystem.isActive()) {
+      const remainingTime = comboSystem.getRemainingTime();
+      this.updateComboTimerBar(remainingTime);
+    }
   }
 
   /**

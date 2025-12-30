@@ -437,6 +437,9 @@ export class GameplayScene extends Phaser.Scene {
     // Update combo system
     this.comboSystem.update(time, delta);
 
+    // Update HUD (for combo timer bar animation)
+    this.hud.update(delta, this.comboSystem);
+
     // Update power-up manager
     this.powerUpManager.update(time, delta);
 
