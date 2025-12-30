@@ -1,0 +1,30 @@
+{
+  "discovered_files": {
+    "src/systems/ComboSystem.ts": {
+      "description": "ComboSystem already has basic combo tracking with increment(), reset(), getMultiplier(), getRemainingTime(). Uses COMBO_TIMEOUT (2s) and COMBO_MULTIPLIER_RATE (0.1). Emits 'combo-updated' events via EventBus. Missing: milestone detection and events.",
+      "category": "existing_system",
+      "discovered_at": "2025-12-30T14:11:26.601463+00:00"
+    },
+    "src/ui/HUD.ts": {
+      "description": "HUD already displays score and combo with pulse animations. Has setupEventListeners for score-updated, combo-updated, lives-changed. Missing: combo timer countdown bar and score pop effects.",
+      "category": "existing_system",
+      "discovered_at": "2025-12-30T14:11:26.673124+00:00"
+    },
+    "src/systems/SlashSystem.ts": {
+      "description": "SlashSystem handles scoring with combo multiplier integration. Calculates score per monster type from MONSTER_BASE_POINTS. Has createHitEffect() for visual feedback. Missing: multi-kill tracking per update cycle and floating score text.",
+      "category": "existing_system",
+      "discovered_at": "2025-12-30T14:11:26.732956+00:00"
+    },
+    "src/config/constants.ts": {
+      "description": "COMBO_MILESTONES already defined as [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]. COMBO_TIMEOUT = 2.0s. MONSTER_BASE_POINTS: zombie=10, vampire=15, ghost=20. Need to add MULTI_KILL_BONUS constants.",
+      "category": "configuration",
+      "discovered_at": "2025-12-30T14:11:26.792813+00:00"
+    },
+    "src/systems/ParticleSystem.ts": {
+      "description": "ParticleSystem has multiple particle types (SPARKLE, FIRE, LIGHTNING, etc.) with object pooling. Has emit() for one-shot effects, createWeaponTrail(), createHitEffect(). Suitable for combo milestone effects but needs new configurations added.",
+      "category": "existing_system",
+      "discovered_at": "2025-12-30T14:11:26.851530+00:00"
+    }
+  },
+  "last_updated": "2025-12-30T14:11:26.851544+00:00"
+}

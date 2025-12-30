@@ -1,0 +1,389 @@
+{
+  "feature": "Score & Combo System",
+  "description": "Implement a multiplier-based scoring system with combo mechanics, visual combo timer, multi-kill bonuses, and milestone effects at 5x, 10x, and 15x multipliers",
+  "created_at": "2025-12-30T13:41:47.785Z",
+  "updated_at": "2025-12-30T14:00:00.000Z",
+  "status": "in_progress",
+  "workflow_type": "feature",
+  "planStatus": "approved",
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Discovery & Assessment",
+      "description": "Analyze existing codebase patterns and identify integration points",
+      "subtasks": [
+        {
+          "id": "1.1",
+          "title": "Document existing systems",
+          "description": "Review ComboSystem, SlashSystem, HUD, and ParticleSystem. Document what's already implemented vs what needs to be added. Record discoveries.",
+          "status": "completed",
+          "estimated_hours": 0.5,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "dependencies": [],
+          "notes": "Completed detailed review of ComboSystem, SlashSystem, HUD, ParticleSystem, and constants. Documented all existing functionality and gaps. Key findings: combo/scoring infrastructure exists, need to add timer bar UI, multi-kill tracking, milestone detection/effects, and floating score text.",
+          "updated_at": "2025-12-30T14:12:12.625817+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Combo Timer Bar UI",
+      "description": "Add visual combo timer countdown bar to HUD",
+      "subtasks": [
+        {
+          "id": "2.1",
+          "title": "Add combo timer bar to HUD",
+          "description": "Create a visual timer bar that depletes as combo timeout approaches. Add graphics-based progress bar beneath combo text. Implement smooth animation.",
+          "status": "pending",
+          "estimated_hours": 1,
+          "files_to_modify": [
+            "src/ui/HUD.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "1.1"
+          ],
+          "notes": "Use Phaser.GameObjects.Graphics for the bar. Update every frame based on ComboSystem.getRemainingTime()"
+        },
+        {
+          "id": "2.2",
+          "title": "Connect timer bar to ComboSystem",
+          "description": "Add update method to HUD that receives delta time and updates timer bar based on combo state. Emit timer progress via EventBus or direct method call.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/ui/HUD.ts",
+            "src/scenes/GameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "2.1"
+          ],
+          "notes": "Need to pass delta time to HUD update or emit combo-timer-tick event with remaining time"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Multi-Kill Bonus System",
+      "description": "Implement bonus scoring for slicing multiple monsters in a single swipe",
+      "subtasks": [
+        {
+          "id": "3.1",
+          "title": "Track kills per slash update cycle",
+          "description": "Modify SlashSystem to track how many monsters are killed in a single update() call. If multiple monsters hit in same cycle, mark as multi-kill.",
+          "status": "pending",
+          "estimated_hours": 1,
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "1.1"
+          ],
+          "notes": "Count kills at start of update(), apply bonus at end. Reset counter each update cycle."
+        },
+        {
+          "id": "3.2",
+          "title": "Add multi-kill bonus calculation",
+          "description": "Calculate and apply bonus multiplier for multi-kills (2+ in one swipe). Add constants for multi-kill bonus values.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts",
+            "src/config/constants.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "3.1"
+          ],
+          "notes": "e.g., 2 kills = 1.5x bonus, 3 kills = 2x bonus, 4+ kills = 2.5x bonus"
+        },
+        {
+          "id": "3.3",
+          "title": "Add multi-kill visual feedback",
+          "description": "Create floating text and particle effects for multi-kill events. Show 'DOUBLE KILL', 'TRIPLE KILL', etc.",
+          "status": "pending",
+          "estimated_hours": 1,
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "3.2"
+          ],
+          "notes": "Use existing tween patterns from createHitEffect. Add scaling/color effects."
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Combo Milestone Effects",
+      "description": "Create visual effects that trigger at 5x, 10x, and 15x combo milestones",
+      "subtasks": [
+        {
+          "id": "4.1",
+          "title": "Create milestone detection in ComboSystem",
+          "description": "Add method to detect when combo reaches 5, 10, 15 milestones. Emit 'combo-milestone' event with milestone level.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/systems/ComboSystem.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "1.1"
+          ],
+          "notes": "Check in increment() method. Only trigger once per milestone (don't re-trigger if combo drops and rebuilds)"
+        },
+        {
+          "id": "4.2",
+          "title": "Create ComboEffectsManager",
+          "description": "Create new manager to handle combo milestone visual effects. Use ParticleSystem for particle bursts, add screen flash, and text animations.",
+          "status": "pending",
+          "estimated_hours": 1.5,
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/managers/ComboEffectsManager.ts"
+          ],
+          "dependencies": [
+            "4.1"
+          ],
+          "notes": "5x: Small particle burst; 10x: Screen edge flash + larger particles; 15x: Full screen flash + 'LEGENDARY' text + explosion"
+        },
+        {
+          "id": "4.3",
+          "title": "Integrate ComboEffectsManager with GameplayScene",
+          "description": "Initialize ComboEffectsManager in GameplayScene, connect to combo-milestone events, trigger effects at appropriate times.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/scenes/GameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "4.2"
+          ],
+          "notes": "Listen to EventBus 'combo-milestone' event"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Score Display Enhancements",
+      "description": "Improve score feedback with floating point text and visual flair",
+      "subtasks": [
+        {
+          "id": "5.1",
+          "title": "Add floating score text on kill",
+          "description": "Show '+X points' floating text at monster death position. Include combo multiplier in display. Scale text based on point value.",
+          "status": "pending",
+          "estimated_hours": 1,
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "1.1"
+          ],
+          "notes": "Animate text floating up and fading. Use different colors for different point values."
+        },
+        {
+          "id": "5.2",
+          "title": "Add score pop effect in HUD",
+          "description": "When score updates, add a brief scale/pulse animation to score text. More dramatic for larger point gains.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/ui/HUD.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "5.1"
+          ],
+          "notes": "Use tweens on scoreText. Scale proportional to delta points."
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Edge Cases & Polish",
+      "description": "Handle edge cases and ensure robust behavior",
+      "subtasks": [
+        {
+          "id": "6.1",
+          "title": "Handle pause state for combo timer",
+          "description": "Ensure combo timer pauses when game is paused. Resume correctly when unpaused.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/systems/ComboSystem.ts",
+            "src/scenes/GameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "2.2"
+          ],
+          "notes": "isPaused check already exists in GameplayScene.update(). Combo timer should not decrement when paused."
+        },
+        {
+          "id": "6.2",
+          "title": "Reset combo on scene transitions",
+          "description": "Ensure combo resets when leaving game scene or on game over. Clear milestone tracking.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/scenes/GameplayScene.ts",
+            "src/systems/ComboSystem.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "4.1"
+          ],
+          "notes": "Add reset method call in shutdown() and game over handlers"
+        },
+        {
+          "id": "6.3",
+          "title": "Handle simultaneous kills correctly",
+          "description": "Ensure when multiple monsters die in same frame, all count toward combo and multi-kill bonus is applied correctly.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "3.2"
+          ],
+          "notes": "Already handled in 3.1 but needs verification"
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "name": "Testing & QA",
+      "description": "Manual testing, performance verification, and polish",
+      "subtasks": [
+        {
+          "id": "7.1",
+          "title": "Manual gameplay testing",
+          "description": "Test all combo scenarios: building combo, timeout, milestones, multi-kills. Verify visual feedback is clear and satisfying.",
+          "status": "pending",
+          "estimated_hours": 1,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "dependencies": [
+            "6.3"
+          ],
+          "notes": "Follow QA checklist from spec. Test at various combo levels."
+        },
+        {
+          "id": "7.2",
+          "title": "Performance verification",
+          "description": "Ensure no frame drops during combo gameplay and milestone effects. Check memory usage during extended sessions.",
+          "status": "pending",
+          "estimated_hours": 0.5,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "dependencies": [
+            "7.1"
+          ],
+          "notes": "Use browser dev tools. Check particle cleanup."
+        },
+        {
+          "id": "7.3",
+          "title": "Final polish and tuning",
+          "description": "Tune combo timeout duration, milestone thresholds, bonus multipliers, and visual effect intensities based on playtesting.",
+          "status": "pending",
+          "estimated_hours": 1,
+          "files_to_modify": [
+            "src/config/constants.ts"
+          ],
+          "files_to_create": [],
+          "dependencies": [
+            "7.2"
+          ],
+          "notes": "Adjust values for optimal game feel"
+        }
+      ]
+    }
+  ],
+  "total_estimated_hours": 12,
+  "qa_signoff": {
+    "status": "pending",
+    "issues": [],
+    "tests_passed": []
+  },
+  "existing_systems_analysis": {
+    "ComboSystem": {
+      "location": "src/systems/ComboSystem.ts",
+      "already_has": [
+        "Basic combo count tracking",
+        "Combo multiplier calculation (1 + combo * COMBO_MULTIPLIER_RATE)",
+        "Combo timeout logic (COMBO_TIMEOUT constant)",
+        "EventBus emission of combo-updated events",
+        "getRemainingTime() method",
+        "Max combo tracking"
+      ],
+      "needs": [
+        "Milestone detection and events",
+        "Milestone reached tracking (to avoid re-triggering)"
+      ]
+    },
+    "SlashSystem": {
+      "location": "src/systems/SlashSystem.ts",
+      "already_has": [
+        "Score calculation with combo multiplier",
+        "Monster type-based scoring (MONSTER_BASE_POINTS)",
+        "Integration with ComboSystem",
+        "EventBus emission of score-updated, monster-sliced events",
+        "Basic hit effect animations"
+      ],
+      "needs": [
+        "Multi-kill tracking per update cycle",
+        "Multi-kill bonus calculation",
+        "Floating score text on kill"
+      ]
+    },
+    "HUD": {
+      "location": "src/ui/HUD.ts",
+      "already_has": [
+        "Score text display",
+        "Combo count and multiplier display",
+        "Event listeners for score-updated, combo-updated",
+        "Pulse animation on combo update"
+      ],
+      "needs": [
+        "Combo timer countdown bar",
+        "Timer bar update method",
+        "Score pop animation on large gains"
+      ]
+    },
+    "ParticleSystem": {
+      "location": "src/systems/ParticleSystem.ts",
+      "already_has": [
+        "Multiple particle types (SPARKLE, FIRE, etc.)",
+        "Object pooling for performance",
+        "Particle textures creation",
+        "emit() method for one-shot effects"
+      ],
+      "needs": [
+        "Combo milestone particle configurations"
+      ]
+    },
+    "Constants": {
+      "location": "src/config/constants.ts",
+      "already_has": [
+        "COMBO_TIMEOUT: 2.0 seconds",
+        "COMBO_MULTIPLIER_RATE: 0.1",
+        "COMBO_MILESTONES: [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]",
+        "MONSTER_BASE_POINTS per type"
+      ],
+      "needs": [
+        "MULTI_KILL_BONUS constants"
+      ]
+    }
+  },
+  "last_updated": "2025-12-30T14:12:12.625827+00:00"
+}

@@ -1,0 +1,101 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "Enhancing existing ComboSystem and SlashSystem with missing features (timer visualization, milestone effects, multi-kill bonuses). Core systems already exist but need enhancement. 6-8 files affected across game systems and UI.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 7,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Modifications to existing ComboSystem, HUD, SlashSystem, and GameplayScene. May need new MilestoneEffects system. Localized to scoring/combo game mechanics."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "All internal Phaser game logic. ComboSystem and scoring infrastructure already exists, just needs enhancement."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "No infrastructure changes. May add constants to constants.ts for multi-kill bonuses but no env vars or config needed."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "ComboSystem, HUD, SlashSystem, and EventBus patterns already established in codebase. Phaser framework already in use. Just need to follow existing patterns."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Modifying core scoring mechanics - need to ensure backward compatibility",
+        "Visual effects performance with particle systems",
+        "Multi-kill detection needs precise timing logic",
+        "Combo timer UI needs to be responsive and clear",
+        "Milestone effects could be distracting if not balanced"
+      ],
+      "notes": "Medium risk due to modifying established scoring system. Need thorough testing of combo mechanics, milestone triggers, and multi-kill detection. No security concerns."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Core scoring mechanics being enhanced require unit tests for combo logic, milestone detection, and multi-kill bonuses. Integration tests needed to verify full gameplay experience with combo timer visualization and milestone effects."
+  },
+
+  "existing_implementation": {
+    "already_implemented": [
+      "ComboSystem class with timer, multiplier, and increment logic",
+      "HUD displays current combo count and multiplier",
+      "Score tracking based on monster type (MONSTER_BASE_POINTS)",
+      "Combo multiplier applied to final score",
+      "EventBus integration for combo/score updates",
+      "Combo timeout defined (2 seconds)",
+      "Combo milestones array defined in constants [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]"
+    ],
+    "missing_features": [
+      "Combo timer visualization (countdown/progress bar in HUD)",
+      "Milestone detection and event emission",
+      "Milestone special effects (particles, screen shake, sound)",
+      "Multi-kill detection (slicing multiple monsters in one swipe)",
+      "Multi-kill bonus calculation and scoring",
+      "Multi-kill visual feedback"
+    ],
+    "files_to_modify": [
+      "src/systems/ComboSystem.ts - add milestone detection",
+      "src/ui/HUD.ts - add combo timer visualization",
+      "src/systems/SlashSystem.ts - add multi-kill detection and bonuses",
+      "src/scenes/GameplayScene.ts - integrate milestone effects",
+      "src/config/constants.ts - add multi-kill bonus constants"
+    ],
+    "files_to_create": [
+      "Possibly src/systems/MilestoneEffects.ts or integrate into existing ParticleSystem"
+    ]
+  },
+
+  "created_at": "2025-12-30T00:00:00.000Z"
+}
