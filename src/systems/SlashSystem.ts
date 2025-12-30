@@ -19,6 +19,7 @@ import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
+import { SlashEnergyManager } from '../managers/SlashEnergyManager';
 
 export class SlashSystem {
   private scene: Phaser.Scene;
@@ -32,6 +33,11 @@ export class SlashSystem {
   private powerUpManager: PowerUpManager | null = null;
   private weaponManager: WeaponManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
+  private energyManager: SlashEnergyManager | null = null;
+
+  // Energy tracking
+  private lastSlashDistance: number = 0;
+  private currentEnergyEffectiveness: number = 1.0;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -67,6 +73,13 @@ export class SlashSystem {
   }
 
   /**
+   * Set energy manager reference
+   */
+  setEnergyManager(energyManager: SlashEnergyManager): void {
+    this.energyManager = energyManager;
+  }
+
+  /**
    * Get slash width with upgrade bonus
    */
   getSlashWidth(): number {
@@ -95,27 +108,67 @@ export class SlashSystem {
   ): void {
     // Only check collisions if slash is active
     if (!slashTrail.isActive()) {
+      // Reset slash distance when not slashing
+      this.lastSlashDistance = 0;
       return;
     }
 
     const slashPoints = slashTrail.getSlashPoints();
-    
+
+    // Calculate slash distance and consume energy
+    const currentDistance = this.calculateSlashDistance(slashPoints);
+    if (currentDistance > this.lastSlashDistance && this.energyManager) {
+      const distanceDelta = currentDistance - this.lastSlashDistance;
+      this.currentEnergyEffectiveness = this.energyManager.consumeEnergy(distanceDelta);
+    }
+    this.lastSlashDistance = currentDistance;
+
     // Check each line segment in slash trail
     for (let i = 1; i < slashPoints.length; i++) {
       const prevPoint = slashPoints[i - 1];
       const currentPoint = slashPoints[i];
-      
+
       if (!prevPoint || !currentPoint) continue;
-      
+
       // Check collision with monsters
       this.checkMonsterCollisions(prevPoint, currentPoint, monsters);
-      
+
       // Check collision with villagers
       this.checkVillagerCollisions(prevPoint, currentPoint, villagers);
-      
+
       // Check collision with power-ups
       this.checkPowerUpCollisions(prevPoint, currentPoint, powerUps);
     }
+  }
+
+  /**
+   * Calculate total distance of slash trail
+   * @param slashPoints - Array of points in the slash trail
+   * @returns Total distance in pixels
+   */
+  private calculateSlashDistance(slashPoints: Phaser.Math.Vector2[]): number {
+    let distance = 0;
+
+    for (let i = 1; i < slashPoints.length; i++) {
+      const prevPoint = slashPoints[i - 1];
+      const currentPoint = slashPoints[i];
+
+      if (!prevPoint || !currentPoint) continue;
+
+      const dx = currentPoint.x - prevPoint.x;
+      const dy = currentPoint.y - prevPoint.y;
+      distance += Math.sqrt(dx * dx + dy * dy);
+    }
+
+    return distance;
+  }
+
+  /**
+   * Get current energy effectiveness multiplier
+   * @returns Effectiveness multiplier from 0.3 to 1.0
+   */
+  getEnergyEffectiveness(): number {
+    return this.currentEnergyEffectiveness;
   }
 
   /**
@@ -171,35 +224,39 @@ export class SlashSystem {
         // Calculate score with combo multiplier
         const basePoints = monster.getPoints();
         let multiplier = 1.0;
-        
+
         if (this.comboSystem) {
           multiplier = this.comboSystem.getMultiplier();
           this.comboSystem.increment();
         }
-        
+
         // Apply frenzy multiplier if active
         if (this.powerUpManager && this.powerUpManager.isFrenzyActive()) {
           multiplier *= 2;
         }
-        
+
         // Apply score multiplier from upgrades
         if (this.upgradeManager) {
           const stats = this.upgradeManager.getPlayerStats();
           multiplier *= stats.scoreMultiplier;
         }
-        
+
+        // Apply energy effectiveness multiplier
+        // Low energy reduces score earned
+        multiplier *= this.currentEnergyEffectiveness;
+
         // Check for critical hit
         let isCritical = false;
         if (this.upgradeManager) {
           const stats = this.upgradeManager.getPlayerStats();
           const critChance = stats.criticalHitChance;
-          
+
           if (Math.random() < critChance) {
             isCritical = true;
             multiplier *= stats.criticalHitMultiplier;
           }
         }
-        
+
         const finalScore = Math.floor(basePoints * multiplier);
         this.score += finalScore;
         
@@ -223,6 +280,7 @@ export class SlashSystem {
           souls: finalSouls,
           isCritical: isCritical,
           comboCount: this.comboSystem ? this.comboSystem.getCombo() : 0,
+          energyEffectiveness: this.currentEnergyEffectiveness,
         });
         
         // Emit score updated event
@@ -536,6 +594,10 @@ export class SlashSystem {
     this.monstersSliced = 0;
     this.villagersSliced = 0;
     this.powerUpsCollected = 0;
+
+    // Reset energy tracking
+    this.lastSlashDistance = 0;
+    this.currentEnergyEffectiveness = 1.0;
   }
 
   /**
