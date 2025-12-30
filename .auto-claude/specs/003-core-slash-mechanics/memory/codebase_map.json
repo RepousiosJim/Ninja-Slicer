@@ -9,7 +9,12 @@
       "description": "SlashEnergyManager singleton managing slash energy: consumeEnergy(distance) depletes based on slash length, update() handles regeneration with configurable delay, getEffectiveness() returns damage/score multiplier based on current energy level",
       "category": "manager",
       "discovered_at": "2025-12-30T04:43:07.101040+00:00"
+    },
+    "src/ui/HUD.ts": {
+      "description": "HUD class now includes energy bar with createEnergyBar(), updateEnergy(), and showEnergyBar() methods. Energy bar is positioned at bottom-left of screen and listens to 'slash-energy-changed' events.",
+      "category": "implementation",
+      "discovered_at": "2025-12-30T04:50:24.178634+00:00"
     }
   },
-  "last_updated": "2025-12-30T04:43:07.101052+00:00"
+  "last_updated": "2025-12-30T04:50:24.178644+00:00"
 }

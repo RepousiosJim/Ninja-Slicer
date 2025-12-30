@@ -142,9 +142,9 @@
               "Updates on slash"
             ]
           },
-          "status": "in_progress",
-          "notes": "Implementing energy bar in HUD using the boss health bar pattern",
-          "updated_at": "2025-12-30T04:48:17.330844+00:00"
+          "status": "completed",
+          "notes": "Added energy bar to HUD display. Bar shows current energy level, changes color based on energy percentage (cyan/blue > 50%, yellow/warning 25-50%, red/danger < 25%), includes pulse effect at low energy, and listens to 'slash-energy-changed' events.",
+          "updated_at": "2025-12-30T04:50:24.117621+00:00"
         },
         {
           "id": "subtask-2-4",
@@ -647,5 +647,5 @@
   "status": "human_review",
   "planStatus": "review",
   "updated_at": "2025-12-30T04:29:09.874Z",
-  "last_updated": "2025-12-30T04:48:17.330853+00:00"
+  "last_updated": "2025-12-30T04:50:24.117631+00:00"
 }

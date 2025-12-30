@@ -1,23 +1,31 @@
 /**
  * EventBus
- * 
+ *
  * A global event emitter for communication between scenes and systems.
  * Use this instead of trying to access other scenes directly.
- * 
+ *
  * Usage:
  *   import { EventBus } from '@utils/EventBus';
- *   
+ *
  *   // Emit an event
  *   EventBus.emit('player-died', { score: 1000 });
- *   
+ *
  *   // Listen for an event
  *   EventBus.on('player-died', (data) => { console.log(data.score); });
- *   
+ *
  *   // Remove listener (important for cleanup!)
  *   EventBus.off('player-died', myCallback);
  */
 
 import Phaser from 'phaser';
+import {
+  SlashEnergyChangedEvent,
+  SlashPowerChangedEvent,
+  SlashPatternDetectedEvent,
+  SlashPowerLevel,
+  SlashPatternType,
+  Vector2,
+} from '@config/types';
 
 // Create a single shared event emitter instance
 export const EventBus = new Phaser.Events.EventEmitter();
@@ -96,8 +104,31 @@ export interface GameEvents {
   };
   
   // Scene events
-  'scene-ready': { 
-    scene: string; 
+  'scene-ready': {
+    scene: string;
+  };
+
+  // Slash energy events
+  'slash-energy-changed': SlashEnergyChangedEvent;
+  'slash-energy-depleted': SlashEnergyChangedEvent;
+  'slash-energy-low': SlashEnergyChangedEvent;
+
+  // Slash power events
+  'slash-power-changed': SlashPowerChangedEvent;
+  'slash-power-charged': {
+    level: SlashPowerLevel;
+    position: Vector2;
+  };
+
+  // Slash pattern events
+  'slash-pattern-detected': SlashPatternDetectedEvent;
+  'slash-pattern-started': {
+    position: Vector2;
+    timestamp: number;
+  };
+  'slash-pattern-failed': {
+    pattern: SlashPatternType;
+    reason: string;
   };
 }
 
