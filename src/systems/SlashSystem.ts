@@ -114,6 +114,16 @@ export class SlashSystem {
 
   /**
    * Update slash system and check for collisions
+   *
+   * MULTI-KILL / SIMULTANEOUS KILLS HANDLING:
+   * When multiple monsters are killed in the same frame (update cycle):
+   * - Each kill increments the combo counter individually
+   * - Each kill's score is calculated with its own combo multiplier
+   *   (subsequent kills in same frame benefit from earlier kills' combo increment)
+   * - All kills are counted toward killsThisCycle for multi-kill bonus
+   * - At the end of the update cycle, multi-kill bonus is applied to the
+   *   total score accumulated this cycle (2+ kills = bonus multiplier)
+   *
    * @param slashTrail - The slash trail to check
    * @param monsters - Array of active monsters
    * @param villagers - Array of active villagers
@@ -131,6 +141,7 @@ export class SlashSystem {
     }
 
     // Reset multi-kill counters at the start of each update cycle
+    // This ensures we track kills per-frame for multi-kill bonus calculation
     this.killsThisCycle = 0;
     this.scoreThisCycle = 0;
     this.killPositionsThisCycle = [];
@@ -155,12 +166,15 @@ export class SlashSystem {
     }
 
     // Check for multi-kill at end of update cycle
+    // Multi-kill bonus is applied AFTER all individual kill scores are calculated
+    // This ensures simultaneous kills are properly rewarded with bonus multiplier
     if (this.killsThisCycle >= 2) {
       this.lastMultiKillCount = this.killsThisCycle;
 
-      // Calculate and apply multi-kill bonus
+      // Calculate and apply multi-kill bonus based on how many monsters killed this frame
+      // 2 kills = 1.5x, 3 kills = 2.0x, 4+ kills = 2.5x (see getMultiKillBonus)
       const bonusMultiplier = getMultiKillBonus(this.killsThisCycle);
-      // Bonus is the extra score from the multiplier (multiplier - 1.0 since base score already added)
+      // Bonus is the EXTRA score from the multiplier (multiplier - 1.0 since base score already added)
       const bonusScore = Math.floor(this.scoreThisCycle * (bonusMultiplier - 1.0));
 
       if (bonusScore > 0) {
@@ -216,9 +230,10 @@ export class SlashSystem {
         // Monster was hit
         monster.slice();
         this.monstersSliced++;
+        // Increment kill counter for multi-kill tracking (counts ALL kills in same frame)
         this.killsThisCycle++;
 
-        // Track kill position for multi-kill effect
+        // Track kill position for multi-kill effect visual feedback
         this.killPositionsThisCycle.push({ x: monster.x, y: monster.y });
 
         // Apply weapon effects
@@ -243,11 +258,15 @@ export class SlashSystem {
         }
         
         // Calculate score with combo multiplier
+        // NOTE: For simultaneous kills, each kill gets the current multiplier THEN increments combo
+        // This means later kills in the same frame benefit from earlier kills' combo increment
         const basePoints = monster.getPoints();
         let multiplier = 1.0;
-        
+
         if (this.comboSystem) {
+          // Get multiplier BEFORE incrementing (fair scoring for this kill)
           multiplier = this.comboSystem.getMultiplier();
+          // Increment combo for this kill (benefits subsequent kills in same frame)
           this.comboSystem.increment();
         }
         
@@ -276,7 +295,8 @@ export class SlashSystem {
         
         const finalScore = Math.floor(basePoints * multiplier);
         this.score += finalScore;
-        this.scoreThisCycle += finalScore; // Track for multi-kill bonus calculation
+        // Accumulate score for multi-kill bonus calculation (all kills in same frame)
+        this.scoreThisCycle += finalScore;
         
         // Calculate souls
         const monsterType = monster.getMonsterType();
