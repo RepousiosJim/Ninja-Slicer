@@ -52,6 +52,18 @@ const SPATIAL_GRID_CONFIG = {
 };
 
 /**
+ * Screen bounds configuration for early entity filtering
+ * Entities outside these bounds are skipped entirely to avoid unnecessary processing
+ * Margins account for entity hitbox radius and spawn positions
+ */
+const SCREEN_BOUNDS = {
+  minX: -100,                    // Left margin for entities partially off-screen
+  maxX: GAME_WIDTH + 100,        // Right margin for entities partially off-screen
+  minY: -150,                    // Top margin for spawning entities
+  maxY: GAME_HEIGHT + 100,       // Bottom margin for falling entities
+};
+
+/**
  * Entity types that can be stored in the spatial grid
  */
 type SpatialEntity = Monster | Villager | PowerUp;
@@ -132,13 +144,40 @@ class SpatialGrid<T extends SpatialEntity> {
   }
 
   /**
+   * Check if an entity is within screen bounds (early rejection)
+   * This is faster than checking cell bounds after coordinate conversion
+   * Entities way off-screen are skipped entirely to avoid grid operations
+   * @param entity - Entity to check
+   * @returns true if entity is within processable bounds
+   */
+  private isEntityInBounds(entity: T): boolean {
+    return (
+      entity.x >= SCREEN_BOUNDS.minX &&
+      entity.x <= SCREEN_BOUNDS.maxX &&
+      entity.y >= SCREEN_BOUNDS.minY &&
+      entity.y <= SCREEN_BOUNDS.maxY
+    );
+  }
+
+  /**
    * Populate grid from an array of entities
+   * Includes early bounds checking to skip off-screen entities entirely
+   * Performance: O(n) where n is active entities, but skips grid operations for off-screen entities
    */
   populate(entities: T[]): void {
     for (const entity of entities) {
-      if (entity.active) {
-        this.insert(entity);
+      // Early rejection: skip inactive entities
+      if (!entity.active) {
+        continue;
       }
+
+      // Early bounds check: skip entities way off-screen
+      // This prevents unnecessary cell coordinate calculations and grid insertions
+      if (!this.isEntityInBounds(entity)) {
+        continue;
+      }
+
+      this.insert(entity);
     }
   }
 

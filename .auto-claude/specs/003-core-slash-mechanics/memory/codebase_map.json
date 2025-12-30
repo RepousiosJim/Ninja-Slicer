@@ -16,20 +16,25 @@
       "discovered_at": "2025-12-30T04:50:24.178634+00:00"
     },
     "src/entities/SlashTrail.ts": {
-      "description": "SlashTrail now has charge/power mechanics: startCharging() begins charge, updateCharging(deltaTime) updates power level (0-3) based on SLASH_POWER.chargeTimePerLevel (0.5s), stopCharging() returns accumulated power, resetPower() clears state. Visual charge indicator ring with color progression and EventBus events (slash-power-changed, slash-power-charged).",
-      "category": "feature",
-      "discovered_at": "2025-12-30T04:57:10.432957+00:00"
+      "description": "SlashTrail now has performance optimizations: Vector2Pool class for object pooling (acquire/release/releaseAll methods), dirty flag tracking (trailDirty, cursorDirty, chargeDirty) to skip unnecessary redraws, batched draw calls in renderTrailBatched() and drawCursorBatched(), and cached static readonly cursor constants. Points are returned to pool in fadeTrail(), clear(), and destroy().",
+      "category": "performance",
+      "discovered_at": "2025-12-30T09:15:56.594027+00:00"
     },
     "src/systems/SlashSystem.ts": {
-      "description": "Added pattern visual confirmation effects (createPatternConfirmationEffect, createCirclePatternEffect, createZigzagPatternEffect, createStraightPatternEffect, createPatternLabel, createSparkEffect) that are triggered from onSlashEnd() when a valid pattern is detected. Effects use SLASH_PATTERN_VISUAL constants for timing.",
-      "category": "feature",
-      "discovered_at": "2025-12-30T05:17:02.532811+00:00"
+      "description": "Added SpatialGrid class for broadphase collision detection. Uses 100x100px grid cells with DDA algorithm for line-cell intersection. Separate grids for monsters/villagers/powerups. queryLine() returns only entities in cells the slash passes through. Grids cleared and populated each frame in update().",
+      "category": "performance",
+      "discovered_at": "2025-12-30T09:10:36.644948+00:00"
     },
     "src/utils/helpers.ts": {
       "description": "Pattern detection functions (detectZigzagPattern, detectStraightPattern, detectCirclePattern) were all implemented together in subtask-1-3. The detectSlashPattern orchestrator tries all patterns and returns the one with highest confidence. Pattern detection uses Douglas-Peucker simplification, angle calculations, and perpendicular distance metrics with configurable thresholds from SLASH_PATTERN constants.",
       "category": "pattern-recognition",
       "discovered_at": "2025-12-30T05:09:34.812511+00:00"
+    },
+    "src/scenes/GameplayScene.ts": {
+      "description": "GameplayScene is the central orchestrator for all slash mechanics. It initializes SlashEnergyManager in create(), connects it to SlashSystem via setEnergyManager(), calls slashEnergyManager.update() in the main update loop for regeneration, and resets it on game restart. The update flow is: handleInput() \u2192 slashTrail.update() \u2192 slashSystem.update() \u2192 slashEnergyManager.update().",
+      "category": "architecture",
+      "discovered_at": "2025-12-30T09:05:39.235805+00:00"
     }
   },
-  "last_updated": "2025-12-30T05:17:02.532822+00:00"
+  "last_updated": "2025-12-30T09:15:56.594038+00:00"
 }
