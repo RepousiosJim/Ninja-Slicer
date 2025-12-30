@@ -12,7 +12,7 @@ import { Villager } from '../entities/Villager';
 import { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
 import { MonsterType } from '@config/types';
-import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS } from '@config/constants';
+import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS, getMultiKillBonus } from '@config/constants';
 import { lineIntersectsCircle } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
@@ -36,6 +36,8 @@ export class SlashSystem {
   // Multi-kill tracking for current update cycle
   private killsThisCycle: number = 0;
   private lastMultiKillCount: number = 0;
+  private scoreThisCycle: number = 0;
+  private lastMultiKillBonus: number = 0;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -102,8 +104,9 @@ export class SlashSystem {
       return;
     }
 
-    // Reset multi-kill counter at the start of each update cycle
+    // Reset multi-kill counters at the start of each update cycle
     this.killsThisCycle = 0;
+    this.scoreThisCycle = 0;
 
     const slashPoints = slashTrail.getSlashPoints();
 
@@ -128,9 +131,29 @@ export class SlashSystem {
     if (this.killsThisCycle >= 2) {
       this.lastMultiKillCount = this.killsThisCycle;
 
+      // Calculate and apply multi-kill bonus
+      const bonusMultiplier = getMultiKillBonus(this.killsThisCycle);
+      // Bonus is the extra score from the multiplier (multiplier - 1.0 since base score already added)
+      const bonusScore = Math.floor(this.scoreThisCycle * (bonusMultiplier - 1.0));
+
+      if (bonusScore > 0) {
+        this.score += bonusScore;
+        this.lastMultiKillBonus = bonusScore;
+
+        // Emit score updated event with bonus
+        EventBus.emit('score-updated', {
+          score: this.score,
+          delta: bonusScore,
+          isMultiKillBonus: true,
+        });
+      }
+
       // Emit multi-kill event for external systems to react to
       EventBus.emit('multi-kill', {
         killCount: this.killsThisCycle,
+        bonusMultiplier: bonusMultiplier,
+        bonusScore: bonusScore,
+        totalCycleScore: this.scoreThisCycle + bonusScore,
       });
     }
   }
@@ -220,6 +243,7 @@ export class SlashSystem {
         
         const finalScore = Math.floor(basePoints * multiplier);
         this.score += finalScore;
+        this.scoreThisCycle += finalScore; // Track for multi-kill bonus calculation
         
         // Calculate souls
         const monsterType = monster.getMonsterType();
@@ -567,6 +591,13 @@ export class SlashSystem {
   }
 
   /**
+   * Get the last multi-kill bonus score awarded
+   */
+  getLastMultiKillBonus(): number {
+    return this.lastMultiKillBonus;
+  }
+
+  /**
    * Reset score and stats
    */
   resetScore(): void {
@@ -577,6 +608,8 @@ export class SlashSystem {
     this.powerUpsCollected = 0;
     this.killsThisCycle = 0;
     this.lastMultiKillCount = 0;
+    this.scoreThisCycle = 0;
+    this.lastMultiKillBonus = 0;
   }
 
   /**

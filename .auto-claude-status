@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "005-score-combo-system",
+  "state": "building",
+  "subtasks": {
+    "completed": 4,
+    "total": 17,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "Multi-Kill Bonus System",
+    "id": null,
+    "total": 3
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 6,
+    "started_at": "2025-12-30T16:05:18.592686"
+  },
+  "last_update": "2025-12-30T16:23:13.733916"
+}

@@ -1,8 +1,57 @@
 {
-  "subtasks": {},
+  "subtasks": {
+    "1.1": {
+      "attempts": [
+        {
+          "session": 2,
+          "timestamp": "2025-12-30T16:12:52.733309",
+          "approach": "Implemented: Review ComboSystem, SlashSystem, HUD, and ParticleSystem. Document what's already implemented vs wha",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "2.1": {
+      "attempts": [
+        {
+          "session": 3,
+          "timestamp": "2025-12-30T16:17:00.595415",
+          "approach": "Implemented: Create a visual timer bar that depletes as combo timeout approaches. Add graphics-based progress bar",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "2.2": {
+      "attempts": [
+        {
+          "session": 4,
+          "timestamp": "2025-12-30T16:20:06.410116",
+          "approach": "Implemented: Add update method to HUD that receives delta time and updates timer bar based on combo state. Emit t",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "3.1": {
+      "attempts": [
+        {
+          "session": 5,
+          "timestamp": "2025-12-30T16:23:00.003076",
+          "approach": "Implemented: Modify SlashSystem to track how many monsters are killed in a single update() call. If multiple mons",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    }
+  },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2025-12-30T16:05:18.591894",
-    "last_updated": "2025-12-30T16:05:18.591924"
+    "last_updated": "2025-12-30T16:23:00.003085"
   }
 }

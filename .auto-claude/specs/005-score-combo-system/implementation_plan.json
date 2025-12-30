@@ -35,7 +35,7 @@
           "id": "2.1",
           "title": "Add combo timer bar to HUD",
           "description": "Create a visual timer bar that depletes as combo timeout approaches. Add graphics-based progress bar beneath combo text. Implement smooth animation.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 1,
           "files_to_modify": [
             "src/ui/HUD.ts"
@@ -44,13 +44,14 @@
           "dependencies": [
             "1.1"
           ],
-          "notes": "Use Phaser.GameObjects.Graphics for the bar. Update every frame based on ComboSystem.getRemainingTime()"
+          "notes": "Added combo timer bar UI component to HUD with smooth animation. Timer bar uses rectangle graphics for background/fill, positioned at y=270 beneath combo text. Implements updateComboTimerBar() method with color transition from warning (orange) to danger (red) as time depletes. Uses blendColors() helper for smooth color interpolation. Timer bar visibility syncs with combo text visibility.",
+          "updated_at": "2025-12-30T14:16:36.186165+00:00"
         },
         {
           "id": "2.2",
           "title": "Connect timer bar to ComboSystem",
           "description": "Add update method to HUD that receives delta time and updates timer bar based on combo state. Emit timer progress via EventBus or direct method call.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 0.5,
           "files_to_modify": [
             "src/ui/HUD.ts",
@@ -60,7 +61,8 @@
           "dependencies": [
             "2.1"
           ],
-          "notes": "Need to pass delta time to HUD update or emit combo-timer-tick event with remaining time"
+          "notes": "Added update(delta, comboSystem) method to HUD that receives delta time and updates timer bar based on combo state. Connected to GameplayScene update loop. Timer bar now smoothly depletes in real-time using ComboSystem.getRemainingTime() to get current timer progress.",
+          "updated_at": "2025-12-30T14:19:48.394768+00:00"
         }
       ]
     },
@@ -73,7 +75,7 @@
           "id": "3.1",
           "title": "Track kills per slash update cycle",
           "description": "Modify SlashSystem to track how many monsters are killed in a single update() call. If multiple monsters hit in same cycle, mark as multi-kill.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 1,
           "files_to_modify": [
             "src/systems/SlashSystem.ts"
@@ -82,7 +84,8 @@
           "dependencies": [
             "1.1"
           ],
-          "notes": "Count kills at start of update(), apply bonus at end. Reset counter each update cycle."
+          "notes": "Added multi-kill tracking to SlashSystem: killsThisCycle counter reset at start of update(), incremented on each monster kill, multi-kill event emitted at end of update() when >= 2 kills. Added getter methods (getKillsThisCycle, getLastMultiKillCount, isMultiKill) and reset in resetScore().",
+          "updated_at": "2025-12-30T14:22:36.225116+00:00"
         },
         {
           "id": "3.2",
@@ -385,5 +388,5 @@
       ]
     }
   },
-  "last_updated": "2025-12-30T14:12:12.625827+00:00"
+  "last_updated": "2025-12-30T14:22:36.225125+00:00"
 }

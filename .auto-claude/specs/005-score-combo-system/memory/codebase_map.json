@@ -6,14 +6,14 @@
       "discovered_at": "2025-12-30T14:11:26.601463+00:00"
     },
     "src/ui/HUD.ts": {
-      "description": "HUD already displays score and combo with pulse animations. Has setupEventListeners for score-updated, combo-updated, lives-changed. Missing: combo timer countdown bar and score pop effects.",
-      "category": "existing_system",
-      "discovered_at": "2025-12-30T14:11:26.673124+00:00"
+      "description": "HUD now has update(delta, comboSystem) method that updates combo timer bar each frame. Gets remaining time from ComboSystem.getRemainingTime() and passes to updateComboTimerBar(). Called from GameplayScene.update() after comboSystem.update().",
+      "category": "ui",
+      "discovered_at": "2025-12-30T14:19:48.456786+00:00"
     },
     "src/systems/SlashSystem.ts": {
-      "description": "SlashSystem handles scoring with combo multiplier integration. Calculates score per monster type from MONSTER_BASE_POINTS. Has createHitEffect() for visual feedback. Missing: multi-kill tracking per update cycle and floating score text.",
-      "category": "existing_system",
-      "discovered_at": "2025-12-30T14:11:26.732956+00:00"
+      "description": "Added multi-kill tracking: killsThisCycle property tracks kills per update cycle, lastMultiKillCount stores last multi-kill value. Emits 'multi-kill' EventBus event with killCount when >= 2 kills in same cycle.",
+      "category": "feature",
+      "discovered_at": "2025-12-30T14:22:44.498157+00:00"
     },
     "src/config/constants.ts": {
       "description": "COMBO_MILESTONES already defined as [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]. COMBO_TIMEOUT = 2.0s. MONSTER_BASE_POINTS: zombie=10, vampire=15, ghost=20. Need to add MULTI_KILL_BONUS constants.",
@@ -26,5 +26,5 @@
       "discovered_at": "2025-12-30T14:11:26.851530+00:00"
     }
   },
-  "last_updated": "2025-12-30T14:11:26.851544+00:00"
+  "last_updated": "2025-12-30T14:22:44.498170+00:00"
 }

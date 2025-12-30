@@ -91,6 +91,26 @@ export const COMBO_MULTIPLIER_RATE = 0.1; // +0.1x per combo
 export const COMBO_MILESTONES = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
 
 // =============================================================================
+// MULTI-KILL BONUS
+// =============================================================================
+
+// Bonus multiplier applied to all kills when multiple monsters are sliced in one swipe
+// Keys are kill counts, values are bonus multipliers
+export const MULTI_KILL_BONUS = {
+  2: 1.5,  // Double kill: 1.5x bonus
+  3: 2.0,  // Triple kill: 2.0x bonus
+  4: 2.5,  // Quad+ kill: 2.5x bonus (used for 4 or more)
+} as const;
+
+// Get multi-kill bonus multiplier for a given kill count
+export const getMultiKillBonus = (killCount: number): number => {
+  if (killCount < 2) return 1.0;
+  if (killCount === 2) return MULTI_KILL_BONUS[2];
+  if (killCount === 3) return MULTI_KILL_BONUS[3];
+  return MULTI_KILL_BONUS[4]; // 4+ kills get max bonus
+};
+
+// =============================================================================
 // POWER-UPS
 // =============================================================================
 
