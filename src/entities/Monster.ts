@@ -302,6 +302,8 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
    * Override in subclasses for specific behavior
    */
   protected onSliced(): void {
+    // Screen shake for visceral feedback (100ms duration, 0.007 intensity)
+    this.scene.cameras.main.shake(100, 0.007);
     this.destroy();
   }
 
