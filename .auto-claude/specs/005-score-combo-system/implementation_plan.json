@@ -202,7 +202,7 @@
           "id": "5.2",
           "title": "Add score pop effect in HUD",
           "description": "When score updates, add a brief scale/pulse animation to score text. More dramatic for larger point gains.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 0.5,
           "files_to_modify": [
             "src/ui/HUD.ts"
@@ -211,7 +211,8 @@
           "dependencies": [
             "5.1"
           ],
-          "notes": "Use tweens on scoreText. Scale proportional to delta points."
+          "notes": "Implemented score pop/pulse animation in HUD.ts. Features: tracks previousScore to calculate point delta, playScorePopAnimation() method with 4 tiers of intensity (1.1x-1.4x scale) based on points gained thresholds (25/50/100), stops existing tween before starting new one to prevent overlap, uses theme animation duration and easing (DARK_GOTHIC_THEME.animations), proper cleanup in destroy() method. Animation uses Phaser tweens with yoyo:true for smooth pulse effect.",
+          "updated_at": "2025-12-30T19:03:45.768478+00:00"
         }
       ]
     },
@@ -394,5 +395,5 @@
       ]
     }
   },
-  "last_updated": "2025-12-30T19:00:30.320777+00:00"
+  "last_updated": "2025-12-30T19:03:45.768487+00:00"
 }

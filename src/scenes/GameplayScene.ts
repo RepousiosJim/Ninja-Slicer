@@ -684,19 +684,25 @@ export class GameplayScene extends Phaser.Scene {
    */
   private togglePause(): void {
     if (this.isGameOver) return;
-    
+
     this.isPaused = !this.isPaused;
-    
+
     if (this.isPaused) {
+      // Pause combo timer
+      this.comboSystem.setPaused(true);
+
       // Pause physics
       this.physics.pause();
-      
+
       // Open pause scene
       this.scene.pause();
       this.scene.launch(SCENE_KEYS.pause, {
         levelId: this.isCampaignMode ? `${this.currentWorld}-${this.currentLevel}` : null,
       });
     } else {
+      // Resume combo timer
+      this.comboSystem.setPaused(false);
+
       // Resume physics
       this.physics.resume();
     }
@@ -707,6 +713,11 @@ export class GameplayScene extends Phaser.Scene {
    */
   public resume(): void {
     this.isPaused = false;
+
+    // Resume combo timer
+    this.comboSystem.setPaused(false);
+
+    // Resume physics
     this.physics.resume();
   }
 

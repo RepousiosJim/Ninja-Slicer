@@ -14,6 +14,7 @@ export class ComboSystem {
   private multiplier: number = 1.0;
   private maxCombo: number = 0;
   private reachedMilestones: Set<number> = new Set();
+  private isPaused: boolean = false;
 
   /**
    * Increment combo count and reset timer
@@ -74,13 +75,34 @@ export class ComboSystem {
    * @param delta - Time since last update (ms)
    */
   update(time: number, delta: number): void {
+    // Don't update timer when paused
+    if (this.isPaused) {
+      return;
+    }
+
     if (this.combo > 0) {
       this.comboTimer -= delta;
-      
+
       if (this.comboTimer <= 0) {
         this.reset();
       }
     }
+  }
+
+  /**
+   * Set paused state
+   * When paused, the combo timer will not decrement
+   * @param paused - Whether the combo system is paused
+   */
+  setPaused(paused: boolean): void {
+    this.isPaused = paused;
+  }
+
+  /**
+   * Get paused state
+   */
+  getIsPaused(): boolean {
+    return this.isPaused;
   }
 
   /**

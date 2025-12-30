@@ -6,14 +6,14 @@
       "discovered_at": "2025-12-30T14:34:57.637960+00:00"
     },
     "src/ui/HUD.ts": {
-      "description": "HUD now has update(delta, comboSystem) method that updates combo timer bar each frame. Gets remaining time from ComboSystem.getRemainingTime() and passes to updateComboTimerBar(). Called from GameplayScene.update() after comboSystem.update().",
-      "category": "ui",
-      "discovered_at": "2025-12-30T14:19:48.456786+00:00"
+      "description": "HUD now has score pop animation: playScorePopAnimation() method creates scale/pulse effect on score text. Tracks previousScore to calculate point delta, uses 4 intensity tiers (1-25pts=1.1x, 26-50pts=1.2x, 51-100pts=1.3x, 100+pts=1.4x scale). scorePopTween property stores active tween reference for cleanup. Animation uses DARK_GOTHIC_THEME.animations duration/easing with yoyo:true for pulse effect.",
+      "category": "feature",
+      "discovered_at": "2025-12-30T19:03:55.499739+00:00"
     },
     "src/systems/SlashSystem.ts": {
-      "description": "Added multi-kill visual feedback system: createMultiKillEffect() method shows floating text (DOUBLE/TRIPLE/MEGA/ULTRA KILL), bonus score text, particle effects at kill positions, and screen flash for 4+ kills. Uses killPositionsThisCycle array to track positions. Connected to ParticleSystem via setParticleSystem().",
+      "description": "Floating score text implemented: SCORE_TEXT_COLORS config (100+=purple, 50+=orange, 25+=yellow, 0+=white), createFloatingScoreText() method with font scaling (18-36px), multiplier display when >1.0x, scale-up/fade animations, critical hit styling. Called on each monster kill in checkMonsterCollisions().",
       "category": "feature",
-      "discovered_at": "2025-12-30T14:32:08.492408+00:00"
+      "discovered_at": "2025-12-30T19:00:57.086054+00:00"
     },
     "src/config/constants.ts": {
       "description": "Added MULTI_KILL_BONUS constants and getMultiKillBonus() helper function for calculating bonus multipliers (2 kills = 1.5x, 3 kills = 2.0x, 4+ kills = 2.5x)",
@@ -29,7 +29,12 @@
       "description": "New ComboEffectsManager handles combo milestone visual effects. Has MILESTONE_CONFIGS for 5x/10x/15x/20x/25x with escalating effects. Uses ParticleSystem.emit() for particles, Graphics for screen flash. Listens to 'combo-milestone' EventBus events. Methods: setParticleSystem(), triggerMilestoneEffect(), triggerCelebration(), cleanup(), destroy().",
       "category": "managers",
       "discovered_at": "2025-12-30T14:39:05.883863+00:00"
+    },
+    "src/scenes/GameplayScene.ts": {
+      "description": "GameplayScene now initializes ComboEffectsManager (line 98-99), connects it to ParticleSystem, and destroys it in shutdown(). ComboEffectsManager automatically handles combo milestone visual effects via EventBus 'combo-milestone' events.",
+      "category": "integration",
+      "discovered_at": "2025-12-30T14:41:46.014575+00:00"
     }
   },
-  "last_updated": "2025-12-30T14:39:05.883875+00:00"
+  "last_updated": "2025-12-30T19:03:55.499751+00:00"
 }
