@@ -162,7 +162,9 @@
             "command": "npx tsc --noEmit",
             "expected": "No type errors"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Added slash mechanics event types to EventBus GameEvents interface. Imported SlashEnergyChangedEvent, SlashPowerChangedEvent, SlashPatternDetectedEvent, SlashPowerLevel, SlashPatternType, and Vector2 from @config/types. Added 8 new event types: slash-energy-changed, slash-energy-depleted, slash-energy-low, slash-power-changed, slash-power-charged, slash-pattern-detected, slash-pattern-started, slash-pattern-failed. Committed in f79734c.",
+          "updated_at": "2025-12-30T04:53:09.838300+00:00"
         }
       ]
     },
@@ -195,7 +197,9 @@
               "Power level increases over time"
             ]
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Added comprehensive charge/power mechanics to SlashTrail: power state tracking (SlashPowerLevel 0-3), charge indicator graphics with pulsing animation, color progression (white->yellow->orange->red), progress arc, trail width scaling by power multipliers, and EventBus integration for power events. Committed in bdc19ec.",
+          "updated_at": "2025-12-30T04:57:10.374154+00:00"
         },
         {
           "id": "subtask-3-2",
@@ -647,5 +651,5 @@
   "status": "human_review",
   "planStatus": "review",
   "updated_at": "2025-12-30T04:29:09.874Z",
-  "last_updated": "2025-12-30T04:50:24.117631+00:00"
+  "last_updated": "2025-12-30T04:57:10.374165+00:00"
 }

@@ -12,7 +12,15 @@ import { Villager } from '../entities/Villager';
 import { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
 import { MonsterType } from '@config/types';
-import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS } from '@config/constants';
+import {
+  MONSTER_HITBOX_RADIUS,
+  MONSTER_SOULS,
+  VILLAGER_PENALTY,
+  SLASH_HITBOX_RADIUS,
+  SLASH_POWER_DAMAGE_MULTIPLIERS,
+  SLASH_POWER_SCORE_MULTIPLIERS
+} from '@config/constants';
+import { SlashPowerLevel } from '@config/types';
 import { lineIntersectsCircle } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
@@ -38,6 +46,9 @@ export class SlashSystem {
   // Energy tracking
   private lastSlashDistance: number = 0;
   private currentEnergyEffectiveness: number = 1.0;
+
+  // Power level tracking (updated each frame from SlashTrail)
+  private currentPowerLevel: SlashPowerLevel = SlashPowerLevel.NONE;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -110,8 +121,13 @@ export class SlashSystem {
     if (!slashTrail.isActive()) {
       // Reset slash distance when not slashing
       this.lastSlashDistance = 0;
+      // Reset power level when not slashing
+      this.currentPowerLevel = SlashPowerLevel.NONE;
       return;
     }
+
+    // Get the current power level from the slash trail
+    this.currentPowerLevel = slashTrail.getPowerLevel();
 
     const slashPoints = slashTrail.getSlashPoints();
 
@@ -200,7 +216,12 @@ export class SlashSystem {
         monster.slice();
         this.monstersSliced++;
         
-        // Apply weapon effects
+        // Get power damage multiplier for this slash
+        const powerDamageMultiplier = SLASH_POWER_DAMAGE_MULTIPLIERS[
+          this.currentPowerLevel as keyof typeof SLASH_POWER_DAMAGE_MULTIPLIERS
+        ] || 1.0;
+
+        // Apply weapon effects with power-enhanced damage
         if (this.weaponManager) {
           this.weaponManager.applyWeaponEffects(
             { position: { x: monster.x, y: monster.y } },
@@ -208,8 +229,8 @@ export class SlashSystem {
               type: monster.getMonsterType(),
               position: { x: monster.x, y: monster.y },
               health: monster.getHealth(),
-              applyDamage: (damage: number) => monster.applyDamage(damage),
-              applyBurn: (damage: number, duration: number) => monster.applyBurn(damage, duration),
+              applyDamage: (damage: number) => monster.applyDamage(damage * powerDamageMultiplier),
+              applyBurn: (damage: number, duration: number) => monster.applyBurn(damage * powerDamageMultiplier, duration),
               applySlow: (multiplier: number, duration: number) => monster.applySlow(multiplier, duration),
               applyStun: (duration: number) => monster.applyStun(duration),
               setAlwaysVisible: (visible: boolean) => {
@@ -244,6 +265,13 @@ export class SlashSystem {
         // Apply energy effectiveness multiplier
         // Low energy reduces score earned
         multiplier *= this.currentEnergyEffectiveness;
+
+        // Apply power level score multiplier
+        // Charged slashes earn more score
+        const powerScoreMultiplier = SLASH_POWER_SCORE_MULTIPLIERS[
+          this.currentPowerLevel as keyof typeof SLASH_POWER_SCORE_MULTIPLIERS
+        ] || 1.0;
+        multiplier *= powerScoreMultiplier;
 
         // Check for critical hit
         let isCritical = false;
@@ -281,6 +309,9 @@ export class SlashSystem {
           isCritical: isCritical,
           comboCount: this.comboSystem ? this.comboSystem.getCombo() : 0,
           energyEffectiveness: this.currentEnergyEffectiveness,
+          powerLevel: this.currentPowerLevel,
+          powerDamageMultiplier: powerDamageMultiplier,
+          powerScoreMultiplier: powerScoreMultiplier,
         });
         
         // Emit score updated event
@@ -295,8 +326,8 @@ export class SlashSystem {
           delta: finalSouls,
         });
         
-        // Create visual feedback
-        this.createHitEffect(monster.x, monster.y, isCritical);
+        // Create visual feedback with power level
+        this.createHitEffect(monster.x, monster.y, isCritical, this.currentPowerLevel);
       }
     }
   }
@@ -450,19 +481,46 @@ export class SlashSystem {
 
   /**
    * Create visual effect when monster is hit
+   * @param x - X position of the hit
+   * @param y - Y position of the hit
+   * @param isCritical - Whether this was a critical hit
+   * @param powerLevel - The power level of the slash (0-3)
    */
-  private createHitEffect(x: number, y: number, isCritical: boolean = false): void {
+  private createHitEffect(
+    x: number,
+    y: number,
+    isCritical: boolean = false,
+    powerLevel: SlashPowerLevel = SlashPowerLevel.NONE
+  ): void {
+    // Get power-based color and size
+    const powerColors = {
+      [SlashPowerLevel.NONE]: 0xffffff,
+      [SlashPowerLevel.LOW]: 0xffff00,
+      [SlashPowerLevel.MEDIUM]: 0xff8c00,
+      [SlashPowerLevel.HIGH]: 0xff0000,
+    };
+    const baseColor = powerColors[powerLevel] || 0xffffff;
+
+    // Size scales with power level
+    const baseRadius = 50 + powerLevel * 15;
+
     // Create flash effect
     this.hitFlashGraphics.clear();
-    const color = isCritical ? 0xff0000 : 0xffffff;
-    this.hitFlashGraphics.fillStyle(color, 0.5);
-    this.hitFlashGraphics.fillCircle(x, y, 50);
-    
+    const color = isCritical ? 0xff0000 : baseColor;
+    this.hitFlashGraphics.fillStyle(color, 0.5 + powerLevel * 0.1);
+    this.hitFlashGraphics.fillCircle(x, y, baseRadius);
+
+    // Add outer ring for powered slashes
+    if (powerLevel > SlashPowerLevel.NONE) {
+      this.hitFlashGraphics.lineStyle(4, color, 0.7);
+      this.hitFlashGraphics.strokeCircle(x, y, baseRadius + 10);
+    }
+
     // Fade out quickly
     this.scene.tweens.add({
       targets: this.hitFlashGraphics,
       alpha: 0,
-      duration: 50,
+      duration: 50 + powerLevel * 20,
       onComplete: () => {
         this.hitFlashGraphics.clear();
       },
@@ -495,6 +553,44 @@ export class SlashSystem {
           critText.destroy();
         },
       });
+    }
+
+    // Show power level text for charged slashes
+    if (powerLevel >= SlashPowerLevel.MEDIUM) {
+      const powerNames = {
+        [SlashPowerLevel.MEDIUM]: 'POWER!',
+        [SlashPowerLevel.HIGH]: 'SUPER!',
+      };
+      const powerText = powerNames[powerLevel as SlashPowerLevel.MEDIUM | SlashPowerLevel.HIGH];
+
+      if (powerText) {
+        const powerTextObj = this.scene.add.text(
+          x,
+          isCritical ? y - 80 : y - 50,
+          powerText,
+          {
+            fontSize: powerLevel === SlashPowerLevel.HIGH ? '28px' : '24px',
+            color: powerLevel === SlashPowerLevel.HIGH ? '#ff4400' : '#ff8c00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3,
+          }
+        );
+        powerTextObj.setOrigin(0.5);
+
+        // Animate text floating up and fading
+        this.scene.tweens.add({
+          targets: powerTextObj,
+          y: (isCritical ? y - 80 : y - 50) - 80,
+          alpha: 0,
+          scale: 1.2,
+          duration: 600,
+          ease: 'Quad.easeOut',
+          onComplete: () => {
+            powerTextObj.destroy();
+          },
+        });
+      }
     }
   }
 
@@ -598,6 +694,17 @@ export class SlashSystem {
     // Reset energy tracking
     this.lastSlashDistance = 0;
     this.currentEnergyEffectiveness = 1.0;
+
+    // Reset power level tracking
+    this.currentPowerLevel = SlashPowerLevel.NONE;
+  }
+
+  /**
+   * Get current power level
+   * @returns Current slash power level (0-3)
+   */
+  getCurrentPowerLevel(): SlashPowerLevel {
+    return this.currentPowerLevel;
   }
 
   /**

@@ -71,11 +71,35 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-2-4": {
+      "attempts": [
+        {
+          "session": 7,
+          "timestamp": "2025-12-30T06:53:18.448653",
+          "approach": "Implemented: Add energy event types to EventBus",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-3-1": {
+      "attempts": [
+        {
+          "session": 8,
+          "timestamp": "2025-12-30T06:57:23.952281",
+          "approach": "Implemented: Add charge tracking to SlashTrail with power levels",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2025-12-30T06:31:40.195936",
-    "last_updated": "2025-12-30T06:50:38.260378"
+    "last_updated": "2025-12-30T06:57:23.952287"
   }
 }
