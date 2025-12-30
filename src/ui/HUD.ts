@@ -31,7 +31,11 @@ export class HUD {
   private powerUpContainer!: Phaser.GameObjects.Container;
   private powerUpIcons: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private pauseButton: Button | null = null;
-  
+
+  // Score animation tracking
+  private previousScore: number = 0;
+  private scorePopTween: Phaser.Tweens.Tween | null = null;
+
   // Campaign mode elements
   private timerText!: Phaser.GameObjects.Text;
   private timerLabel!: Phaser.GameObjects.Text;
@@ -386,10 +390,68 @@ export class HUD {
   }
 
   /**
-   * Update score display
+   * Update score display with pulse animation
+   * Animation intensity scales based on point gain
    */
   updateScore(score: number): void {
+    const pointsGained = score - this.previousScore;
+    this.previousScore = score;
     this.scoreText.setText(score.toString());
+
+    // Only animate if points were gained (not on reset or initialization)
+    if (pointsGained > 0) {
+      this.playScorePopAnimation(pointsGained);
+    }
+  }
+
+  /**
+   * Play score pop/pulse animation with intensity based on points gained
+   * Small gains (1-25): subtle pulse (1.1x scale)
+   * Medium gains (26-50): moderate pulse (1.2x scale)
+   * Large gains (51-100): strong pulse (1.3x scale)
+   * Huge gains (100+): dramatic pulse (1.4x scale)
+   */
+  private playScorePopAnimation(pointsGained: number): void {
+    // Stop any existing tween to prevent overlap
+    if (this.scorePopTween) {
+      this.scorePopTween.stop();
+      this.scoreText.setScale(1);
+    }
+
+    // Calculate scale based on points gained
+    let targetScale: number;
+    let duration: number;
+
+    if (pointsGained >= 100) {
+      // Huge gain - dramatic pulse
+      targetScale = 1.4;
+      duration = DARK_GOTHIC_THEME.animations.duration * 1.5;
+    } else if (pointsGained >= 50) {
+      // Large gain - strong pulse
+      targetScale = 1.3;
+      duration = DARK_GOTHIC_THEME.animations.duration * 1.25;
+    } else if (pointsGained >= 25) {
+      // Medium gain - moderate pulse
+      targetScale = 1.2;
+      duration = DARK_GOTHIC_THEME.animations.duration;
+    } else {
+      // Small gain - subtle pulse
+      targetScale = 1.1;
+      duration = DARK_GOTHIC_THEME.animations.duration * 0.75;
+    }
+
+    // Create pulse animation
+    this.scorePopTween = this.scene.tweens.add({
+      targets: this.scoreText,
+      scale: targetScale,
+      duration: duration,
+      yoyo: true,
+      ease: DARK_GOTHIC_THEME.animations.easing,
+      onComplete: () => {
+        this.scoreText.setScale(1);
+        this.scorePopTween = null;
+      },
+    });
   }
 
   /**
@@ -592,6 +654,12 @@ export class HUD {
     EventBus.off('lives-changed');
     EventBus.off('powerup-activated');
     EventBus.off('powerup-ended');
+
+    // Stop any active tweens
+    if (this.scorePopTween) {
+      this.scorePopTween.stop();
+      this.scorePopTween = null;
+    }
 
     // Destroy all elements
     if (this.scoreText) {
