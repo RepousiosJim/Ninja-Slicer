@@ -59,6 +59,20 @@ export enum WeaponRarity {
   LEGENDARY = 'legendary',
 }
 
+export enum SlashPowerLevel {
+  NONE = 0,
+  LOW = 1,
+  MEDIUM = 2,
+  HIGH = 3,
+}
+
+export enum SlashPatternType {
+  NONE = 'none',
+  CIRCLE = 'circle',
+  ZIGZAG = 'zigzag',
+  STRAIGHT = 'straight',
+}
+
 // =============================================================================
 // SAVE DATA
 // =============================================================================
@@ -318,6 +332,89 @@ export interface GameplayState {
 }
 
 // =============================================================================
+// SLASH MECHANICS
+// =============================================================================
+
+export interface SlashEnergyState {
+  current: number;
+  max: number;
+  regenRate: number;
+  isRegenerating: boolean;
+  lastDepletionTime: number;
+}
+
+export interface SlashPowerState {
+  level: SlashPowerLevel;
+  chargeStartTime: number;
+  chargeProgress: number;
+  isCharging: boolean;
+}
+
+export interface SlashPatternPoint {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
+export interface SlashPatternState {
+  points: SlashPatternPoint[];
+  detectedPattern: SlashPatternType;
+  patternStartTime: number;
+  isDetecting: boolean;
+}
+
+export interface SlashPatternResult {
+  pattern: SlashPatternType;
+  confidence: number;
+  points: SlashPatternPoint[];
+  center?: Vector2;
+  radius?: number;
+  directionChanges?: number;
+  straightLineDeviation?: number;
+}
+
+export interface SlashMechanicsState {
+  energy: SlashEnergyState;
+  power: SlashPowerState;
+  pattern: SlashPatternState;
+}
+
+export interface SlashEnergyConfig {
+  maxEnergy: number;
+  baseCostPerDistance: number;
+  minCostPerSlash: number;
+  regenRatePerSecond: number;
+  regenDelay: number;
+  lowEnergyThreshold: number;
+  minEffectiveness: number;
+}
+
+export interface SlashPowerConfig {
+  chargeTimePerLevel: number;
+  maxPowerLevel: SlashPowerLevel;
+  damageMultipliers: Record<SlashPowerLevel, number>;
+  scoreMultipliers: Record<SlashPowerLevel, number>;
+  widthMultipliers: Record<SlashPowerLevel, number>;
+}
+
+export interface SlashPatternConfig {
+  minPointsForDetection: number;
+  patternTimeout: number;
+  circleClosureThreshold: number;
+  circleMinRadius: number;
+  zigzagMinDirectionChanges: number;
+  zigzagAngleThreshold: number;
+  straightLineMaxDeviation: number;
+  straightLineMinLength: number;
+}
+
+export interface SlashMechanicsConfig {
+  energy: SlashEnergyConfig;
+  power: SlashPowerConfig;
+  pattern: SlashPatternConfig;
+}
+
+// =============================================================================
 // EVENTS
 // =============================================================================
 
@@ -369,6 +466,29 @@ export interface GameplayStats {
   ghostsSliced: number;
   villagersSliced: number;
   powerUpsCollected: number;
+}
+
+export interface SlashEnergyChangedEvent {
+  current: number;
+  max: number;
+  percentage: number;
+  isLow: boolean;
+  isDepleted: boolean;
+}
+
+export interface SlashPowerChangedEvent {
+  level: SlashPowerLevel;
+  previousLevel: SlashPowerLevel;
+  chargeProgress: number;
+  isFullyCharged: boolean;
+}
+
+export interface SlashPatternDetectedEvent {
+  pattern: SlashPatternType;
+  confidence: number;
+  position: Vector2;
+  bonusScore: number;
+  bonusMultiplier: number;
 }
 
 // =============================================================================
