@@ -379,9 +379,9 @@
               "Energy integrates with HUD"
             ]
           },
-          "status": "in_progress",
-          "notes": "Integrating SlashEnergyManager into GameplayScene lifecycle",
-          "updated_at": "2025-12-30T05:18:11.939598+00:00"
+          "status": "completed",
+          "notes": "Integrated SlashEnergyManager into GameplayScene lifecycle: Added import and property, initialized in create() with scene and upgradeManager, connected to SlashSystem via setEnergyManager(), added update() call for regeneration each frame, and reset on game restart. Committed in c3c19b2.",
+          "updated_at": "2025-12-30T05:20:38.576721+00:00"
         },
         {
           "id": "subtask-5-2",
@@ -665,5 +665,5 @@
   "status": "human_review",
   "planStatus": "review",
   "updated_at": "2025-12-30T04:29:09.874Z",
-  "last_updated": "2025-12-30T05:18:11.939614+00:00"
+  "last_updated": "2025-12-30T05:20:38.576733+00:00"
 }

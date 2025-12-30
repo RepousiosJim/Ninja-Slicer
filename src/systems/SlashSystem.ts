@@ -60,6 +60,11 @@ export class SlashSystem {
   private lastDetectedPattern: SlashPatternResult | null = null;
   private wasSlashActive: boolean = false;
 
+  // Slash session tracking for pattern bonuses
+  // Tracks points and monsters during a single slash to apply pattern multipliers retroactively
+  private slashSessionPoints: number = 0;
+  private slashSessionMonsters: { x: number; y: number; type: MonsterType }[] = [];
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.hitFlashGraphics = scene.add.graphics();
@@ -130,6 +135,13 @@ export class SlashSystem {
     delta: number = 16.67 // Default to ~60fps if not provided
   ): void {
     const isSlashActive = slashTrail.isActive();
+
+    // Handle slash session tracking (transition from inactive to active)
+    if (!this.wasSlashActive && isSlashActive) {
+      // New slash started - reset session tracking
+      this.slashSessionPoints = 0;
+      this.slashSessionMonsters = [];
+    }
 
     // Handle pattern detection when slash ends (transition from active to inactive)
     if (this.wasSlashActive && !isSlashActive) {
@@ -263,10 +275,12 @@ export class SlashSystem {
   /**
    * Called when slash ends - attempts to detect patterns
    * Similar to how ComboSystem handles state transitions
+   * Applies pattern bonuses retroactively to monsters sliced during this slash
    */
   private onSlashEnd(): void {
     if (!this.isPatternBuffering || this.patternBuffer.length < SLASH_PATTERN.minPointsForDetection) {
       this.resetPatternBuffer();
+      this.resetSlashSession();
       return;
     }
 
@@ -282,9 +296,19 @@ export class SlashSystem {
       // Get pattern bonuses
       const bonuses = SLASH_PATTERN_BONUSES[result.pattern] || SLASH_PATTERN_BONUSES.none;
 
-      // Apply pattern bonus to score
-      const bonusScore = bonuses.bonusScore || 0;
-      this.score += bonusScore;
+      // Calculate total bonus score:
+      // 1. Flat bonus score for completing the pattern
+      const flatBonusScore = bonuses.bonusScore || 0;
+
+      // 2. Retroactive multiplier bonus for monsters sliced during this slash
+      // If scoreMultiplier is 1.5, apply an additional 0.5x of session points as bonus
+      const multiplierBonus = Math.floor(
+        this.slashSessionPoints * (bonuses.scoreMultiplier - 1.0)
+      );
+
+      // Total pattern bonus
+      const totalPatternBonus = flatBonusScore + multiplierBonus;
+      this.score += totalPatternBonus;
 
       // Create visual confirmation effect for the detected pattern
       this.createPatternConfirmationEffect(
@@ -294,25 +318,110 @@ export class SlashSystem {
         result.points
       );
 
-      // Emit pattern detected event
+      // Create pattern-specific damage/effect based on damageMultiplier
+      if (bonuses.damageMultiplier > 1.0 && this.slashSessionMonsters.length > 0) {
+        this.applyPatternDamageEffect(result.pattern, center, bonuses.damageMultiplier);
+      }
+
+      // Emit pattern detected event with full bonus information
       EventBus.emit('slash-pattern-detected', {
         pattern: result.pattern,
         confidence: result.confidence,
         position: center,
-        bonusScore: bonusScore,
+        bonusScore: totalPatternBonus,
         bonusMultiplier: bonuses.scoreMultiplier,
+        monstersAffected: this.slashSessionMonsters.length,
+        sessionPoints: this.slashSessionPoints,
       });
 
       // Emit score updated event if bonus was applied
-      if (bonusScore > 0) {
+      if (totalPatternBonus > 0) {
         EventBus.emit('score-updated', {
           score: this.score,
-          delta: bonusScore,
+          delta: totalPatternBonus,
         });
+
+        // Show bonus score floating text at pattern center
+        this.createPatternBonusText(center.x, center.y, totalPatternBonus, result.pattern);
       }
     }
 
     this.resetPatternBuffer();
+    this.resetSlashSession();
+  }
+
+  /**
+   * Reset slash session tracking
+   */
+  private resetSlashSession(): void {
+    this.slashSessionPoints = 0;
+    this.slashSessionMonsters = [];
+  }
+
+  /**
+   * Apply pattern-specific damage effect
+   * Each pattern type has a unique effect based on its damageMultiplier
+   * @param pattern - The detected pattern type
+   * @param center - Center position for the effect
+   * @param damageMultiplier - Damage multiplier from pattern bonuses
+   */
+  private applyPatternDamageEffect(
+    pattern: SlashPatternType,
+    center: { x: number; y: number },
+    damageMultiplier: number
+  ): void {
+    // Emit pattern effect event for external systems (e.g., area damage, screen effects)
+    EventBus.emit('slash-pattern-effect', {
+      pattern: pattern,
+      position: center,
+      damageMultiplier: damageMultiplier,
+      monstersHit: this.slashSessionMonsters,
+    });
+  }
+
+  /**
+   * Create floating bonus text for pattern completion
+   * @param x - X position
+   * @param y - Y position
+   * @param bonus - Bonus score amount
+   * @param pattern - Pattern type for color styling
+   */
+  private createPatternBonusText(
+    x: number,
+    y: number,
+    bonus: number,
+    pattern: SlashPatternType
+  ): void {
+    // Color based on pattern type
+    const patternColors: Record<SlashPatternType, string> = {
+      [SlashPatternType.NONE]: '#ffffff',
+      [SlashPatternType.CIRCLE]: '#ffd700', // Gold
+      [SlashPatternType.ZIGZAG]: '#00ffff', // Cyan
+      [SlashPatternType.STRAIGHT]: '#ff4444', // Red
+    };
+    const color = patternColors[pattern] || '#ffffff';
+
+    const bonusText = this.scene.add.text(x, y + 40, `+${bonus}`, {
+      fontSize: '28px',
+      color: color,
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    });
+    bonusText.setOrigin(0.5);
+
+    // Animate text floating up and fading
+    this.scene.tweens.add({
+      targets: bonusText,
+      y: y - 60,
+      alpha: 0,
+      scale: 1.3,
+      duration: 1000,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        bonusText.destroy();
+      },
+    });
   }
 
   /**
@@ -468,9 +577,19 @@ export class SlashSystem {
 
         const finalScore = Math.floor(basePoints * multiplier);
         this.score += finalScore;
-        
-        // Calculate souls
+
+        // Get monster type for souls and session tracking
         const monsterType = monster.getMonsterType();
+
+        // Track session for pattern bonus calculation
+        this.slashSessionPoints += finalScore;
+        this.slashSessionMonsters.push({
+          x: monster.x,
+          y: monster.y,
+          type: monsterType,
+        });
+
+        // Calculate souls
         const baseSouls = MONSTER_SOULS[monsterType] || 5;
         let finalSouls: number = baseSouls;
         
@@ -1247,6 +1366,7 @@ export class SlashSystem {
 
     // Reset pattern recognition tracking
     this.resetPatternBuffer();
+    this.resetSlashSession();
     this.wasSlashActive = false;
   }
 
