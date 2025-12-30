@@ -34,8 +34,10 @@ export class SlashTrail {
   private active: boolean = false;
 
   // Trail style properties - BRIGHT and VISIBLE
-  private trailColor: number = 0xffffff; // Bright white
-  private trailGlow: number = 0xff00ff; // Bright magenta glow
+  private baseTrailColor: number = 0xffffff; // Base white color (no power)
+  private baseTrailGlow: number = 0xff00ff; // Base magenta glow (no power)
+  private trailColor: number = 0xffffff; // Current trail color (adjusted by power)
+  private trailGlow: number = 0xff00ff; // Current glow color (adjusted by power)
   private baseTrailWidth: number = SLASH_TRAIL_WIDTH * 2; // Base width (make thicker)
   private trailWidth: number = SLASH_TRAIL_WIDTH * 2; // Current width (adjusted by power)
   private trailGlowWidth: number = SLASH_TRAIL_GLOW_WIDTH * 2; // Make thicker
@@ -239,13 +241,27 @@ export class SlashTrail {
 
   /**
    * Set trail style (color, glow, width)
+   * This sets the base style that will be modified by power levels
    */
   setTrailStyle(style: { color: number; glow: number; width: number }): void {
-    this.trailColor = style.color;
-    this.trailGlow = style.glow;
+    // Update base colors (used when power level is NONE)
+    this.baseTrailColor = style.color;
+    this.baseTrailGlow = style.glow;
+
+    // Apply current power level visuals to the new base style
+    if (this.powerState.level === SlashPowerLevel.NONE) {
+      this.trailColor = style.color;
+      this.trailGlow = style.glow;
+    } else {
+      // Re-apply power visuals with new base as fallback
+      this.updatePowerVisuals(this.powerState.level);
+    }
+
+    // Update widths
     this.baseTrailWidth = style.width;
-    this.trailWidth = style.width;
-    this.trailGlowWidth = style.width * 2;
+    const widthMultiplier = SLASH_POWER_WIDTH_MULTIPLIERS[this.powerState.level as keyof typeof SLASH_POWER_WIDTH_MULTIPLIERS];
+    this.trailWidth = style.width * widthMultiplier;
+    this.trailGlowWidth = this.trailWidth * 2;
   }
 
   /**
@@ -311,6 +327,9 @@ export class SlashTrail {
       this.trailWidth = this.baseTrailWidth * widthMultiplier;
       this.trailGlowWidth = this.trailWidth * 2;
 
+      // Update visual effects for new power level
+      this.updatePowerVisuals(newLevel);
+
       // Emit power changed event
       EventBus.emit('slash-power-changed', {
         level: newLevel,
@@ -365,6 +384,10 @@ export class SlashTrail {
     this.trailWidth = this.baseTrailWidth;
     this.trailGlowWidth = this.trailWidth * 2;
 
+    // Reset trail colors to base
+    this.trailColor = this.baseTrailColor;
+    this.trailGlow = this.baseTrailGlow;
+
     // Emit reset event
     if (previousLevel !== SlashPowerLevel.NONE) {
       EventBus.emit('slash-power-changed', {
@@ -395,6 +418,46 @@ export class SlashTrail {
    */
   isCharging(): boolean {
     return this.powerState.isCharging;
+  }
+
+  /**
+   * Update trail visual effects based on power level
+   * @param powerLevel - The current power level
+   */
+  private updatePowerVisuals(powerLevel: SlashPowerLevel): void {
+    // Get color for current power level
+    const powerColor = SLASH_POWER_COLORS[powerLevel as keyof typeof SLASH_POWER_COLORS];
+
+    if (powerLevel === SlashPowerLevel.NONE) {
+      // Reset to base colors when no power
+      this.trailColor = this.baseTrailColor;
+      this.trailGlow = this.baseTrailGlow;
+    } else {
+      // Set trail color based on power level
+      this.trailColor = powerColor;
+      // Create a slightly brighter/saturated glow variant
+      this.trailGlow = this.createGlowColor(powerColor);
+    }
+  }
+
+  /**
+   * Create a glow color variant from a base color
+   * Shifts toward white for a glowing effect
+   * @param baseColor - The base color to create glow from
+   * @returns The glow color
+   */
+  private createGlowColor(baseColor: number): number {
+    // Extract RGB components
+    const r = (baseColor >> 16) & 0xff;
+    const g = (baseColor >> 8) & 0xff;
+    const b = baseColor & 0xff;
+
+    // Blend with white for glow effect (70% original, 30% white)
+    const glowR = Math.min(255, Math.floor(r * 0.7 + 255 * 0.3));
+    const glowG = Math.min(255, Math.floor(g * 0.7 + 255 * 0.3));
+    const glowB = Math.min(255, Math.floor(b * 0.7 + 255 * 0.3));
+
+    return (glowR << 16) | (glowG << 8) | glowB;
   }
 
   /**

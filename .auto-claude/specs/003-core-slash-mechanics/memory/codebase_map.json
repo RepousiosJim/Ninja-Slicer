@@ -19,7 +19,12 @@
       "description": "SlashTrail now has charge/power mechanics: startCharging() begins charge, updateCharging(deltaTime) updates power level (0-3) based on SLASH_POWER.chargeTimePerLevel (0.5s), stopCharging() returns accumulated power, resetPower() clears state. Visual charge indicator ring with color progression and EventBus events (slash-power-changed, slash-power-charged).",
       "category": "feature",
       "discovered_at": "2025-12-30T04:57:10.432957+00:00"
+    },
+    "src/systems/SlashSystem.ts": {
+      "description": "SlashSystem now supports power multipliers. Power level is tracked from SlashTrail.getPowerLevel() each update cycle. Damage multipliers (SLASH_POWER_DAMAGE_MULTIPLIERS) are applied to weapon effects. Score multipliers (SLASH_POWER_SCORE_MULTIPLIERS) are applied after combo/frenzy/energy multipliers. Visual hit effects scale with power level showing colors and \"POWER!\"/\"SUPER!\" text for charged slashes.",
+      "category": "feature",
+      "discovered_at": "2025-12-30T05:01:57.439273+00:00"
     }
   },
-  "last_updated": "2025-12-30T04:57:10.432968+00:00"
+  "last_updated": "2025-12-30T05:01:57.439290+00:00"
 }
