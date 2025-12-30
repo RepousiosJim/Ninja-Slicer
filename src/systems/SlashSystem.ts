@@ -19,6 +19,15 @@ import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
+import { ParticleSystem, ParticleType } from './ParticleSystem';
+
+// Multi-kill display text configuration
+const MULTI_KILL_TEXT: { [key: number]: { text: string; color: string } } = {
+  2: { text: 'DOUBLE KILL!', color: '#ffff00' },
+  3: { text: 'TRIPLE KILL!', color: '#ff9900' },
+  4: { text: 'MEGA KILL!', color: '#ff6600' },
+  5: { text: 'ULTRA KILL!', color: '#ff0066' },
+};
 
 export class SlashSystem {
   private scene: Phaser.Scene;
@@ -38,6 +47,8 @@ export class SlashSystem {
   private lastMultiKillCount: number = 0;
   private scoreThisCycle: number = 0;
   private lastMultiKillBonus: number = 0;
+  private killPositionsThisCycle: { x: number; y: number }[] = [];
+  private particleSystem: ParticleSystem | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -70,6 +81,13 @@ export class SlashSystem {
    */
   setUpgradeManager(upgradeManager: UpgradeManager): void {
     this.upgradeManager = upgradeManager;
+  }
+
+  /**
+   * Set particle system reference
+   */
+  setParticleSystem(particleSystem: ParticleSystem): void {
+    this.particleSystem = particleSystem;
   }
 
   /**
@@ -107,6 +125,7 @@ export class SlashSystem {
     // Reset multi-kill counters at the start of each update cycle
     this.killsThisCycle = 0;
     this.scoreThisCycle = 0;
+    this.killPositionsThisCycle = [];
 
     const slashPoints = slashTrail.getSlashPoints();
 
@@ -155,6 +174,9 @@ export class SlashSystem {
         bonusScore: bonusScore,
         totalCycleScore: this.scoreThisCycle + bonusScore,
       });
+
+      // Create multi-kill visual feedback
+      this.createMultiKillEffect(this.killsThisCycle, bonusScore);
     }
   }
 
@@ -187,7 +209,10 @@ export class SlashSystem {
         monster.slice();
         this.monstersSliced++;
         this.killsThisCycle++;
-        
+
+        // Track kill position for multi-kill effect
+        this.killPositionsThisCycle.push({ x: monster.x, y: monster.y });
+
         // Apply weapon effects
         if (this.weaponManager) {
           this.weaponManager.applyWeaponEffects(
@@ -521,7 +546,7 @@ export class SlashSystem {
     const burst = this.scene.add.graphics();
     burst.fillStyle(0xffff00, 0.8);
     burst.fillCircle(x, y, 60);
-    
+
     // Fade out quickly
     this.scene.tweens.add({
       targets: burst,
@@ -532,6 +557,140 @@ export class SlashSystem {
         burst.destroy();
       },
     });
+  }
+
+  /**
+   * Create visual effect for multi-kill events
+   * Shows floating text and particle effects
+   */
+  private createMultiKillEffect(killCount: number, bonusScore: number): void {
+    // Calculate average position of all kills
+    if (this.killPositionsThisCycle.length === 0) return;
+
+    const avgX = this.killPositionsThisCycle.reduce((sum, pos) => sum + pos.x, 0) / this.killPositionsThisCycle.length;
+    const avgY = this.killPositionsThisCycle.reduce((sum, pos) => sum + pos.y, 0) / this.killPositionsThisCycle.length;
+
+    // Get multi-kill text configuration (use highest available for 5+)
+    const textConfig = MULTI_KILL_TEXT[Math.min(killCount, 5)] || MULTI_KILL_TEXT[5];
+    const fontSize = Math.min(32 + (killCount - 2) * 8, 56); // Scale font size with kill count
+
+    // Create multi-kill text
+    const multiKillText = this.scene.add.text(
+      avgX,
+      avgY - 60,
+      textConfig.text,
+      {
+        fontSize: `${fontSize}px`,
+        color: textConfig.color,
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 6,
+        shadow: {
+          offsetX: 2,
+          offsetY: 2,
+          color: '#000000',
+          blur: 4,
+          fill: true,
+        },
+      }
+    );
+    multiKillText.setOrigin(0.5);
+
+    // Scale up animation on spawn
+    multiKillText.setScale(0);
+    this.scene.tweens.add({
+      targets: multiKillText,
+      scale: 1,
+      duration: 150,
+      ease: 'Back.easeOut',
+    });
+
+    // Float up and fade out
+    this.scene.tweens.add({
+      targets: multiKillText,
+      y: avgY - 180,
+      alpha: 0,
+      duration: 1200,
+      delay: 300,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        multiKillText.destroy();
+      },
+    });
+
+    // Create bonus score text below multi-kill text
+    if (bonusScore > 0) {
+      const bonusText = this.scene.add.text(
+        avgX,
+        avgY - 20,
+        `+${bonusScore} BONUS!`,
+        {
+          fontSize: '24px',
+          color: '#00ff00',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4,
+        }
+      );
+      bonusText.setOrigin(0.5);
+
+      // Float up and fade out
+      this.scene.tweens.add({
+        targets: bonusText,
+        y: avgY - 140,
+        alpha: 0,
+        duration: 1000,
+        delay: 200,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          bonusText.destroy();
+        },
+      });
+    }
+
+    // Create particle effects at each kill position
+    if (this.particleSystem) {
+      for (const pos of this.killPositionsThisCycle) {
+        this.particleSystem.emit({
+          type: ParticleType.SPARKLE,
+          x: pos.x,
+          y: pos.y,
+          count: 8 + killCount * 2,
+          scale: { start: 0.6, end: 0 },
+          lifespan: 600,
+        });
+      }
+
+      // Create extra burst at the center for higher kill counts
+      if (killCount >= 3) {
+        this.particleSystem.emit({
+          type: ParticleType.FIRE,
+          x: avgX,
+          y: avgY,
+          count: killCount * 5,
+          scale: { start: 0.5, end: 0.1 },
+          lifespan: 800,
+        });
+      }
+    }
+
+    // Create screen flash for high kill counts
+    if (killCount >= 4) {
+      const flash = this.scene.add.graphics();
+      flash.fillStyle(0xffffff, 0.3);
+      flash.fillRect(0, 0, this.scene.cameras.main.width, this.scene.cameras.main.height);
+      flash.setScrollFactor(0);
+      flash.setDepth(1000);
+
+      this.scene.tweens.add({
+        targets: flash,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+          flash.destroy();
+        },
+      });
+    }
   }
 
   /**
@@ -610,6 +769,7 @@ export class SlashSystem {
     this.lastMultiKillCount = 0;
     this.scoreThisCycle = 0;
     this.lastMultiKillBonus = 0;
+    this.killPositionsThisCycle = [];
   }
 
   /**

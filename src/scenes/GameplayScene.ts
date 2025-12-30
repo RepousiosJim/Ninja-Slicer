@@ -26,6 +26,7 @@ import { HeadlessHorseman } from '../entities/HeadlessHorseman';
 import { VampireLord } from '../entities/VampireLord';
 import { PhantomKing } from '../entities/PhantomKing';
 import { DemonOverlord } from '../entities/DemonOverlord';
+import { ParticleSystem } from '../systems/ParticleSystem';
 
 export class GameplayScene extends Phaser.Scene {
   private slashTrail!: SlashTrail;
@@ -38,6 +39,7 @@ export class GameplayScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
   private saveManager!: SaveManager;
   private levelManager!: LevelManager;
+  private particleSystem!: ParticleSystem;
 
   // Campaign mode properties
   private isCampaignMode: boolean = false;
@@ -90,6 +92,7 @@ export class GameplayScene extends Phaser.Scene {
     this.powerUpManager = PowerUpManager.getInstance();
     this.powerUpManager.initialize(this);
     this.powerUpManager.setUpgradeManager(this.upgradeManager);
+    this.particleSystem = new ParticleSystem(this);
     this.hud = new HUD(this);
 
     // Connect systems
@@ -97,6 +100,7 @@ export class GameplayScene extends Phaser.Scene {
     this.slashSystem.setPowerUpManager(this.powerUpManager);
     this.slashSystem.setWeaponManager(this.weaponManager);
     this.slashSystem.setUpgradeManager(this.upgradeManager);
+    this.slashSystem.setParticleSystem(this.particleSystem);
 
     // Apply starting lives from upgrade
     const playerStats = this.upgradeManager.getPlayerStats();
@@ -717,6 +721,7 @@ export class GameplayScene extends Phaser.Scene {
     this.spawnSystem.destroy();
     this.slashSystem.destroy();
     this.hud.destroy();
+    this.particleSystem.destroy();
 
     // Destroy boss if exists
     if (this.boss) {
