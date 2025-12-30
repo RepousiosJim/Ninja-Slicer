@@ -1,8 +1,9 @@
 /**
  * SlashSystem
- * 
+ *
  * Handles slash collision detection with monsters, villagers, and power-ups.
  * Uses line-circle intersection for accurate hit detection.
+ * Includes pattern buffer and timeout logic for slash pattern recognition.
  */
 
 import Phaser from 'phaser';
@@ -11,17 +12,18 @@ import { Monster } from '../entities/Monster';
 import { Villager } from '../entities/Villager';
 import { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
-import { MonsterType } from '@config/types';
+import { MonsterType, SlashPowerLevel, SlashPatternType, SlashPatternPoint, SlashPatternResult } from '@config/types';
 import {
   MONSTER_HITBOX_RADIUS,
   MONSTER_SOULS,
   VILLAGER_PENALTY,
   SLASH_HITBOX_RADIUS,
   SLASH_POWER_DAMAGE_MULTIPLIERS,
-  SLASH_POWER_SCORE_MULTIPLIERS
+  SLASH_POWER_SCORE_MULTIPLIERS,
+  SLASH_PATTERN,
+  SLASH_PATTERN_BONUSES
 } from '@config/constants';
-import { SlashPowerLevel } from '@config/types';
-import { lineIntersectsCircle } from '../utils/helpers';
+import { lineIntersectsCircle, detectSlashPattern, isValidPattern, calculateCentroid } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
@@ -49,6 +51,13 @@ export class SlashSystem {
 
   // Power level tracking (updated each frame from SlashTrail)
   private currentPowerLevel: SlashPowerLevel = SlashPowerLevel.NONE;
+
+  // Pattern recognition tracking (similar to ComboSystem timer pattern)
+  private patternBuffer: SlashPatternPoint[] = [];
+  private patternTimer: number = 0;
+  private isPatternBuffering: boolean = false;
+  private lastDetectedPattern: SlashPatternResult | null = null;
+  private wasSlashActive: boolean = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -110,15 +119,38 @@ export class SlashSystem {
    * @param monsters - Array of active monsters
    * @param villagers - Array of active villagers
    * @param powerUps - Array of active power-ups
+   * @param delta - Time since last update (ms), used for pattern timeout
    */
   update(
     slashTrail: SlashTrail,
     monsters: Monster[],
     villagers: Villager[],
-    powerUps: PowerUp[]
+    powerUps: PowerUp[],
+    delta: number = 16.67 // Default to ~60fps if not provided
   ): void {
+    const isSlashActive = slashTrail.isActive();
+
+    // Handle pattern detection when slash ends (transition from active to inactive)
+    if (this.wasSlashActive && !isSlashActive) {
+      this.onSlashEnd();
+    }
+    this.wasSlashActive = isSlashActive;
+
+    // Update pattern timer for timeout (similar to ComboSystem.update)
+    if (this.isPatternBuffering) {
+      this.patternTimer -= delta;
+
+      // Reset partial patterns if timeout expires
+      if (this.patternTimer <= 0) {
+        this.resetPatternBuffer();
+        EventBus.emit('slash-pattern-failed', {
+          reason: 'timeout',
+        });
+      }
+    }
+
     // Only check collisions if slash is active
-    if (!slashTrail.isActive()) {
+    if (!isSlashActive) {
       // Reset slash distance when not slashing
       this.lastSlashDistance = 0;
       // Reset power level when not slashing
@@ -130,6 +162,9 @@ export class SlashSystem {
     this.currentPowerLevel = slashTrail.getPowerLevel();
 
     const slashPoints = slashTrail.getSlashPoints();
+
+    // Buffer points for pattern recognition
+    this.bufferSlashPoints(slashPoints);
 
     // Calculate slash distance and consume energy
     const currentDistance = this.calculateSlashDistance(slashPoints);
@@ -186,6 +221,143 @@ export class SlashSystem {
   getEnergyEffectiveness(): number {
     return this.currentEnergyEffectiveness;
   }
+
+  // =============================================================================
+  // PATTERN RECOGNITION
+  // =============================================================================
+
+  /**
+   * Buffer slash points for pattern recognition
+   * Converts Phaser.Math.Vector2 points to SlashPatternPoint format
+   * @param slashPoints - Array of slash trail points
+   */
+  private bufferSlashPoints(slashPoints: Phaser.Math.Vector2[]): void {
+    const currentTime = Date.now();
+
+    // Start pattern buffering if not already active
+    if (!this.isPatternBuffering && slashPoints.length > 0) {
+      this.isPatternBuffering = true;
+      this.patternTimer = SLASH_PATTERN.patternTimeout * 1000; // Convert to ms
+      this.patternBuffer = [];
+
+      // Emit pattern started event
+      EventBus.emit('slash-pattern-started', {
+        timestamp: currentTime,
+      });
+    }
+
+    // Reset timer on each new point (similar to ComboSystem.increment)
+    if (slashPoints.length > this.patternBuffer.length) {
+      this.patternTimer = SLASH_PATTERN.patternTimeout * 1000;
+    }
+
+    // Update pattern buffer with current points
+    this.patternBuffer = slashPoints.map((point) => ({
+      x: point.x,
+      y: point.y,
+      timestamp: currentTime,
+    }));
+  }
+
+  /**
+   * Called when slash ends - attempts to detect patterns
+   * Similar to how ComboSystem handles state transitions
+   */
+  private onSlashEnd(): void {
+    if (!this.isPatternBuffering || this.patternBuffer.length < SLASH_PATTERN.minPointsForDetection) {
+      this.resetPatternBuffer();
+      return;
+    }
+
+    // Attempt pattern detection
+    const result = detectSlashPattern(this.patternBuffer);
+
+    if (isValidPattern(result, 0.5)) {
+      this.lastDetectedPattern = result;
+
+      // Get pattern center for visual effects
+      const center = result.center || calculateCentroid(this.patternBuffer);
+
+      // Get pattern bonuses
+      const bonuses = SLASH_PATTERN_BONUSES[result.pattern] || SLASH_PATTERN_BONUSES.none;
+
+      // Apply pattern bonus to score
+      const bonusScore = bonuses.bonusScore || 0;
+      this.score += bonusScore;
+
+      // Emit pattern detected event
+      EventBus.emit('slash-pattern-detected', {
+        pattern: result.pattern,
+        confidence: result.confidence,
+        position: center,
+        bonusScore: bonusScore,
+        bonusMultiplier: bonuses.scoreMultiplier,
+      });
+
+      // Emit score updated event if bonus was applied
+      if (bonusScore > 0) {
+        EventBus.emit('score-updated', {
+          score: this.score,
+          delta: bonusScore,
+        });
+      }
+    }
+
+    this.resetPatternBuffer();
+  }
+
+  /**
+   * Reset pattern buffer and timer
+   * Similar to ComboSystem.reset()
+   */
+  private resetPatternBuffer(): void {
+    this.patternBuffer = [];
+    this.patternTimer = 0;
+    this.isPatternBuffering = false;
+    this.lastDetectedPattern = null;
+  }
+
+  /**
+   * Get the last detected pattern result
+   * @returns The last detected pattern or null if none
+   */
+  getLastDetectedPattern(): SlashPatternResult | null {
+    return this.lastDetectedPattern;
+  }
+
+  /**
+   * Check if pattern buffering is active
+   * @returns True if currently buffering slash points for pattern detection
+   */
+  isPatternDetectionActive(): boolean {
+    return this.isPatternBuffering;
+  }
+
+  /**
+   * Get remaining pattern detection time in seconds
+   * Similar to ComboSystem.getRemainingTime()
+   */
+  getPatternRemainingTime(): number {
+    return Math.max(0, this.patternTimer / 1000);
+  }
+
+  /**
+   * Get current pattern buffer point count
+   */
+  getPatternBufferSize(): number {
+    return this.patternBuffer.length;
+  }
+
+  /**
+   * Check if pattern buffer has enough points for detection
+   */
+  hasEnoughPointsForPattern(): boolean {
+    return this.patternBuffer.length >= SLASH_PATTERN.minPointsForDetection;
+  }
+
+  // =============================================================================
+  // COLLISION DETECTION
+  // =============================================================================
 
   /**
    * Check collisions with monsters
@@ -697,6 +869,10 @@ export class SlashSystem {
 
     // Reset power level tracking
     this.currentPowerLevel = SlashPowerLevel.NONE;
+
+    // Reset pattern recognition tracking
+    this.resetPatternBuffer();
+    this.wasSlashActive = false;
   }
 
   /**
