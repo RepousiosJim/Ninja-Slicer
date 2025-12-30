@@ -11,9 +11,9 @@
       "discovered_at": "2025-12-30T19:03:55.499739+00:00"
     },
     "src/systems/SlashSystem.ts": {
-      "description": "Floating score text implemented: SCORE_TEXT_COLORS config (100+=purple, 50+=orange, 25+=yellow, 0+=white), createFloatingScoreText() method with font scaling (18-36px), multiplier display when >1.0x, scale-up/fade animations, critical hit styling. Called on each monster kill in checkMonsterCollisions().",
-      "category": "feature",
-      "discovered_at": "2025-12-30T19:00:57.086054+00:00"
+      "description": "Simultaneous kills (multiple monsters killed in same frame) are handled correctly: killsThisCycle counts all kills per update cycle, each kill increments combo individually (later kills benefit from earlier combo increment), scoreThisCycle accumulates for multi-kill bonus calculation at end of cycle (2 kills=1.5x, 3 kills=2.0x, 4+ kills=2.5x bonus)",
+      "category": "edge_case",
+      "discovered_at": "2025-12-30T19:13:13.476327+00:00"
     },
     "src/config/constants.ts": {
       "description": "Added MULTI_KILL_BONUS constants and getMultiKillBonus() helper function for calculating bonus multipliers (2 kills = 1.5x, 3 kills = 2.0x, 4+ kills = 2.5x)",
@@ -21,9 +21,9 @@
       "discovered_at": "2025-12-30T14:26:11.255624+00:00"
     },
     "src/systems/ParticleSystem.ts": {
-      "description": "ParticleSystem has multiple particle types (SPARKLE, FIRE, LIGHTNING, etc.) with object pooling. Has emit() for one-shot effects, createWeaponTrail(), createHitEffect(). Suitable for combo milestone effects but needs new configurations added.",
-      "category": "existing_system",
-      "discovered_at": "2025-12-30T14:11:26.851530+00:00"
+      "description": "ParticleSystem has robust performance optimization: object pooling with maxEmittersPerType=5, auto-release via scene.time.delayedCall, periodic cleanup in update() method (~1s interval via time.now % 1000 < 20), proper destroy() that clears all Maps/Sets. No memory leak risks for extended gameplay sessions.",
+      "category": "performance",
+      "discovered_at": "2025-12-30T19:20:13.459850+00:00"
     },
     "src/managers/ComboEffectsManager.ts": {
       "description": "New ComboEffectsManager handles combo milestone visual effects. Has MILESTONE_CONFIGS for 5x/10x/15x/20x/25x with escalating effects. Uses ParticleSystem.emit() for particles, Graphics for screen flash. Listens to 'combo-milestone' EventBus events. Methods: setParticleSystem(), triggerMilestoneEffect(), triggerCelebration(), cleanup(), destroy().",
@@ -36,5 +36,5 @@
       "discovered_at": "2025-12-30T14:41:46.014575+00:00"
     }
   },
-  "last_updated": "2025-12-30T19:03:55.499751+00:00"
+  "last_updated": "2025-12-30T19:20:13.459861+00:00"
 }
