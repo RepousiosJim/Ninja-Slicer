@@ -5,7 +5,7 @@
  */
 
 import Phaser from 'phaser';
-import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT, SLASH_ENERGY } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { EventBus } from '../utils/EventBus';
 import { Button, ButtonStyle } from './Button';
@@ -35,6 +35,13 @@ export class HUD {
   private bossHealthBarBackground!: Phaser.GameObjects.Rectangle | null;
   private bossHealthBarFill!: Phaser.GameObjects.Rectangle | null;
   private bossHealthBarText!: Phaser.GameObjects.Text | null;
+
+  // Energy bar elements
+  private energyBarContainer!: Phaser.GameObjects.Container;
+  private energyBarBackground!: Phaser.GameObjects.Rectangle;
+  private energyBarFill!: Phaser.GameObjects.Rectangle;
+  private energyBarLabel!: Phaser.GameObjects.Text;
+  private currentEnergy: number = SLASH_ENERGY.maxEnergy;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -192,6 +199,9 @@ export class HUD {
     }).setOrigin(0.5, 0.5);
     this.bossHealthBarContainer.add(this.bossHealthBarText);
 
+    // Create energy bar (bottom-left of screen)
+    this.createEnergyBar();
+
     // Listen for events
     this.setupEventListeners();
   }
@@ -214,6 +224,106 @@ export class HUD {
       }
     );
     this.scene.add.existing(this.pauseButton);
+  }
+
+  /**
+   * Create energy bar display (bottom-left of screen)
+   */
+  private createEnergyBar(): void {
+    const padding = ResponsiveUtils.getPadding('medium');
+    const fontSizeSm = ResponsiveUtils.getFontSize('small');
+    const barWidth = 200;
+    const barHeight = 16;
+
+    // Energy bar container (bottom-left of screen, above power-up container)
+    this.energyBarContainer = this.scene.add.container(padding + barWidth / 2, GAME_HEIGHT - padding * 3);
+    this.energyBarContainer.setDepth(1000);
+
+    // Energy bar label
+    this.energyBarLabel = this.scene.add.text(-barWidth / 2, -barHeight - 8, 'ENERGY', {
+      fontFamily: DARK_GOTHIC_THEME.fonts.primary,
+      fontSize: `${fontSizeSm}px`,
+      color: '#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'),
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0, 0.5);
+    this.energyBarContainer.add(this.energyBarLabel);
+
+    // Energy bar background
+    this.energyBarBackground = this.scene.add.rectangle(0, 0, barWidth, barHeight, 0x000000, 0.8);
+    this.energyBarBackground.setStrokeStyle(2, DARK_GOTHIC_THEME.colors.accent, 0.5);
+    this.energyBarContainer.add(this.energyBarBackground);
+
+    // Energy bar fill (cyan/blue color for energy)
+    this.energyBarFill = this.scene.add.rectangle(
+      -barWidth / 2 + 2,
+      0,
+      barWidth - 4,
+      barHeight - 4,
+      DARK_GOTHIC_THEME.colors.ghostlyBlue
+    );
+    this.energyBarFill.setOrigin(0, 0.5);
+    this.energyBarContainer.add(this.energyBarFill);
+
+    // Initialize with full energy
+    this.currentEnergy = SLASH_ENERGY.maxEnergy;
+  }
+
+  /**
+   * Update energy bar display
+   * @param current - Current energy value
+   * @param max - Maximum energy value
+   */
+  updateEnergy(current: number, max: number = SLASH_ENERGY.maxEnergy): void {
+    if (!this.energyBarFill || !this.energyBarBackground) return;
+
+    this.currentEnergy = Math.max(0, Math.min(current, max));
+    const energyPercent = this.currentEnergy / max;
+    const barWidth = this.energyBarBackground.width - 4;
+    const targetWidth = barWidth * energyPercent;
+
+    // Animate bar width change
+    this.scene.tweens.add({
+      targets: this.energyBarFill,
+      width: Math.max(0, targetWidth),
+      duration: DARK_GOTHIC_THEME.animations.duration,
+      ease: DARK_GOTHIC_THEME.animations.easing,
+    });
+
+    // Change color based on energy level with theme colors
+    const lowThreshold = SLASH_ENERGY.lowEnergyThreshold / 100;
+    if (energyPercent > 0.5) {
+      // Good energy - cyan/blue
+      this.energyBarFill.setFillStyle(DARK_GOTHIC_THEME.colors.ghostlyBlue);
+    } else if (energyPercent > lowThreshold) {
+      // Medium energy - warning yellow
+      this.energyBarFill.setFillStyle(DARK_GOTHIC_THEME.colors.warning);
+    } else {
+      // Low energy - danger red
+      this.energyBarFill.setFillStyle(DARK_GOTHIC_THEME.colors.danger);
+
+      // Pulse effect when low energy
+      if (this.currentEnergy > 0) {
+        this.scene.tweens.add({
+          targets: this.energyBarFill,
+          alpha: 0.5,
+          duration: 200,
+          yoyo: true,
+          repeat: 1,
+        });
+      }
+    }
+  }
+
+  /**
+   * Show or hide energy bar
+   * @param show - Whether to show the energy bar
+   */
+  showEnergyBar(show: boolean): void {
+    if (this.energyBarContainer) {
+      this.energyBarContainer.setVisible(show);
+    }
   }
 
   /**
@@ -318,6 +428,10 @@ export class HUD {
 
     EventBus.on('powerup-ended', (data: { type: string }) => {
       this.hidePowerUpIndicator(data.type);
+    });
+
+    EventBus.on('slash-energy-changed', (data: { current: number; max: number }) => {
+      this.updateEnergy(data.current, data.max);
     });
   }
 
@@ -483,6 +597,7 @@ export class HUD {
     EventBus.off('lives-changed');
     EventBus.off('powerup-activated');
     EventBus.off('powerup-ended');
+    EventBus.off('slash-energy-changed');
 
     // Destroy all elements
     if (this.scoreText) {
@@ -529,7 +644,12 @@ export class HUD {
     if (this.bossHealthBarContainer) {
       this.bossHealthBarContainer.destroy();
     }
-    
+
+    // Destroy energy bar elements
+    if (this.energyBarContainer) {
+      this.energyBarContainer.destroy();
+    }
+
     // Destroy pause button
     if (this.pauseButton) {
       this.pauseButton.destroy();

@@ -1,0 +1,651 @@
+{
+  "feature": "Core Slash Mechanics Enhancement",
+  "workflow_type": "feature",
+  "workflow_rationale": "Feature enhancement to existing SlashSystem and SlashTrail. Building upon existing implementations while maintaining backward compatibility with combo, power-up, and weapon systems.",
+  "phases": [
+    {
+      "id": "phase-1-foundation",
+      "name": "Foundation - Types and Constants",
+      "type": "setup",
+      "description": "Define new types, enums, and constants for energy, power, and pattern systems",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add slash energy, power, and pattern types to types.ts",
+          "service": "main",
+          "files_to_modify": [
+            "src/config/types.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/config/types.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "completed",
+          "notes": "Added SlashPowerLevel and SlashPatternType enums, plus comprehensive interfaces for energy state, power state, pattern detection, and configuration. Committed in 0e67f45.",
+          "updated_at": "2025-12-30T04:33:33.312371+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Add energy, power, and pattern constants to constants.ts",
+          "service": "main",
+          "files_to_modify": [
+            "src/config/constants.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/config/constants.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "completed",
+          "notes": "Added comprehensive constants for slash mechanics: SLASH_ENERGY (energy system config), SLASH_POWER with multipliers for damage/score/width, SLASH_POWER_COLORS for visual feedback, SLASH_PATTERN for pattern recognition thresholds, SLASH_PATTERN_BONUSES for pattern rewards, SLASH_PATTERN_VISUAL for confirmation effects, and new event types for slash energy/power/pattern changes. Committed in 6dfe65a.",
+          "updated_at": "2025-12-30T04:35:57.659174+00:00"
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "Add pattern recognition helper functions to helpers.ts",
+          "service": "main",
+          "files_to_modify": [
+            "src/utils/helpers.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/utils/helpers.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "completed",
+          "notes": "Added comprehensive pattern recognition helper functions to helpers.ts including: Douglas-Peucker path simplification, perpendicular distance calculation, centroid calculation, angle utilities, path length calculation, circle/zigzag/straight pattern detection, and main pattern detection orchestrator. All functions use types from types.ts and constants from constants.ts. Committed in ef4fcbc.",
+          "updated_at": "2025-12-30T04:39:09.159332+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-energy-system",
+      "name": "Energy/Stamina System",
+      "type": "implementation",
+      "description": "Implement energy depletion and regeneration mechanics",
+      "depends_on": [
+        "phase-1-foundation"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Create SlashEnergyManager singleton with depletion/regen logic",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/managers/SlashEnergyManager.ts"
+          ],
+          "patterns_from": [
+            "src/managers/PowerUpManager.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "completed",
+          "notes": "Created SlashEnergyManager singleton with full depletion/regeneration logic. Features: energy consumption based on slash distance, configurable regen delay, effectiveness multiplier for low energy states, event emission via EventBus for UI integration. Follows PowerUpManager pattern. Committed in 6ab85e5.",
+          "updated_at": "2025-12-30T04:43:07.033329+00:00"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Integrate energy consumption into SlashSystem",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/ComboSystem.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "completed",
+          "notes": "Integrated energy consumption into SlashSystem. Added: SlashEnergyManager import, setEnergyManager() setter, energy tracking properties, slash distance calculation, energy consumption on each slash based on distance, energy effectiveness multiplier applied to score calculations, energyEffectiveness in monster-sliced event, and energy tracking reset in resetScore(). Committed in c5f8fdf.",
+          "updated_at": "2025-12-30T04:46:42.307893+00:00"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Add energy bar to HUD display",
+          "service": "main",
+          "files_to_modify": [
+            "src/ui/HUD.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/ui/ProgressBar.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Energy bar visible in HUD",
+              "Updates on slash"
+            ]
+          },
+          "status": "in_progress",
+          "notes": "Implementing energy bar in HUD using the boss health bar pattern",
+          "updated_at": "2025-12-30T04:48:17.330844+00:00"
+        },
+        {
+          "id": "subtask-2-4",
+          "description": "Add energy event types to EventBus",
+          "service": "main",
+          "files_to_modify": [
+            "src/utils/EventBus.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/utils/EventBus.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-power-mechanics",
+      "name": "Slash Power/Charge System",
+      "type": "implementation",
+      "description": "Implement charge-up mechanics for stronger slashes",
+      "depends_on": [
+        "phase-1-foundation"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Add charge tracking to SlashTrail with power levels",
+          "service": "main",
+          "files_to_modify": [
+            "src/entities/SlashTrail.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/entities/SlashTrail.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Charge indicator appears on hold",
+              "Power level increases over time"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Modify SlashSystem to apply power multipliers to damage/score",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Charged slash deals more damage",
+              "Score multiplier increases"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Add power level visual effects to SlashTrail",
+          "service": "main",
+          "files_to_modify": [
+            "src/entities/SlashTrail.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/ParticleSystem.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Trail width scales with power",
+              "Trail color changes"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-pattern-recognition",
+      "name": "Pattern Recognition System",
+      "type": "implementation",
+      "description": "Detect special slash patterns for bonus effects",
+      "depends_on": [
+        "phase-1-foundation"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Implement circle pattern detection in helpers.ts",
+          "service": "main",
+          "files_to_modify": [
+            "src/utils/helpers.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/utils/helpers.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Implement zigzag and straight line pattern detection",
+          "service": "main",
+          "files_to_modify": [
+            "src/utils/helpers.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/utils/helpers.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit",
+            "expected": "No type errors"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Add pattern buffer and timeout logic to SlashSystem",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/ComboSystem.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Pattern detection triggers on completion",
+              "Timeout resets partial patterns"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-4",
+          "description": "Create visual confirmation effects for detected patterns",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/ParticleSystem.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Visual effect on circle pattern",
+              "Visual effect on zigzag",
+              "Visual effect on straight line"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-integration",
+      "name": "System Integration",
+      "type": "integration",
+      "description": "Wire energy, power, and pattern systems together in GameplayScene",
+      "depends_on": [
+        "phase-2-energy-system",
+        "phase-3-power-mechanics",
+        "phase-4-pattern-recognition"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Integrate SlashEnergyManager into GameplayScene lifecycle",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/GameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/scenes/GameplayScene.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Energy updates each frame",
+              "Energy integrates with HUD"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Connect power and pattern systems to scoring and effects",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Power affects score",
+              "Patterns trigger bonuses"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-3",
+          "description": "End-to-end integration testing of all slash mechanics",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Start game and slash monster with full energy",
+              "Verify energy depletes based on slash distance",
+              "Hold and charge a slash to power level 2+",
+              "Perform circle pattern slash",
+              "Verify pattern bonus and visual confirmation",
+              "Deplete energy to 0% and verify weak slash still works",
+              "Wait for energy regeneration and verify bar updates"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-6-optimization",
+      "name": "Performance Optimization",
+      "type": "implementation",
+      "description": "Optimize collision detection and rendering for 60fps with 50+ entities",
+      "depends_on": [
+        "phase-5-integration"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Add spatial partitioning for collision detection optimization",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Use browser DevTools Performance tab to verify collision checks take < 1ms per frame with 50+ entities"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-2",
+          "description": "Optimize trail rendering with draw call batching",
+          "service": "main",
+          "files_to_modify": [
+            "src/entities/SlashTrail.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/entities/SlashTrail.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Use browser DevTools to verify render time < 2ms per frame during active slashing"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-3",
+          "description": "Add early bounds checking to skip out-of-screen entities",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Maintains 60fps with 50+ entities",
+              "No frame drops during intensive slashing"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 6,
+    "total_subtasks": 21,
+    "services_involved": [
+      "main"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 3,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-2-energy-system",
+            "phase-3-power-mechanics",
+            "phase-4-pattern-recognition"
+          ],
+          "reason": "All three phases depend only on phase-1-foundation and work on different aspects of slash mechanics (energy, power, patterns)"
+        }
+      ],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential is recommended due to single-service architecture and high integration complexity"
+    },
+    "startup_command": "npm run dev"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All existing tests pass (if any)",
+      "Energy system depletes and regenerates correctly",
+      "Power/charge mechanics work with 3 distinct levels",
+      "Pattern detection recognizes circle, zigzag, and straight line patterns",
+      "Visual effects clearly communicate slash state",
+      "Performance maintains 60fps with 50+ entities",
+      "Mobile touch input works identically to mouse",
+      "No console errors during 10-minute test session",
+      "Integration with existing systems (combo, power-ups, weapons) intact"
+    ],
+    "verification_steps": [
+      {
+        "name": "TypeScript Compilation",
+        "command": "npx tsc --noEmit",
+        "expected_outcome": "No type errors",
+        "type": "build",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Unit Tests (if exist)",
+        "command": "npm test",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": false,
+        "blocking": false
+      },
+      {
+        "name": "Development Build",
+        "command": "npm run dev",
+        "expected_outcome": "Dev server starts successfully on port 5173",
+        "type": "build",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Browser Verification - Energy System",
+        "command": "manual",
+        "expected_outcome": "Energy bar visible, depletes on slash, regenerates over time",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Browser Verification - Power Mechanics",
+        "command": "manual",
+        "expected_outcome": "Charge indicator appears on hold, power level affects damage/score",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Browser Verification - Pattern Recognition",
+        "command": "manual",
+        "expected_outcome": "Circle, zigzag, and straight line patterns detected and rewarded",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Performance Test - 50+ Entities",
+        "command": "manual",
+        "expected_outcome": "Maintains 60fps during intensive slashing with 50+ monsters",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk requires thorough verification. Core gameplay mechanic affects player experience. No security concerns (client-side only). Browser testing essential for visual feedback and performance validation."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": false,
+      "commands": [
+        "npm test"
+      ],
+      "minimum_coverage": null,
+      "notes": "Unit tests recommended for pattern recognition algorithms, energy calculations, and power level logic"
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "manual"
+      ],
+      "services_to_test": [
+        "main"
+      ],
+      "notes": "Full integration test: energy + power + patterns + scoring + visual feedback"
+    },
+    "e2e_tests": {
+      "required": true,
+      "commands": [
+        "manual"
+      ],
+      "flows": [
+        "slash-with-energy",
+        "charged-slash",
+        "pattern-detection",
+        "energy-regeneration"
+      ]
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:5173",
+          "checks": [
+            "Energy bar visible and updates correctly",
+            "Charge indicator appears on hold",
+            "Trail effects scale with power level",
+            "Pattern detection triggers visual confirmation",
+            "60fps maintained with 50+ entities",
+            "No console errors"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": [],
+      "notes": "Slash mechanics are client-side only, no database interaction"
+    },
+    "performance_verification": {
+      "required": true,
+      "checks": [
+        "60fps with 50+ entities on screen",
+        "Collision detection < 1ms per frame",
+        "Trail rendering < 2ms per frame",
+        "No memory leaks after 10 minutes of gameplay"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "status": "human_review",
+  "planStatus": "review",
+  "updated_at": "2025-12-30T04:29:09.874Z",
+  "last_updated": "2025-12-30T04:48:17.330853+00:00"
+}

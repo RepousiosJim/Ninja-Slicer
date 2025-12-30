@@ -1,0 +1,85 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.70,
+  "reasoning": "Core slash mechanics (SlashTrail.ts, SlashSystem.ts) are already implemented with all roadmap acceptance criteria met. Task description is vague ('003-core-slash-mechanics') with no specific enhancement or bug details provided. Likely involves polish/refinement of existing system affecting 3-6 files within single service.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 5,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Likely files: SlashTrail.ts, SlashSystem.ts, GameplayScene.ts (input handling), constants.ts (config values), and possibly helpers.ts or types.ts. All within main TypeScript/Phaser game service."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Phaser framework already integrated. No new external services or dependencies required. Input system (pointer events) handles cross-platform mouse/touch automatically."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "Browser-based Phaser game with no infrastructure. May adjust code-level constants (SLASH_VELOCITY_THRESHOLD, SLASH_TRAIL_WIDTH, etc.) but these are TypeScript constants, not environment configuration."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "All patterns established: SlashTrail implements velocity tracking (calculateVelocity), visual rendering (multi-layer glow), and fade-out. SlashSystem handles line-circle collision detection (lineIntersectsCircle). GameplayScene manages Phaser pointer input. No research needed."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Requirements gap - task description lacks specifics on what needs to be implemented/enhanced",
+        "Core gameplay mechanic - slashing is the primary interaction; must feel satisfying",
+        "Performance sensitivity - trail rendering during rapid input must maintain 60 FPS",
+        "Cross-platform parity - touch and mouse input must feel identical",
+        "Existing code quality - changes must maintain or improve current polish"
+      ],
+      "notes": "Medium risk due to importance of slash mechanics to game feel. Existing implementation appears complete per roadmap acceptance criteria, but lack of detailed requirements creates uncertainty about scope."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "requirements_gap_warning": {
+    "severity": "high",
+    "issue": "Task description '003-core-slash-mechanics' provides no specific implementation details",
+    "current_state": "SlashTrail.ts and SlashSystem.ts exist with all roadmap feature-1 acceptance criteria implemented (smooth rendering, glow effects, velocity tracking, distance threshold, cross-platform input)",
+    "recommendation": "Discovery phase should investigate: 1) Are there performance issues? 2) Are there UX problems? 3) What specific enhancements are needed? 4) Is this task already complete?",
+    "acceptance_criteria_from_roadmap": [
+      "Slash trails render smoothly following mouse/touch input - APPEARS IMPLEMENTED",
+      "Slash lines have glow effects and fade out naturally - APPEARS IMPLEMENTED (multi-layer glow in SlashTrail.ts)",
+      "Minimum slash distance threshold prevents accidental taps - APPEARS IMPLEMENTED (SLASH_VELOCITY_THRESHOLD constant)",
+      "Slash velocity is tracked for damage calculation - APPEARS IMPLEMENTED (calculateVelocity method)",
+      "Works identically on mouse and touch devices - APPEARS IMPLEMENTED (Phaser pointer events)"
+    ]
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Core gameplay mechanic requires thorough validation. Unit tests for velocity calculations, distance thresholds, and collision detection math. Integration tests for full input → trail → collision → scoring pipeline. No security concerns (no authentication, user data, or external APIs). Browser-based game needs no staging deployment."
+  },
+
+  "created_at": "2025-12-30T06:18:00.000Z"
+}

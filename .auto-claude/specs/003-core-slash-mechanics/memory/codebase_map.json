@@ -1,0 +1,15 @@
+{
+  "discovered_files": {
+    "src/config/types.ts": {
+      "description": "Added slash mechanics types: SlashPowerLevel enum (0-3), SlashPatternType enum (circle, zigzag, straight), state interfaces (SlashEnergyState, SlashPowerState, SlashPatternState), config interfaces, and event interfaces for energy/power/pattern changes.",
+      "category": "types",
+      "discovered_at": "2025-12-30T04:33:41.753780+00:00"
+    },
+    "src/managers/SlashEnergyManager.ts": {
+      "description": "SlashEnergyManager singleton managing slash energy: consumeEnergy(distance) depletes based on slash length, update() handles regeneration with configurable delay, getEffectiveness() returns damage/score multiplier based on current energy level",
+      "category": "manager",
+      "discovered_at": "2025-12-30T04:43:07.101040+00:00"
+    }
+  },
+  "last_updated": "2025-12-30T04:43:07.101052+00:00"
+}
