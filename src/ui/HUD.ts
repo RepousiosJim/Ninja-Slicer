@@ -5,7 +5,7 @@
  */
 
 import Phaser from 'phaser';
-import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT, COMBO_TIMEOUT } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { EventBus } from '../utils/EventBus';
 import { Button, ButtonStyle } from './Button';
@@ -19,6 +19,11 @@ export class HUD {
   private hearts: Phaser.GameObjects.Sprite[] = [];
   private comboText!: Phaser.GameObjects.Text;
   private comboLabel!: Phaser.GameObjects.Text;
+  private comboTimerBarContainer!: Phaser.GameObjects.Container;
+  private comboTimerBarBackground!: Phaser.GameObjects.Rectangle;
+  private comboTimerBarFill!: Phaser.GameObjects.Rectangle;
+  private comboTimerBarWidth: number = 200;
+  private comboTimerBarHeight: number = 8;
   private soulsText!: Phaser.GameObjects.Text;
   private soulsLabel!: Phaser.GameObjects.Text;
   private soulsIcon!: Phaser.GameObjects.Sprite;
@@ -121,6 +126,34 @@ export class HUD {
       strokeThickness: 8,
     }).setOrigin(0.5, 0);
     this.comboText.setVisible(false);
+
+    // Combo timer bar (below combo text) - shows time remaining before combo expires
+    this.comboTimerBarContainer = this.scene.add.container(GAME_WIDTH / 2, 270);
+    this.comboTimerBarContainer.setDepth(1000);
+    this.comboTimerBarContainer.setVisible(false);
+
+    // Combo timer bar background
+    this.comboTimerBarBackground = this.scene.add.rectangle(
+      0,
+      0,
+      this.comboTimerBarWidth,
+      this.comboTimerBarHeight,
+      0x000000,
+      0.8
+    );
+    this.comboTimerBarBackground.setStrokeStyle(2, DARK_GOTHIC_THEME.colors.warning);
+    this.comboTimerBarContainer.add(this.comboTimerBarBackground);
+
+    // Combo timer bar fill - depletes from right to left
+    this.comboTimerBarFill = this.scene.add.rectangle(
+      -this.comboTimerBarWidth / 2 + 2,
+      0,
+      this.comboTimerBarWidth - 4,
+      this.comboTimerBarHeight - 4,
+      DARK_GOTHIC_THEME.colors.warning
+    );
+    this.comboTimerBarFill.setOrigin(0, 0.5);
+    this.comboTimerBarContainer.add(this.comboTimerBarFill);
 
     // Power-up container (bottom)
     this.powerUpContainer = this.scene.add.container(1280 / 2, 680);
@@ -361,6 +394,10 @@ export class HUD {
       this.comboLabel.setText(`COMBO (${multiplier.toFixed(1)}x)`);
       this.comboText.setVisible(true);
       this.comboLabel.setVisible(true);
+      this.comboTimerBarContainer.setVisible(true);
+
+      // Reset timer bar fill to full on combo increment
+      this.updateComboTimerBar(COMBO_TIMEOUT);
 
       // Pulse effect with theme animation
       this.scene.tweens.add({
@@ -373,7 +410,65 @@ export class HUD {
     } else {
       this.comboText.setVisible(false);
       this.comboLabel.setVisible(false);
+      this.comboTimerBarContainer.setVisible(false);
     }
+  }
+
+  /**
+   * Update combo timer bar based on remaining time
+   * @param remainingTime - Time remaining in seconds before combo expires
+   */
+  updateComboTimerBar(remainingTime: number): void {
+    if (!this.comboTimerBarFill || !this.comboTimerBarContainer) return;
+
+    // Only update if timer bar is visible
+    if (!this.comboTimerBarContainer.visible) return;
+
+    // Calculate fill width based on remaining time percentage
+    const maxWidth = this.comboTimerBarWidth - 4;
+    const timeRatio = Math.max(0, Math.min(1, remainingTime / COMBO_TIMEOUT));
+    const fillWidth = maxWidth * timeRatio;
+
+    // Smooth width update
+    this.comboTimerBarFill.width = fillWidth;
+
+    // Color transition from warning (full) to danger (low) as time depletes
+    if (timeRatio > 0.5) {
+      // Full to medium - stay warning color (orange)
+      this.comboTimerBarFill.setFillStyle(DARK_GOTHIC_THEME.colors.warning);
+    } else if (timeRatio > 0.25) {
+      // Medium to low - transition to danger (red-orange)
+      const blendFactor = (timeRatio - 0.25) / 0.25; // 1.0 at 0.5, 0.0 at 0.25
+      const warningColor = DARK_GOTHIC_THEME.colors.warning; // 0xffaa00
+      const dangerColor = DARK_GOTHIC_THEME.colors.danger; // 0xff4444
+      const blendedColor = this.blendColors(dangerColor, warningColor, blendFactor);
+      this.comboTimerBarFill.setFillStyle(blendedColor);
+    } else {
+      // Low - danger color (red)
+      this.comboTimerBarFill.setFillStyle(DARK_GOTHIC_THEME.colors.danger);
+    }
+  }
+
+  /**
+   * Blend two colors together
+   * @param color1 - First color (hex number)
+   * @param color2 - Second color (hex number)
+   * @param ratio - Blend ratio (0 = color1, 1 = color2)
+   */
+  private blendColors(color1: number, color2: number, ratio: number): number {
+    const r1 = (color1 >> 16) & 0xff;
+    const g1 = (color1 >> 8) & 0xff;
+    const b1 = color1 & 0xff;
+
+    const r2 = (color2 >> 16) & 0xff;
+    const g2 = (color2 >> 8) & 0xff;
+    const b2 = color2 & 0xff;
+
+    const r = Math.round(r1 + (r2 - r1) * ratio);
+    const g = Math.round(g1 + (g2 - g1) * ratio);
+    const b = Math.round(b1 + (b2 - b1) * ratio);
+
+    return (r << 16) | (g << 8) | b;
   }
 
   /**
@@ -499,6 +594,9 @@ export class HUD {
     }
     if (this.comboLabel) {
       this.comboLabel.destroy();
+    }
+    if (this.comboTimerBarContainer) {
+      this.comboTimerBarContainer.destroy();
     }
     if (this.soulsText) {
       this.soulsText.destroy();
