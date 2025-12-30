@@ -4,6 +4,12 @@
  * Tracks mouse/touch movement and renders a glowing trail effect.
  * The trail only appears when cursor moves fast enough (above velocity threshold).
  * Supports charge/power mechanics with visual indicators.
+ *
+ * Performance Optimizations:
+ * - Object pooling for Vector2 points to reduce GC pressure
+ * - Dirty flag tracking to skip unnecessary redraws
+ * - Batched draw calls to minimize GPU state changes
+ * - Cached calculations for frequently used values
  */
 
 import Phaser from 'phaser';
@@ -20,6 +26,47 @@ import {
 import { SlashPowerLevel, SlashPowerState } from '@config/types';
 import { EventBus } from '@utils/EventBus';
 
+/**
+ * Object pool for Vector2 instances to reduce garbage collection
+ */
+class Vector2Pool {
+  private pool: Phaser.Math.Vector2[] = [];
+  private activeCount: number = 0;
+
+  /**
+   * Get a Vector2 from the pool or create a new one
+   */
+  acquire(x: number = 0, y: number = 0): Phaser.Math.Vector2 {
+    let vec: Phaser.Math.Vector2;
+    if (this.pool.length > 0) {
+      vec = this.pool.pop()!;
+      vec.set(x, y);
+    } else {
+      vec = new Phaser.Math.Vector2(x, y);
+    }
+    this.activeCount++;
+    return vec;
+  }
+
+  /**
+   * Return a Vector2 to the pool for reuse
+   */
+  release(vec: Phaser.Math.Vector2): void {
+    this.pool.push(vec);
+    this.activeCount--;
+  }
+
+  /**
+   * Release multiple vectors at once
+   */
+  releaseAll(vectors: Phaser.Math.Vector2[]): void {
+    for (let i = 0; i < vectors.length; i++) {
+      this.pool.push(vectors[i]);
+    }
+    this.activeCount -= vectors.length;
+  }
+}
+
 export class SlashTrail {
   private scene: Phaser.Scene;
   private graphics: Phaser.GameObjects.Graphics;
@@ -32,6 +79,17 @@ export class SlashTrail {
   private currentPosition: Phaser.Math.Vector2;
   private lastUpdateTime: number = 0;
   private active: boolean = false;
+
+  // Object pool for Vector2 reuse
+  private static vectorPool: Vector2Pool = new Vector2Pool();
+
+  // Dirty flags for optimization - track what needs redrawing
+  private trailDirty: boolean = true;
+  private cursorDirty: boolean = true;
+  private chargeDirty: boolean = true;
+  private lastCursorX: number = 0;
+  private lastCursorY: number = 0;
+  private lastPointCount: number = 0;
 
   // Trail style properties - BRIGHT and VISIBLE
   private baseTrailColor: number = 0xffffff; // Base white color (no power)
@@ -50,6 +108,13 @@ export class SlashTrail {
     isCharging: false,
   };
   private chargeAnimationTime: number = 0;
+
+  // Cached cursor constants
+  private static readonly CURSOR_SIZE = 10;
+  private static readonly CURSOR_OUTER_LINE_WIDTH = 3;
+  private static readonly CURSOR_INNER_RADIUS = 4;
+  private static readonly CURSOR_CROSSHAIR_LINE_WIDTH = 2;
+  private static readonly CURSOR_CROSSHAIR_EXTEND = 5;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -79,32 +144,51 @@ export class SlashTrail {
    */
   update(x: number, y: number, deltaTime: number): void {
     this.currentPosition.set(x, y);
-    
+
+    // Track cursor movement for dirty detection
+    const cursorMoved = x !== this.lastCursorX || y !== this.lastCursorY;
+    if (cursorMoved) {
+      this.cursorDirty = true;
+      this.lastCursorX = x;
+      this.lastCursorY = y;
+    }
+
     // Calculate velocity
     const velocity = this.calculateVelocity(deltaTime);
-    
+
     // Check if velocity exceeds threshold
     if (velocity > SLASH_VELOCITY_THRESHOLD) {
       this.active = true;
-      
-      // Add point to trail
-      this.points.push(new Phaser.Math.Vector2(x, y));
-      
-      // Limit trail length
+
+      // Add point to trail using object pool
+      const newPoint = SlashTrail.vectorPool.acquire(x, y);
+      this.points.push(newPoint);
+      this.trailDirty = true;
+
+      // Limit trail length and release old point back to pool
       if (this.points.length > SLASH_TRAIL_MAX_LENGTH) {
-        this.points.shift();
+        const oldPoint = this.points.shift();
+        if (oldPoint) {
+          SlashTrail.vectorPool.release(oldPoint);
+        }
       }
     } else {
       // Fade out trail when velocity drops below threshold
       this.active = false;
       this.fadeTrail(deltaTime);
     }
-    
+
     // Update previous position
     this.previousPosition.copy(this.currentPosition);
     this.lastUpdateTime = this.scene.time.now;
-    
-    // Render trail
+
+    // Track point count changes for dirty detection
+    if (this.points.length !== this.lastPointCount) {
+      this.trailDirty = true;
+      this.lastPointCount = this.points.length;
+    }
+
+    // Render trail (optimized with dirty checks)
     this.render();
   }
 
@@ -128,87 +212,114 @@ export class SlashTrail {
    * @param deltaTime - Time since last update in seconds
    */
   private fadeTrail(deltaTime: number): void {
-    // Remove points from beginning of trail
+    // Remove points from beginning of trail and return to pool
     if (this.points.length > 0) {
-      this.points.shift();
+      const oldPoint = this.points.shift();
+      if (oldPoint) {
+        SlashTrail.vectorPool.release(oldPoint);
+        this.trailDirty = true;
+      }
     }
   }
 
   /**
-   * Render slash trail
+   * Render slash trail with optimized batched draw calls
+   * Uses dirty flags to skip unnecessary redraws
    */
   private render(): void {
-    // Clear previous frame
-    this.graphics.clear();
-    this.glowGraphics.clear();
-    this.cursorGraphics.clear();
+    // Only redraw cursor if it moved
+    if (this.cursorDirty) {
+      this.cursorGraphics.clear();
+      this.drawCursorBatched();
+      this.cursorDirty = false;
+    }
 
-    // Always draw cursor indicator
-    this.drawCursor();
+    // Only redraw trail if points changed
+    if (this.trailDirty) {
+      this.graphics.clear();
+      this.glowGraphics.clear();
 
-    if (this.points.length < 2) return;
-    
-    const firstPoint = this.points[0];
+      // Early exit if not enough points
+      if (this.points.length >= 2) {
+        this.renderTrailBatched();
+      }
+      this.trailDirty = false;
+    }
+  }
+
+  /**
+   * Render trail with batched draw calls
+   * Combines glow and main trail rendering efficiently
+   */
+  private renderTrailBatched(): void {
+    const points = this.points;
+    const len = points.length;
+    const firstPoint = points[0];
+
     if (!firstPoint) return;
-    
-    // Draw glow (wider, more visible)
-    this.glowGraphics.lineStyle(this.trailGlowWidth, this.trailGlow, 0.6); // More opaque
+
+    // Batch 1: Draw glow trail in a single path
+    // Using a single beginPath/strokePath for the entire glow
+    this.glowGraphics.lineStyle(this.trailGlowWidth, this.trailGlow, 0.6);
     this.glowGraphics.beginPath();
     this.glowGraphics.moveTo(firstPoint.x, firstPoint.y);
 
-    for (let i = 1; i < this.points.length; i++) {
-      const point = this.points[i];
-      if (point) {
-        this.glowGraphics.lineTo(point.x, point.y);
-      }
+    // Use standard loop for better performance than forEach
+    for (let i = 1; i < len; i++) {
+      const point = points[i];
+      this.glowGraphics.lineTo(point.x, point.y);
     }
-
     this.glowGraphics.strokePath();
 
-    // Draw main trail (bright and opaque)
-    this.graphics.lineStyle(this.trailWidth, this.trailColor, 1.0); // Fully opaque
+    // Batch 2: Draw main trail in a single path
+    this.graphics.lineStyle(this.trailWidth, this.trailColor, 1.0);
     this.graphics.beginPath();
     this.graphics.moveTo(firstPoint.x, firstPoint.y);
 
-    for (let i = 1; i < this.points.length; i++) {
-      const point = this.points[i];
-      if (point) {
-        this.graphics.lineTo(point.x, point.y);
-      }
+    for (let i = 1; i < len; i++) {
+      const point = points[i];
+      this.graphics.lineTo(point.x, point.y);
     }
-
     this.graphics.strokePath();
   }
 
   /**
-   * Draw cursor indicator
+   * Draw cursor indicator with batched draw calls
+   * Combines all cursor drawing into minimal draw calls
    */
-  private drawCursor(): void {
-    // Draw a bright crosshair cursor
+  private drawCursorBatched(): void {
     const x = this.currentPosition.x;
     const y = this.currentPosition.y;
-    const size = 10;
 
-    // Outer circle
-    this.cursorGraphics.lineStyle(3, 0xffffff, 0.8);
+    // Use cached constants
+    const size = SlashTrail.CURSOR_SIZE;
+    const extend = SlashTrail.CURSOR_CROSSHAIR_EXTEND;
+
+    // Batch 1: All stroke operations with same style (outer circle + crosshairs)
+    // Group same-styled strokes together to minimize state changes
+    this.cursorGraphics.lineStyle(SlashTrail.CURSOR_OUTER_LINE_WIDTH, 0xffffff, 0.8);
     this.cursorGraphics.strokeCircle(x, y, size);
 
-    // Inner dot
-    this.cursorGraphics.fillStyle(0xff00ff, 1.0);
-    this.cursorGraphics.fillCircle(x, y, 4);
-
-    // Crosshair lines
-    this.cursorGraphics.lineStyle(2, 0xffffff, 0.6);
+    // Batch 2: Crosshair lines in a single path
+    this.cursorGraphics.lineStyle(SlashTrail.CURSOR_CROSSHAIR_LINE_WIDTH, 0xffffff, 0.6);
     this.cursorGraphics.beginPath();
-    this.cursorGraphics.moveTo(x - size - 5, y);
+    // Left crosshair
+    this.cursorGraphics.moveTo(x - size - extend, y);
     this.cursorGraphics.lineTo(x - size, y);
+    // Right crosshair
     this.cursorGraphics.moveTo(x + size, y);
-    this.cursorGraphics.lineTo(x + size + 5, y);
-    this.cursorGraphics.moveTo(x, y - size - 5);
+    this.cursorGraphics.lineTo(x + size + extend, y);
+    // Top crosshair
+    this.cursorGraphics.moveTo(x, y - size - extend);
     this.cursorGraphics.lineTo(x, y - size);
+    // Bottom crosshair
     this.cursorGraphics.moveTo(x, y + size);
-    this.cursorGraphics.lineTo(x, y + size + 5);
+    this.cursorGraphics.lineTo(x, y + size + extend);
     this.cursorGraphics.strokePath();
+
+    // Batch 3: Fill operations (inner dot)
+    this.cursorGraphics.fillStyle(0xff00ff, 1.0);
+    this.cursorGraphics.fillCircle(x, y, SlashTrail.CURSOR_INNER_RADIUS);
   }
 
   /**
@@ -229,14 +340,25 @@ export class SlashTrail {
 
   /**
    * Clear all slash points
+   * Returns all pooled Vector2 objects for reuse
    */
   clear(): void {
+    // Release all points back to the pool before clearing
+    if (this.points.length > 0) {
+      SlashTrail.vectorPool.releaseAll(this.points);
+    }
     this.points = [];
     this.active = false;
     this.graphics.clear();
     this.glowGraphics.clear();
     this.cursorGraphics.clear();
     this.chargeGraphics.clear();
+
+    // Reset dirty flags
+    this.trailDirty = true;
+    this.cursorDirty = true;
+    this.chargeDirty = true;
+    this.lastPointCount = 0;
   }
 
   /**
@@ -262,6 +384,9 @@ export class SlashTrail {
     const widthMultiplier = SLASH_POWER_WIDTH_MULTIPLIERS[this.powerState.level as keyof typeof SLASH_POWER_WIDTH_MULTIPLIERS];
     this.trailWidth = style.width * widthMultiplier;
     this.trailGlowWidth = this.trailWidth * 2;
+
+    // Mark trail as dirty to redraw with new style
+    this.trailDirty = true;
   }
 
   /**
@@ -438,6 +563,9 @@ export class SlashTrail {
       // Create a slightly brighter/saturated glow variant
       this.trailGlow = this.createGlowColor(powerColor);
     }
+
+    // Mark trail as dirty to redraw with new colors
+    this.trailDirty = true;
   }
 
   /**
@@ -462,6 +590,7 @@ export class SlashTrail {
 
   /**
    * Draw the charge indicator around the cursor
+   * Optimized with batched draw calls grouped by style
    */
   private drawChargeIndicator(): void {
     this.chargeGraphics.clear();
@@ -472,65 +601,68 @@ export class SlashTrail {
     const y = this.currentPosition.y;
     const powerLevel = this.powerState.level;
     const progress = this.powerState.chargeProgress;
+    const maxLevel = SLASH_POWER.maxPowerLevel;
 
-    // Get color for current power level
+    // Pre-calculate colors once
     const currentColor = SLASH_POWER_COLORS[powerLevel as keyof typeof SLASH_POWER_COLORS];
     const nextColor = SLASH_POWER_COLORS[
-      Math.min(powerLevel + 1, SLASH_POWER.maxPowerLevel) as keyof typeof SLASH_POWER_COLORS
+      Math.min(powerLevel + 1, maxLevel) as keyof typeof SLASH_POWER_COLORS
     ];
 
-    // Base radius grows with power level
+    // Pre-calculate radius values
     const baseRadius = 20 + powerLevel * 8;
     const pulseAmount = Math.sin(this.chargeAnimationTime * 8) * 3;
     const radius = baseRadius + pulseAmount;
+    const indicatorRadius = 4;
+    const indicatorDistance = radius + 14;
 
-    // Draw outer glow ring (pulsing)
+    // Pre-calculate alpha values
     const glowAlpha = 0.3 + Math.sin(this.chargeAnimationTime * 6) * 0.15;
+
+    // Pre-calculate indicator positions (avoid recalculating in loop)
+    const angleStep = Math.PI * 2 / maxLevel;
+    const startAngle = -Math.PI / 2;
+
+    // ========== BATCH 1: Stroke operations with currentColor ==========
+    // Group all currentColor strokes together to minimize state changes
     this.chargeGraphics.lineStyle(8, currentColor, glowAlpha);
     this.chargeGraphics.strokeCircle(x, y, radius + 6);
 
-    // Draw main charge ring
     this.chargeGraphics.lineStyle(4, currentColor, 0.8);
     this.chargeGraphics.strokeCircle(x, y, radius);
 
-    // Draw progress arc for next level (if not at max)
-    if (powerLevel < SLASH_POWER.maxPowerLevel) {
-      const startAngle = -Math.PI / 2; // Start from top
+    // ========== BATCH 2: Progress arc (if not at max) ==========
+    if (powerLevel < maxLevel) {
       const endAngle = startAngle + (progress * Math.PI * 2);
-
       this.chargeGraphics.lineStyle(3, nextColor, 0.9);
       this.chargeGraphics.beginPath();
       this.chargeGraphics.arc(x, y, radius - 4, startAngle, endAngle, false);
       this.chargeGraphics.strokePath();
     }
 
-    // Draw power level indicators (small circles around the ring)
-    const indicatorRadius = 4;
-    const indicatorDistance = radius + 14;
-    for (let i = 0; i <= SLASH_POWER.maxPowerLevel; i++) {
-      const angle = -Math.PI / 2 + (i / SLASH_POWER.maxPowerLevel) * Math.PI * 2;
+    // ========== BATCH 3: Empty indicator circles (same style) ==========
+    // Draw all empty indicators first in one batch
+    this.chargeGraphics.lineStyle(2, 0xffffff, 0.4);
+    for (let i = powerLevel + 1; i <= maxLevel; i++) {
+      const angle = startAngle + (i * angleStep);
       const ix = x + Math.cos(angle) * indicatorDistance;
       const iy = y + Math.sin(angle) * indicatorDistance;
-
-      if (i <= powerLevel) {
-        // Filled indicator for achieved levels
-        const indicatorColor = SLASH_POWER_COLORS[i as keyof typeof SLASH_POWER_COLORS];
-        this.chargeGraphics.fillStyle(indicatorColor, 1);
-        this.chargeGraphics.fillCircle(ix, iy, indicatorRadius);
-      } else {
-        // Empty indicator for levels not yet reached
-        this.chargeGraphics.lineStyle(2, 0xffffff, 0.4);
-        this.chargeGraphics.strokeCircle(ix, iy, indicatorRadius);
-      }
+      this.chargeGraphics.strokeCircle(ix, iy, indicatorRadius);
     }
 
-    // Draw power level text in center (for visual feedback)
-    if (powerLevel > SlashPowerLevel.NONE) {
-      const levelNames = ['', 'LOW', 'MED', 'MAX'];
-      const levelName = levelNames[powerLevel] || '';
+    // ========== BATCH 4: Filled indicators (grouped by color) ==========
+    // Draw filled indicators - batch by power level color
+    for (let i = 0; i <= powerLevel; i++) {
+      const indicatorColor = SLASH_POWER_COLORS[i as keyof typeof SLASH_POWER_COLORS];
+      const angle = startAngle + (i * angleStep);
+      const ix = x + Math.cos(angle) * indicatorDistance;
+      const iy = y + Math.sin(angle) * indicatorDistance;
+      this.chargeGraphics.fillStyle(indicatorColor, 1);
+      this.chargeGraphics.fillCircle(ix, iy, indicatorRadius);
+    }
 
-      // Create text effect using graphics (since we're using graphics layer)
-      // Draw an inner glow to indicate power level
+    // ========== BATCH 5: Inner glow (power level indicator) ==========
+    if (powerLevel > SlashPowerLevel.NONE) {
       const innerGlowAlpha = 0.4 + Math.sin(this.chargeAnimationTime * 10) * 0.2;
       this.chargeGraphics.fillStyle(currentColor, innerGlowAlpha);
       this.chargeGraphics.fillCircle(x, y, 8 + powerLevel * 2);
@@ -539,8 +671,14 @@ export class SlashTrail {
 
   /**
    * Destroy slash trail and clean up resources
+   * Returns all pooled Vector2 objects before cleanup
    */
   destroy(): void {
+    // Release all points back to the pool before destroying
+    if (this.points.length > 0) {
+      SlashTrail.vectorPool.releaseAll(this.points);
+    }
+
     this.graphics.destroy();
     this.glowGraphics.destroy();
     this.cursorGraphics.destroy();
