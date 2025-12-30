@@ -1,9 +1,9 @@
 {
   "discovered_files": {
     "src/systems/ComboSystem.ts": {
-      "description": "ComboSystem already has basic combo tracking with increment(), reset(), getMultiplier(), getRemainingTime(). Uses COMBO_TIMEOUT (2s) and COMBO_MULTIPLIER_RATE (0.1). Emits 'combo-updated' events via EventBus. Missing: milestone detection and events.",
-      "category": "existing_system",
-      "discovered_at": "2025-12-30T14:11:26.601463+00:00"
+      "description": "ComboSystem now has milestone detection: checkMilestone() private method checks if combo matches COMBO_MILESTONES array and hasn't been reached yet. Emits 'combo-milestone' event with {milestone, multiplier}. Uses reachedMilestones Set to prevent re-triggering. Has resetMilestones(), fullReset(), hasMilestoneBeenReached(), getReachedMilestones() methods.",
+      "category": "feature",
+      "discovered_at": "2025-12-30T14:34:57.637960+00:00"
     },
     "src/ui/HUD.ts": {
       "description": "HUD now has update(delta, comboSystem) method that updates combo timer bar each frame. Gets remaining time from ComboSystem.getRemainingTime() and passes to updateComboTimerBar(). Called from GameplayScene.update() after comboSystem.update().",
@@ -11,20 +11,25 @@
       "discovered_at": "2025-12-30T14:19:48.456786+00:00"
     },
     "src/systems/SlashSystem.ts": {
-      "description": "Added multi-kill tracking: killsThisCycle property tracks kills per update cycle, lastMultiKillCount stores last multi-kill value. Emits 'multi-kill' EventBus event with killCount when >= 2 kills in same cycle.",
+      "description": "Added multi-kill visual feedback system: createMultiKillEffect() method shows floating text (DOUBLE/TRIPLE/MEGA/ULTRA KILL), bonus score text, particle effects at kill positions, and screen flash for 4+ kills. Uses killPositionsThisCycle array to track positions. Connected to ParticleSystem via setParticleSystem().",
       "category": "feature",
-      "discovered_at": "2025-12-30T14:22:44.498157+00:00"
+      "discovered_at": "2025-12-30T14:32:08.492408+00:00"
     },
     "src/config/constants.ts": {
-      "description": "COMBO_MILESTONES already defined as [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]. COMBO_TIMEOUT = 2.0s. MONSTER_BASE_POINTS: zombie=10, vampire=15, ghost=20. Need to add MULTI_KILL_BONUS constants.",
-      "category": "configuration",
-      "discovered_at": "2025-12-30T14:11:26.792813+00:00"
+      "description": "Added MULTI_KILL_BONUS constants and getMultiKillBonus() helper function for calculating bonus multipliers (2 kills = 1.5x, 3 kills = 2.0x, 4+ kills = 2.5x)",
+      "category": "constants",
+      "discovered_at": "2025-12-30T14:26:11.255624+00:00"
     },
     "src/systems/ParticleSystem.ts": {
       "description": "ParticleSystem has multiple particle types (SPARKLE, FIRE, LIGHTNING, etc.) with object pooling. Has emit() for one-shot effects, createWeaponTrail(), createHitEffect(). Suitable for combo milestone effects but needs new configurations added.",
       "category": "existing_system",
       "discovered_at": "2025-12-30T14:11:26.851530+00:00"
+    },
+    "src/managers/ComboEffectsManager.ts": {
+      "description": "New ComboEffectsManager handles combo milestone visual effects. Has MILESTONE_CONFIGS for 5x/10x/15x/20x/25x with escalating effects. Uses ParticleSystem.emit() for particles, Graphics for screen flash. Listens to 'combo-milestone' EventBus events. Methods: setParticleSystem(), triggerMilestoneEffect(), triggerCelebration(), cleanup(), destroy().",
+      "category": "managers",
+      "discovered_at": "2025-12-30T14:39:05.883863+00:00"
     }
   },
-  "last_updated": "2025-12-30T14:22:44.498170+00:00"
+  "last_updated": "2025-12-30T14:39:05.883875+00:00"
 }

@@ -27,6 +27,7 @@ import { VampireLord } from '../entities/VampireLord';
 import { PhantomKing } from '../entities/PhantomKing';
 import { DemonOverlord } from '../entities/DemonOverlord';
 import { ParticleSystem } from '../systems/ParticleSystem';
+import { ComboEffectsManager } from '../managers/ComboEffectsManager';
 
 export class GameplayScene extends Phaser.Scene {
   private slashTrail!: SlashTrail;
@@ -40,6 +41,7 @@ export class GameplayScene extends Phaser.Scene {
   private saveManager!: SaveManager;
   private levelManager!: LevelManager;
   private particleSystem!: ParticleSystem;
+  private comboEffectsManager!: ComboEffectsManager;
 
   // Campaign mode properties
   private isCampaignMode: boolean = false;
@@ -93,6 +95,8 @@ export class GameplayScene extends Phaser.Scene {
     this.powerUpManager.initialize(this);
     this.powerUpManager.setUpgradeManager(this.upgradeManager);
     this.particleSystem = new ParticleSystem(this);
+    this.comboEffectsManager = new ComboEffectsManager(this);
+    this.comboEffectsManager.setParticleSystem(this.particleSystem);
     this.hud = new HUD(this);
 
     // Connect systems
@@ -722,6 +726,7 @@ export class GameplayScene extends Phaser.Scene {
     this.slashSystem.destroy();
     this.hud.destroy();
     this.particleSystem.destroy();
+    this.comboEffectsManager.destroy();
 
     // Destroy boss if exists
     if (this.boss) {

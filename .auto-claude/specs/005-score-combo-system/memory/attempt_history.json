@@ -47,11 +47,59 @@
         }
       ],
       "status": "completed"
+    },
+    "3.2": {
+      "attempts": [
+        {
+          "session": 6,
+          "timestamp": "2025-12-30T16:26:21.590344",
+          "approach": "Implemented: Calculate and apply bonus multiplier for multi-kills (2+ in one swipe). Add constants for multi-kill",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "3.3": {
+      "attempts": [
+        {
+          "session": 7,
+          "timestamp": "2025-12-30T16:32:20.774931",
+          "approach": "Implemented: Create floating text and particle effects for multi-kill events. Show 'DOUBLE KILL', 'TRIPLE KILL', ",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "4.1": {
+      "attempts": [
+        {
+          "session": 8,
+          "timestamp": "2025-12-30T16:35:09.482535",
+          "approach": "Implemented: Add method to detect when combo reaches 5, 10, 15 milestones. Emit 'combo-milestone' event with mile",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "4.2": {
+      "attempts": [
+        {
+          "session": 9,
+          "timestamp": "2025-12-30T16:39:20.439820",
+          "approach": "Implemented: Create new manager to handle combo milestone visual effects. Use ParticleSystem for particle bursts,",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2025-12-30T16:05:18.591894",
-    "last_updated": "2025-12-30T16:23:00.003085"
+    "last_updated": "2025-12-30T16:39:20.439830"
   }
 }

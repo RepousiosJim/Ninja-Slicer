@@ -91,7 +91,7 @@
           "id": "3.2",
           "title": "Add multi-kill bonus calculation",
           "description": "Calculate and apply bonus multiplier for multi-kills (2+ in one swipe). Add constants for multi-kill bonus values.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 0.5,
           "files_to_modify": [
             "src/systems/SlashSystem.ts",
@@ -101,13 +101,14 @@
           "dependencies": [
             "3.1"
           ],
-          "notes": "e.g., 2 kills = 1.5x bonus, 3 kills = 2x bonus, 4+ kills = 2.5x bonus"
+          "notes": "Implemented multi-kill bonus system: Added MULTI_KILL_BONUS constants (2 kills = 1.5x, 3 kills = 2.0x, 4+ kills = 2.5x) and getMultiKillBonus() helper function to constants.ts. Updated SlashSystem to track scoreThisCycle, calculate bonus at end of update cycle when 2+ kills detected, apply bonus to score, and emit enhanced multi-kill event with bonusMultiplier, bonusScore, and totalCycleScore. Added getLastMultiKillBonus() getter.",
+          "updated_at": "2025-12-30T14:26:05.937573+00:00"
         },
         {
           "id": "3.3",
           "title": "Add multi-kill visual feedback",
           "description": "Create floating text and particle effects for multi-kill events. Show 'DOUBLE KILL', 'TRIPLE KILL', etc.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 1,
           "files_to_modify": [
             "src/systems/SlashSystem.ts"
@@ -116,7 +117,8 @@
           "dependencies": [
             "3.2"
           ],
-          "notes": "Use existing tween patterns from createHitEffect. Add scaling/color effects."
+          "notes": "Implemented multi-kill visual feedback: Added MULTI_KILL_TEXT configuration for DOUBLE/TRIPLE/MEGA/ULTRA KILL display with escalating colors. Created createMultiKillEffect() method that calculates average position of kills, shows animated floating text with scale-up and fade-out, displays bonus score text, emits particle effects at each kill position (SPARKLE) and center burst (FIRE for 3+ kills), and adds screen flash for high kill counts (4+). Connected ParticleSystem to SlashSystem via GameplayScene.",
+          "updated_at": "2025-12-30T14:32:00.342206+00:00"
         }
       ]
     },
@@ -129,7 +131,7 @@
           "id": "4.1",
           "title": "Create milestone detection in ComboSystem",
           "description": "Add method to detect when combo reaches 5, 10, 15 milestones. Emit 'combo-milestone' event with milestone level.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 0.5,
           "files_to_modify": [
             "src/systems/ComboSystem.ts"
@@ -138,13 +140,14 @@
           "dependencies": [
             "1.1"
           ],
-          "notes": "Check in increment() method. Only trigger once per milestone (don't re-trigger if combo drops and rebuilds)"
+          "notes": "Implemented milestone detection in ComboSystem: Added reachedMilestones Set to track achieved milestones, checkMilestone() method called after increment() to detect when combo reaches 5, 10, 15 etc. milestones, emits 'combo-milestone' event with milestone level and multiplier. Added resetMilestones(), fullReset(), hasMilestoneBeenReached(), and getReachedMilestones() helper methods. Added event type to EventBus and EVENTS constant. Milestones only trigger once per session.",
+          "updated_at": "2025-12-30T14:34:57.558371+00:00"
         },
         {
           "id": "4.2",
           "title": "Create ComboEffectsManager",
           "description": "Create new manager to handle combo milestone visual effects. Use ParticleSystem for particle bursts, add screen flash, and text animations.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 1.5,
           "files_to_modify": [],
           "files_to_create": [
@@ -153,7 +156,8 @@
           "dependencies": [
             "4.1"
           ],
-          "notes": "5x: Small particle burst; 10x: Screen edge flash + larger particles; 15x: Full screen flash + 'LEGENDARY' text + explosion"
+          "notes": "Created ComboEffectsManager.ts with full visual effects for combo milestones. Features: configurable effects for 5x/10x/15x/20x/25x+ milestones, ParticleSystem integration (SPARKLE/FIRE/LIGHTNING particles), screen flash effects (edge flash for 5-10x, full screen for 15x+), animated text with scale-up/fade-out, multiplier display text, radial and corner particle patterns. Manager listens to 'combo-milestone' EventBus events and has proper cleanup/destroy methods.",
+          "updated_at": "2025-12-30T14:39:05.806035+00:00"
         },
         {
           "id": "4.3",
@@ -388,5 +392,5 @@
       ]
     }
   },
-  "last_updated": "2025-12-30T14:22:36.225125+00:00"
+  "last_updated": "2025-12-30T14:39:05.806045+00:00"
 }
