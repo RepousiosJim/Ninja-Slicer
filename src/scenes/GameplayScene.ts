@@ -19,6 +19,7 @@ import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { SaveManager } from '../managers/SaveManager';
 import { LevelManager } from '../managers/LevelManager';
+import { SlashEnergyManager } from '../managers/SlashEnergyManager';
 import { EventBus } from '../utils/EventBus';
 import { Boss } from '../entities/Boss';
 import { GraveTitan } from '../entities/GraveTitan';
@@ -38,6 +39,7 @@ export class GameplayScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
   private saveManager!: SaveManager;
   private levelManager!: LevelManager;
+  private slashEnergyManager!: SlashEnergyManager;
 
   // Campaign mode properties
   private isCampaignMode: boolean = false;
@@ -78,6 +80,9 @@ export class GameplayScene extends Phaser.Scene {
     this.upgradeManager = UpgradeManager.getInstance();
     this.saveManager = new SaveManager();
     this.levelManager = LevelManager.getInstance();
+    this.slashEnergyManager = SlashEnergyManager.getInstance();
+    this.slashEnergyManager.initialize(this);
+    this.slashEnergyManager.setUpgradeManager(this.upgradeManager);
 
     // Load data
     this.loadProgressionData();
@@ -97,6 +102,7 @@ export class GameplayScene extends Phaser.Scene {
     this.slashSystem.setPowerUpManager(this.powerUpManager);
     this.slashSystem.setWeaponManager(this.weaponManager);
     this.slashSystem.setUpgradeManager(this.upgradeManager);
+    this.slashSystem.setEnergyManager(this.slashEnergyManager);
 
     // Apply starting lives from upgrade
     const playerStats = this.upgradeManager.getPlayerStats();
@@ -440,6 +446,9 @@ export class GameplayScene extends Phaser.Scene {
     // Update power-up manager
     this.powerUpManager.update(time, delta);
 
+    // Update slash energy manager (handles regeneration)
+    this.slashEnergyManager.update(time, delta);
+
     // Update slash system (check collisions)
     const activeMonsters = this.spawnSystem.getActiveMonsters();
     const activeVillagers = this.spawnSystem.getActiveVillagers();
@@ -630,6 +639,7 @@ export class GameplayScene extends Phaser.Scene {
     this.comboSystem.reset();
     this.comboSystem.resetMaxCombo();
     this.powerUpManager.reset();
+    this.slashEnergyManager.reset();
     this.hud.updateScore(0);
 
     // Reset game state

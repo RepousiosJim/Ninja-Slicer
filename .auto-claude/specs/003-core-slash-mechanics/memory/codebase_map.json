@@ -21,10 +21,15 @@
       "discovered_at": "2025-12-30T04:57:10.432957+00:00"
     },
     "src/systems/SlashSystem.ts": {
-      "description": "SlashSystem now supports power multipliers. Power level is tracked from SlashTrail.getPowerLevel() each update cycle. Damage multipliers (SLASH_POWER_DAMAGE_MULTIPLIERS) are applied to weapon effects. Score multipliers (SLASH_POWER_SCORE_MULTIPLIERS) are applied after combo/frenzy/energy multipliers. Visual hit effects scale with power level showing colors and \"POWER!\"/\"SUPER!\" text for charged slashes.",
+      "description": "Added pattern visual confirmation effects (createPatternConfirmationEffect, createCirclePatternEffect, createZigzagPatternEffect, createStraightPatternEffect, createPatternLabel, createSparkEffect) that are triggered from onSlashEnd() when a valid pattern is detected. Effects use SLASH_PATTERN_VISUAL constants for timing.",
       "category": "feature",
-      "discovered_at": "2025-12-30T05:01:57.439273+00:00"
+      "discovered_at": "2025-12-30T05:17:02.532811+00:00"
+    },
+    "src/utils/helpers.ts": {
+      "description": "Pattern detection functions (detectZigzagPattern, detectStraightPattern, detectCirclePattern) were all implemented together in subtask-1-3. The detectSlashPattern orchestrator tries all patterns and returns the one with highest confidence. Pattern detection uses Douglas-Peucker simplification, angle calculations, and perpendicular distance metrics with configurable thresholds from SLASH_PATTERN constants.",
+      "category": "pattern-recognition",
+      "discovered_at": "2025-12-30T05:09:34.812511+00:00"
     }
   },
-  "last_updated": "2025-12-30T05:01:57.439290+00:00"
+  "last_updated": "2025-12-30T05:17:02.532822+00:00"
 }
