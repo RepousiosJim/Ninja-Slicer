@@ -6,6 +6,9 @@
  */
 
 import { WeaponId, WeaponConfig, WeaponStats, WeaponEffect, MonsterType } from '@config/types';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { dataLoader } from '@utils/DataLoader';
 import { SaveManager } from '@managers/SaveManager';
 import { EventBus } from '@utils/EventBus';
@@ -63,8 +66,8 @@ export class WeaponManager {
    * Get all loaded weapons
    */
   getAllWeapons(): WeaponConfig[] {
-    console.log('[WeaponManager] getAllWeapons called, weapons map size:', this.weapons.size);
-    console.log('[WeaponManager] Weapons in map:', Array.from(this.weapons.keys()));
+    debugLog('[WeaponManager] getAllWeapons called, weapons map size:', this.weapons.size);
+    debugLog('[WeaponManager] Weapons in map:', Array.from(this.weapons.keys()));
     return Array.from(this.weapons.values());
   }
 
@@ -80,7 +83,7 @@ export class WeaponManager {
    */
   equipWeapon(weaponId: WeaponId): void {
     if (!this.weapons.has(weaponId)) {
-      console.warn('[WeaponManager] Cannot equip unknown weapon:', weaponId);
+      debugWarn('[WeaponManager] Cannot equip unknown weapon:', weaponId);
       return;
     }
 
@@ -104,12 +107,12 @@ export class WeaponManager {
     const weaponConfig = this.getWeaponConfig(weaponId);
 
     if (!weaponConfig) {
-      console.warn('[WeaponManager] Cannot upgrade unknown weapon:', weaponId);
+      debugWarn('[WeaponManager] Cannot upgrade unknown weapon:', weaponId);
       return false;
     }
 
     if (currentTier >= weaponConfig.tiers.length) {
-      console.warn('[WeaponManager] Weapon already at max tier:', weaponId);
+      debugWarn('[WeaponManager] Weapon already at max tier:', weaponId);
       return false;
     }
 
@@ -162,7 +165,7 @@ export class WeaponManager {
    */
   applyWeaponEffects(
     slashEvent: { position: { x: number; y: number } },
-    monster: { type: MonsterType; position: { x: number; y: number }; health: number; applyDamage: (damage: number) => void; applyBurn?: (damage: number, duration: number) => void; applySlow?: (multiplier: number, duration: number) => void; applyStun?: (duration: number) => void; setAlwaysVisible?: (visible: boolean) => void }
+    monster: { type: MonsterType; position: { x: number; y: number }; health: number; applyDamage: (damage: number) => void; applyBurn?: (damage: number, duration: number) => void; applySlow?: (multiplier: number, duration: number) => void; applyStun?: (duration: number) => void; setAlwaysVisible?: (visible: boolean) => void },
   ): void {
     const config = this.getWeaponConfig(this.equippedWeapon);
     if (!config) return;
@@ -183,80 +186,80 @@ export class WeaponManager {
   private applyEffect(
     effect: WeaponEffect,
     monster: { type: MonsterType; position: { x: number; y: number }; health: number; applyDamage: (damage: number) => void; applyBurn?: (damage: number, duration: number) => void; applySlow?: (multiplier: number, duration: number) => void; applyStun?: (duration: number) => void; setAlwaysVisible?: (visible: boolean) => void },
-    slashEvent: { position: { x: number; y: number } }
+    slashEvent: { position: { x: number; y: number } },
   ): void {
     switch (effect.type) {
-      case 'bonus_damage':
-        if (effect.target && monster.type === effect.target) {
-          const bonusDamage = monster.health * (effect.value || 0.25);
-          monster.applyDamage(bonusDamage);
+    case 'bonus_damage':
+      if (effect.target && monster.type === effect.target) {
+        const bonusDamage = monster.health * (effect.value || 0.25);
+        monster.applyDamage(bonusDamage);
+      }
+      break;
+
+    case 'damage_over_time':
+      if (effect.target && monster.type === effect.target) {
+        if (monster.applyBurn) {
+          const damage = effect.damagePerTick || 1;
+          const duration = (effect.ticks || 1) * (effect.tickInterval || 0.5);
+          monster.applyBurn(damage, duration);
         }
-        break;
+      }
+      break;
 
-      case 'damage_over_time':
-        if (effect.target && monster.type === effect.target) {
-          if (monster.applyBurn) {
-            const damage = effect.damagePerTick || 1;
-            const duration = (effect.ticks || 1) * (effect.tickInterval || 0.5);
-            monster.applyBurn(damage, duration);
-          }
-        }
-        break;
+    case 'slow':
+      if (monster.applySlow) {
+        const multiplier = effect.value || 0.9;
+        const duration = effect.duration || 2.0;
+        monster.applySlow(multiplier, duration);
+      }
+      break;
 
-      case 'slow':
-        if (monster.applySlow) {
-          const multiplier = effect.value || 0.9;
-          const duration = effect.duration || 2.0;
-          monster.applySlow(multiplier, duration);
-        }
-        break;
-
-      case 'stun':
-        if (effect.target && monster.type === effect.target) {
-          if (monster.applyStun) {
-            const duration = effect.duration || 0.5;
-            monster.applyStun(duration);
-          }
-        }
-        break;
-
-      case 'chain_damage':
-        this.applyChainDamage(monster, slashEvent, effect);
-        break;
-
-      case 'chain_stun':
+    case 'stun':
+      if (effect.target && monster.type === effect.target) {
         if (monster.applyStun) {
-          const duration = effect.stunDuration || 0.3;
+          const duration = effect.duration || 0.5;
           monster.applyStun(duration);
         }
-        break;
+      }
+      break;
 
-      case 'ghost_visibility':
-        if (monster.type === MonsterType.GHOST && monster.setAlwaysVisible) {
-          monster.setAlwaysVisible(true);
+    case 'chain_damage':
+      this.applyChainDamage(monster, slashEvent, effect);
+      break;
+
+    case 'chain_stun':
+      if (monster.applyStun) {
+        const duration = effect.stunDuration || 0.3;
+        monster.applyStun(duration);
+      }
+      break;
+
+    case 'ghost_visibility':
+      if (monster.type === MonsterType.GHOST && monster.setAlwaysVisible) {
+        monster.setAlwaysVisible(true);
+      }
+      break;
+
+    case 'proximity_reveal':
+      // Handled in Ghost entity update
+      break;
+
+    case 'spread_damage':
+      this.applySpreadDamage(monster, slashEvent, effect);
+      break;
+
+    case 'freeze_chance':
+      if (Math.random() < (effect.value || 0.15)) {
+        if (monster.applyStun) {
+          const duration = effect.freezeDuration || 1.5;
+          monster.applyStun(duration);
         }
-        break;
+      }
+      break;
 
-      case 'proximity_reveal':
-        // Handled in Ghost entity update
-        break;
-
-      case 'spread_damage':
-        this.applySpreadDamage(monster, slashEvent, effect);
-        break;
-
-      case 'freeze_chance':
-        if (Math.random() < (effect.value || 0.15)) {
-          if (monster.applyStun) {
-            const duration = effect.freezeDuration || 1.5;
-            monster.applyStun(duration);
-          }
-        }
-        break;
-
-      case 'slash_width':
-        // Handled by UpgradeManager
-        break;
+    case 'slash_width':
+      // Handled by UpgradeManager
+      break;
     }
   }
 
@@ -266,7 +269,7 @@ export class WeaponManager {
   private applyChainDamage(
     sourceMonster: { type: MonsterType; position: { x: number; y: number } },
     slashEvent: { position: { x: number; y: number } },
-    effect: WeaponEffect
+    effect: WeaponEffect,
   ): void {
     const chainCount = effect.chainCount || 1;
     const chainRadius = effect.chainRadius || 100;
@@ -288,7 +291,7 @@ export class WeaponManager {
   private applySpreadDamage(
     sourceMonster: { type: MonsterType; position: { x: number; y: number } },
     slashEvent: { position: { x: number; y: number } },
-    effect: WeaponEffect
+    effect: WeaponEffect,
   ): void {
     const radius = effect.radius || 80;
     const damage = effect.damage || 1;

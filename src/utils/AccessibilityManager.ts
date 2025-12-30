@@ -101,7 +101,7 @@ export class AccessibilityManager {
       {
         fontSize: '1px',
         color: '#000000',
-      }
+      },
     );
   }
 
@@ -134,41 +134,41 @@ export class AccessibilityManager {
     const key = event.key;
 
     switch (key) {
-      case 'Tab':
-        event.preventDefault();
-        this.navigateFocus(event.shiftKey ? -1 : 1);
-        break;
+    case 'Tab':
+      event.preventDefault();
+      this.navigateFocus(event.shiftKey ? -1 : 1);
+      break;
 
-      case 'Enter':
-      case ' ':
-        event.preventDefault();
-        this.activateFocusedElement();
-        break;
+    case 'Enter':
+    case ' ':
+      event.preventDefault();
+      this.activateFocusedElement();
+      break;
 
-      case 'Escape':
-        event.preventDefault();
-        this.handleEscape();
-        break;
+    case 'Escape':
+      event.preventDefault();
+      this.handleEscape();
+      break;
 
-      case 'ArrowUp':
-        event.preventDefault();
-        this.navigateFocus(-1);
-        break;
+    case 'ArrowUp':
+      event.preventDefault();
+      this.navigateFocus(-1);
+      break;
 
-      case 'ArrowDown':
-        event.preventDefault();
-        this.navigateFocus(1);
-        break;
+    case 'ArrowDown':
+      event.preventDefault();
+      this.navigateFocus(1);
+      break;
 
-      case 'ArrowLeft':
-        event.preventDefault();
-        this.navigateFocus(-1);
-        break;
+    case 'ArrowLeft':
+      event.preventDefault();
+      this.navigateFocus(-1);
+      break;
 
-      case 'ArrowRight':
-        event.preventDefault();
-        this.navigateFocus(1);
-        break;
+    case 'ArrowRight':
+      event.preventDefault();
+      this.navigateFocus(1);
+      break;
     }
   }
 
@@ -256,13 +256,13 @@ export class AccessibilityManager {
     this.focusIndicator.lineStyle(
       this.config.focusIndicatorWidth,
       this.config.focusIndicatorColor,
-      1
+      1,
     );
     this.focusIndicator.strokeRect(
       bounds.x - 5,
       bounds.y - 5,
       bounds.width + 10,
-      bounds.height + 10
+      bounds.height + 10,
     );
     this.focusIndicator.setVisible(true);
   }

@@ -113,7 +113,7 @@ export class AnimationManager {
   private getTweenConfig(
     config: AnimationConfig,
     duration: number,
-    ease: string
+    ease: string,
   ): Phaser.Types.Tweens.TweenBuilderConfig {
     const targets = config.targets;
     const baseConfig: Phaser.Types.Tweens.TweenBuilderConfig = {
@@ -130,191 +130,191 @@ export class AnimationManager {
 
     // Apply animation-specific configuration
     switch (config.type) {
-      case AnimationType.FADE_IN:
-        return {
-          ...baseConfig,
-          alpha: { from: 0, to: 1 },
-          ...config.props,
-        };
+    case AnimationType.FADE_IN:
+      return {
+        ...baseConfig,
+        alpha: { from: 0, to: 1 },
+        ...config.props,
+      };
 
-      case AnimationType.FADE_OUT:
-        return {
-          ...baseConfig,
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.FADE_OUT:
+      return {
+        ...baseConfig,
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_IN_LEFT:
-        return {
-          ...baseConfig,
-          x: { from: -100, to: (targets as any).x || 0 },
-          alpha: { from: 0, to: 1 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_IN_LEFT:
+      return {
+        ...baseConfig,
+        x: { from: -100, to: (targets as any).x || 0 },
+        alpha: { from: 0, to: 1 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_IN_RIGHT:
-        return {
-          ...baseConfig,
-          x: { from: this.scene.cameras.main.width + 100, to: (targets as any).x || 0 },
-          alpha: { from: 0, to: 1 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_IN_RIGHT:
+      return {
+        ...baseConfig,
+        x: { from: this.scene.cameras.main.width + 100, to: (targets as any).x || 0 },
+        alpha: { from: 0, to: 1 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_IN_TOP:
-        return {
-          ...baseConfig,
-          y: { from: -100, to: (targets as any).y || 0 },
-          alpha: { from: 0, to: 1 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_IN_TOP:
+      return {
+        ...baseConfig,
+        y: { from: -100, to: (targets as any).y || 0 },
+        alpha: { from: 0, to: 1 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_IN_BOTTOM:
-        return {
-          ...baseConfig,
-          y: { from: this.scene.cameras.main.height + 100, to: (targets as any).y || 0 },
-          alpha: { from: 0, to: 1 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_IN_BOTTOM:
+      return {
+        ...baseConfig,
+        y: { from: this.scene.cameras.main.height + 100, to: (targets as any).y || 0 },
+        alpha: { from: 0, to: 1 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_OUT_LEFT:
-        return {
-          ...baseConfig,
-          x: { from: (targets as any).x || 0, to: -100 },
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_OUT_LEFT:
+      return {
+        ...baseConfig,
+        x: { from: (targets as any).x || 0, to: -100 },
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_OUT_RIGHT:
-        return {
-          ...baseConfig,
-          x: { from: (targets as any).x || 0, to: this.scene.cameras.main.width + 100 },
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_OUT_RIGHT:
+      return {
+        ...baseConfig,
+        x: { from: (targets as any).x || 0, to: this.scene.cameras.main.width + 100 },
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_OUT_TOP:
-        return {
-          ...baseConfig,
-          y: { from: (targets as any).y || 0, to: -100 },
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_OUT_TOP:
+      return {
+        ...baseConfig,
+        y: { from: (targets as any).y || 0, to: -100 },
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.SLIDE_OUT_BOTTOM:
-        return {
-          ...baseConfig,
-          y: { from: (targets as any).y || 0, to: this.scene.cameras.main.height + 100 },
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.SLIDE_OUT_BOTTOM:
+      return {
+        ...baseConfig,
+        y: { from: (targets as any).y || 0, to: this.scene.cameras.main.height + 100 },
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.SCALE_IN:
-        return {
-          ...baseConfig,
-          scale: { from: 0, to: 1 },
-          alpha: { from: 0, to: 1 },
-          ease: 'Back.easeOut',
-          ...config.props,
-        };
+    case AnimationType.SCALE_IN:
+      return {
+        ...baseConfig,
+        scale: { from: 0, to: 1 },
+        alpha: { from: 0, to: 1 },
+        ease: 'Back.easeOut',
+        ...config.props,
+      };
 
-      case AnimationType.SCALE_OUT:
-        return {
-          ...baseConfig,
-          scale: { from: 1, to: 0 },
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.SCALE_OUT:
+      return {
+        ...baseConfig,
+        scale: { from: 1, to: 0 },
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.BOUNCE_IN:
-        return {
-          ...baseConfig,
-          scale: { from: 0, to: 1 },
-          alpha: { from: 0, to: 1 },
-          ease: 'Elastic.easeOut',
-          ...config.props,
-        };
+    case AnimationType.BOUNCE_IN:
+      return {
+        ...baseConfig,
+        scale: { from: 0, to: 1 },
+        alpha: { from: 0, to: 1 },
+        ease: 'Elastic.easeOut',
+        ...config.props,
+      };
 
-      case AnimationType.BOUNCE_OUT:
-        return {
-          ...baseConfig,
-          scale: { from: 1, to: 0 },
-          alpha: { from: 1, to: 0 },
-          ease: 'Elastic.easeIn',
-          ...config.props,
-        };
+    case AnimationType.BOUNCE_OUT:
+      return {
+        ...baseConfig,
+        scale: { from: 1, to: 0 },
+        alpha: { from: 1, to: 0 },
+        ease: 'Elastic.easeIn',
+        ...config.props,
+      };
 
-      case AnimationType.FLIP_IN:
-        return {
-          ...baseConfig,
-          scaleX: { from: 0, to: 1 },
-          alpha: { from: 0, to: 1 },
-          ease: 'Back.easeOut',
-          ...config.props,
-        };
+    case AnimationType.FLIP_IN:
+      return {
+        ...baseConfig,
+        scaleX: { from: 0, to: 1 },
+        alpha: { from: 0, to: 1 },
+        ease: 'Back.easeOut',
+        ...config.props,
+      };
 
-      case AnimationType.FLIP_OUT:
-        return {
-          ...baseConfig,
-          scaleX: { from: 1, to: 0 },
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.FLIP_OUT:
+      return {
+        ...baseConfig,
+        scaleX: { from: 1, to: 0 },
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.ROTATE_IN:
-        return {
-          ...baseConfig,
-          angle: { from: -180, to: 0 },
-          scale: { from: 0, to: 1 },
-          alpha: { from: 0, to: 1 },
-          ease: 'Back.easeOut',
-          ...config.props,
-        };
+    case AnimationType.ROTATE_IN:
+      return {
+        ...baseConfig,
+        angle: { from: -180, to: 0 },
+        scale: { from: 0, to: 1 },
+        alpha: { from: 0, to: 1 },
+        ease: 'Back.easeOut',
+        ...config.props,
+      };
 
-      case AnimationType.ROTATE_OUT:
-        return {
-          ...baseConfig,
-          angle: { from: 0, to: 180 },
-          scale: { from: 1, to: 0 },
-          alpha: { from: 1, to: 0 },
-          ...config.props,
-        };
+    case AnimationType.ROTATE_OUT:
+      return {
+        ...baseConfig,
+        angle: { from: 0, to: 180 },
+        scale: { from: 1, to: 0 },
+        alpha: { from: 1, to: 0 },
+        ...config.props,
+      };
 
-      case AnimationType.SHAKE:
-        return {
-          ...baseConfig,
-          x: { from: (targets as any).x || 0, to: (targets as any).x || 0 },
-          y: { from: (targets as any).y || 0, to: (targets as any).y || 0 },
-          ease: 'Sine.easeInOut',
-          yoyo: true,
-          repeat: 5,
-          duration: 50,
-          ...config.props,
-        };
+    case AnimationType.SHAKE:
+      return {
+        ...baseConfig,
+        x: { from: (targets as any).x || 0, to: (targets as any).x || 0 },
+        y: { from: (targets as any).y || 0, to: (targets as any).y || 0 },
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: 5,
+        duration: 50,
+        ...config.props,
+      };
 
-      case AnimationType.PULSE:
-        return {
-          ...baseConfig,
-          scale: { from: 1, to: 1.1 },
-          ease: 'Sine.easeInOut',
-          yoyo: true,
-          repeat: -1,
-          duration: 1000,
-          ...config.props,
-        };
+    case AnimationType.PULSE:
+      return {
+        ...baseConfig,
+        scale: { from: 1, to: 1.1 },
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        duration: 1000,
+        ...config.props,
+      };
 
-      case AnimationType.GLOW:
-        return {
-          ...baseConfig,
-          alpha: { from: 0.5, to: 1 },
-          ease: 'Sine.easeInOut',
-          yoyo: true,
-          repeat: -1,
-          duration: 1500,
-          ...config.props,
-        };
+    case AnimationType.GLOW:
+      return {
+        ...baseConfig,
+        alpha: { from: 0.5, to: 1 },
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        duration: 1500,
+        ...config.props,
+      };
 
-      default:
-        return baseConfig;
+    default:
+      return baseConfig;
     }
   }
 
@@ -324,7 +324,7 @@ export class AnimationManager {
   public playStaggered(
     targets: Phaser.GameObjects.GameObject[],
     config: Omit<AnimationConfig, 'targets'>,
-    staggerDelay: number = 50
+    staggerDelay: number = 50,
   ): Phaser.Tweens.Tween[] {
     const tweens: Phaser.Tweens.Tween[] = [];
 
@@ -347,7 +347,7 @@ export class AnimationManager {
    * Play sequential animations
    */
   public playSequential(
-    animations: AnimationConfig[]
+    animations: AnimationConfig[],
   ): Phaser.Tweens.Tween[] {
     const tweens: Phaser.Tweens.Tween[] = [];
     let totalDelay = 0;
@@ -433,7 +433,7 @@ export class AnimationManager {
     direction: 'in' | 'out',
     color: number = 0x000000,
     duration: number = 500,
-    onComplete?: () => void
+    onComplete?: () => void,
   ): void {
     const graphics = this.scene.add.graphics();
     graphics.fillStyle(color, 1);
@@ -474,7 +474,7 @@ export class AnimationManager {
     newPage: Phaser.GameObjects.Container,
     direction: 'left' | 'right' | 'up' | 'down',
     duration: number = 400,
-    onComplete?: () => void
+    onComplete?: () => void,
   ): void {
     const camera = this.scene.cameras.main;
     const width = camera.width;
@@ -482,18 +482,18 @@ export class AnimationManager {
 
     // Set initial positions
     switch (direction) {
-      case 'left':
-        newPage.setX(width);
-        break;
-      case 'right':
-        newPage.setX(-width);
-        break;
-      case 'up':
-        newPage.setY(height);
-        break;
-      case 'down':
-        newPage.setY(-height);
-        break;
+    case 'left':
+      newPage.setX(width);
+      break;
+    case 'right':
+      newPage.setX(-width);
+      break;
+    case 'up':
+      newPage.setY(height);
+      break;
+    case 'down':
+      newPage.setY(-height);
+      break;
     }
 
     newPage.setAlpha(1);
@@ -528,7 +528,7 @@ export class AnimationManager {
     bar: Phaser.GameObjects.Rectangle,
     targetWidth: number,
     duration: number = 500,
-    bounce: boolean = true
+    bounce: boolean = true,
   ): Phaser.Tweens.Tween {
     const config: Phaser.Types.Tweens.TweenBuilderConfig = {
       targets: bar,
@@ -546,7 +546,7 @@ export class AnimationManager {
   public createCardFlipAnimation(
     card: Phaser.GameObjects.Container,
     duration: number = 400,
-    onComplete?: () => void
+    onComplete?: () => void,
   ): Phaser.Tweens.Tween {
     return this.scene.tweens.add({
       targets: card,
@@ -570,7 +570,7 @@ export class AnimationManager {
     modal: Phaser.GameObjects.Container,
     direction: 'in' | 'out',
     duration: number = 300,
-    onComplete?: () => void
+    onComplete?: () => void,
   ): Phaser.Tweens.Tween {
     const camera = this.scene.cameras.main;
     const targetY = direction === 'in' ? camera.height / 2 : camera.height + 300;
@@ -592,7 +592,7 @@ export class AnimationManager {
    */
   public createButtonPressAnimation(
     button: Phaser.GameObjects.Container,
-    duration: number = 100
+    duration: number = 100,
   ): Phaser.Tweens.Tween {
     return this.scene.tweens.add({
       targets: button,
@@ -609,7 +609,7 @@ export class AnimationManager {
   public createHoverAnimation(
     target: Phaser.GameObjects.GameObject,
     scale: number = 1.05,
-    duration: number = 200
+    duration: number = 200,
   ): Phaser.Tweens.Tween {
     return this.scene.tweens.add({
       targets: target,
@@ -625,7 +625,7 @@ export class AnimationManager {
   public createGlowAnimation(
     target: Phaser.GameObjects.GameObject,
     glowColor: number = 0xffffff,
-    duration: number = 1000
+    duration: number = 1000,
   ): Phaser.Tweens.Tween {
     // Note: This would require a glow sprite/graphics overlay
     // For now, just animate alpha

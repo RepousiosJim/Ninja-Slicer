@@ -174,7 +174,7 @@ export class LevelSelectScene extends Phaser.Scene {
     x: number,
     y: number,
     direction: 'left' | 'right',
-    onClick: () => void
+    onClick: () => void,
   ): Phaser.GameObjects.Container {
     // Button background image
     const bg = this.add.image(0, 0, direction === 'left' ? 'ui_arrow_left' : 'ui_arrow_right');

@@ -67,7 +67,7 @@ export class WeaponDetailsModal extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: WeaponDetailsModalConfig
+    config: WeaponDetailsModalConfig,
   ) {
     super(scene, x, y);
 
@@ -209,16 +209,16 @@ export class WeaponDetailsModal extends Phaser.GameObjects.Container {
    */
   private getStatValue(stat: string): number {
     switch (stat) {
-      case 'damage':
-        return this.weapon.tiers[this.tier - 1]?.effects[0]?.value || 50;
-      case 'speed':
-        return this.weapon.id.includes('lightning') ? 90 : this.weapon.id.includes('fire') ? 70 : 60;
-      case 'range':
-        return this.weapon.id.includes('holy') ? 80 : 60;
-      case 'effectiveness':
-        return this.weapon.effectiveAgainst ? 80 : 40;
-      default:
-        return 50;
+    case 'damage':
+      return this.weapon.tiers[this.tier - 1]?.effects[0]?.value || 50;
+    case 'speed':
+      return this.weapon.id.includes('lightning') ? 90 : this.weapon.id.includes('fire') ? 70 : 60;
+    case 'range':
+      return this.weapon.id.includes('holy') ? 80 : 60;
+    case 'effectiveness':
+      return this.weapon.effectiveAgainst ? 80 : 40;
+    default:
+      return 50;
     }
   }
 

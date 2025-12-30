@@ -6,6 +6,9 @@
  */
 
 import { WeaponId, UpgradeId } from '@config/types';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { SaveManager } from '@managers/SaveManager';
 import { WeaponManager } from '@managers/WeaponManager';
 import { UpgradeManager } from '@managers/UpgradeManager';
@@ -48,7 +51,7 @@ export class ShopManager {
   purchaseWeapon(weaponId: WeaponId): boolean {
     // Check if already owned
     if (this.weaponManager.isWeaponOwned(weaponId)) {
-      console.warn('[ShopManager] Weapon already owned:', weaponId);
+      debugWarn('[ShopManager] Weapon already owned:', weaponId);
       return false;
     }
 
@@ -57,7 +60,7 @@ export class ShopManager {
 
     // Check if can afford
     if (!this.canAfford(cost)) {
-      console.warn('[ShopManager] Cannot afford weapon:', weaponId, 'cost:', cost);
+      debugWarn('[ShopManager] Cannot afford weapon:', weaponId, 'cost:', cost);
       return false;
     }
 
@@ -78,7 +81,7 @@ export class ShopManager {
   upgradeWeapon(weaponId: WeaponId): boolean {
     // Check if owned
     if (!this.weaponManager.isWeaponOwned(weaponId)) {
-      console.warn('[ShopManager] Cannot upgrade unowned weapon:', weaponId);
+      debugWarn('[ShopManager] Cannot upgrade unowned weapon:', weaponId);
       return false;
     }
 
@@ -90,7 +93,7 @@ export class ShopManager {
 
     // Check if can afford
     if (!this.canAfford(cost)) {
-      console.warn('[ShopManager] Cannot afford weapon upgrade:', weaponId, 'tier:', currentTier, 'cost:', cost);
+      debugWarn('[ShopManager] Cannot afford weapon upgrade:', weaponId, 'tier:', currentTier, 'cost:', cost);
       return false;
     }
 
@@ -114,7 +117,7 @@ export class ShopManager {
 
     // Check if at max tier
     if (this.upgradeManager.isMaxTier(upgradeId)) {
-      console.warn('[ShopManager] Upgrade already at max tier:', upgradeId);
+      debugWarn('[ShopManager] Upgrade already at max tier:', upgradeId);
       return false;
     }
 
@@ -123,7 +126,7 @@ export class ShopManager {
 
     // Check if can afford
     if (!this.canAfford(cost)) {
-      console.warn('[ShopManager] Cannot afford upgrade:', upgradeId, 'tier:', currentTier, 'cost:', cost);
+      debugWarn('[ShopManager] Cannot afford upgrade:', upgradeId, 'tier:', currentTier, 'cost:', cost);
       return false;
     }
 

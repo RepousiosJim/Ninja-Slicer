@@ -7,7 +7,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION, TEXTURE_KEYS } from '../config/constants';
+import { FONT_SIZES, TEXTURE_KEYS } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { WeaponConfig, WeaponRarity } from '../config/types';
 import { TierBadge } from './TierBadge';
@@ -79,7 +79,7 @@ export class WeaponCard extends Phaser.GameObjects.Container {
     y: number,
     width: number,
     height: number,
-    config: WeaponCardConfig
+    config: WeaponCardConfig,
   ) {
     super(scene, x, y);
 

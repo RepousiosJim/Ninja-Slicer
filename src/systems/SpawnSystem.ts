@@ -15,8 +15,9 @@ import { SlowMotionPowerUp } from '../entities/SlowMotionPowerUp';
 import { FrenzyPowerUp } from '../entities/FrenzyPowerUp';
 import { ShieldPowerUp } from '../entities/ShieldPowerUp';
 import { SoulMagnetPowerUp } from '../entities/SoulMagnetPowerUp';
+import { MonsterFactory } from '../entities/MonsterFactory';
 import { MonsterType, PowerUpType, LevelConfig, SpawnPattern } from '@config/types';
-import { GRAVITY, POWERUP_BASE_SPAWN_INTERVAL, VILLAGER_SPEED_MULTIPLIER, SPAWN_PATTERNS } from '@config/constants';
+import { GRAVITY, POWERUP_BASE_SPAWN_INTERVAL, VILLAGER_SPEED_MULTIPLIER, SPAWN_PATTERNS, SCREEN_BOTTOM_Y } from '@config/constants';
 import { calculateLaunchVelocity, randomInt, randomFloat, weightedRandom } from '../utils/helpers';
 
 export class SpawnSystem {
@@ -121,7 +122,7 @@ export class SpawnSystem {
     // Apply spawn rate multiplier
     this.spawnInterval = Math.max(
       this.minSpawnInterval,
-      this.spawnInterval / modifiers.spawnRateMultiplier
+      this.spawnInterval / modifiers.spawnRateMultiplier,
     );
 
     // Store villager chance for spawnEntity
@@ -179,22 +180,22 @@ export class SpawnSystem {
       // Ghost realm: spawn from all sides
       const side = Math.floor(Math.random() * 4);
       switch (side) {
-        case 0: // Bottom
-          spawnX = randomInt(100, 1180);
-          spawnY = 750;
-          break;
-        case 1: // Top
-          spawnX = randomInt(100, 1180);
-          spawnY = -50;
-          break;
-        case 2: // Left
-          spawnX = -50;
-          spawnY = randomInt(100, 620);
-          break;
-        case 3: // Right
-          spawnX = 1330;
-          spawnY = randomInt(100, 620);
-          break;
+      case 0: // Bottom
+        spawnX = randomInt(100, 1180);
+        spawnY = 750;
+        break;
+      case 1: // Top
+        spawnX = randomInt(100, 1180);
+        spawnY = -50;
+        break;
+      case 2: // Left
+        spawnX = -50;
+        spawnY = randomInt(100, 620);
+        break;
+      case 3: // Right
+        spawnX = 1330;
+        spawnY = randomInt(100, 620);
+        break;
       }
     }
     
@@ -210,20 +211,8 @@ export class SpawnSystem {
     const velocityX = velocity.x * (speed / 200);
     const velocityY = velocity.y * (speed / 200);
     
-    // Create monster based on type
-    let monster: Monster;
-    switch (monsterType) {
-      case MonsterType.VAMPIRE:
-        monster = new Vampire(this.scene, spawnX, spawnY);
-        break;
-      case MonsterType.GHOST:
-        monster = new Ghost(this.scene, spawnX, spawnY);
-        break;
-      case MonsterType.ZOMBIE:
-      default:
-        monster = new Zombie(this.scene, spawnX, spawnY);
-        break;
-    }
+    // Create monster using factory
+    const monster = MonsterFactory.create(monsterType, this.scene, spawnX, spawnY);
     
     monster.spawn(spawnX, spawnY, velocityX, velocityY);
     
@@ -291,21 +280,21 @@ export class SpawnSystem {
     // Create power-up based on type
     let powerUp: PowerUp;
     switch (powerUpType) {
-      case PowerUpType.SLOW_MOTION:
-        powerUp = new SlowMotionPowerUp(this.scene, spawnX, spawnY);
-        break;
-      case PowerUpType.FRENZY:
-        powerUp = new FrenzyPowerUp(this.scene, spawnX, spawnY);
-        break;
-      case PowerUpType.SHIELD:
-        powerUp = new ShieldPowerUp(this.scene, spawnX, spawnY);
-        break;
-      case PowerUpType.SOUL_MAGNET:
-        powerUp = new SoulMagnetPowerUp(this.scene, spawnX, spawnY);
-        break;
-      default:
-        powerUp = new SlowMotionPowerUp(this.scene, spawnX, spawnY);
-        break;
+    case PowerUpType.SLOW_MOTION:
+      powerUp = new SlowMotionPowerUp(this.scene, spawnX, spawnY);
+      break;
+    case PowerUpType.FRENZY:
+      powerUp = new FrenzyPowerUp(this.scene, spawnX, spawnY);
+      break;
+    case PowerUpType.SHIELD:
+      powerUp = new ShieldPowerUp(this.scene, spawnX, spawnY);
+      break;
+    case PowerUpType.SOUL_MAGNET:
+      powerUp = new SoulMagnetPowerUp(this.scene, spawnX, spawnY);
+      break;
+    default:
+      powerUp = new SlowMotionPowerUp(this.scene, spawnX, spawnY);
+      break;
     }
     
     powerUp.spawn(spawnX, spawnY, velocityX, velocityY);
@@ -350,18 +339,7 @@ export class SpawnSystem {
    * @param delta - Time since last update
    */
   private updateMonsters(time: number, delta: number): void {
-    // Update each monster
-    for (let i = this.monsters.length - 1; i >= 0; i--) {
-      const monster = this.monsters[i];
-      
-      if (!monster || !monster.active) {
-        // Remove inactive monsters
-        this.monsters.splice(i, 1);
-        continue;
-      }
-      
-      monster.update(time, delta);
-    }
+    this.monsters = this.updateEntities(this.monsters, time, delta);
   }
 
   /**
@@ -370,18 +348,7 @@ export class SpawnSystem {
    * @param delta - Time since last update
    */
   private updateVillagers(time: number, delta: number): void {
-    // Update each villager
-    for (let i = this.villagers.length - 1; i >= 0; i--) {
-      const villager = this.villagers[i];
-      
-      if (!villager || !villager.active) {
-        // Remove inactive villagers
-        this.villagers.splice(i, 1);
-        continue;
-      }
-      
-      villager.update(time, delta);
-    }
+    this.villagers = this.updateEntities(this.villagers, time, delta);
   }
 
   /**
@@ -390,41 +357,78 @@ export class SpawnSystem {
    * @param delta - Time since last update
    */
   private updatePowerUps(time: number, delta: number): void {
-    // Update each power-up
-    for (let i = this.powerUps.length - 1; i >= 0; i--) {
-      const powerUp = this.powerUps[i];
-      
-      if (!powerUp || !powerUp.active) {
-        // Remove inactive power-ups
-        this.powerUps.splice(i, 1);
-        continue;
+    this.powerUps = this.updateEntities(this.powerUps, time, delta);
+  }
+
+  /**
+   * Generic entity update method
+   * Filters out inactive entities and updates active ones
+   */
+  private updateEntities<T extends { active: boolean; update: (t: number, d: number) => void }>(
+    entities: T[],
+    time: number,
+    delta: number,
+  ): T[] {
+    return entities.filter(entity => {
+      if (!entity || !entity.active) {
+        return false;
       }
-      
-      powerUp.update(time, delta);
-    }
+      entity.update(time, delta);
+      return true;
+    });
   }
 
   /**
    * Get all active monsters
+   * @param outputArray - Optional pre-allocated array to populate
    * @returns Array of active monsters
    */
-  getActiveMonsters(): Monster[] {
+  getActiveMonsters(outputArray?: Monster[]): Monster[] {
+    if (outputArray) {
+      outputArray.length = 0;
+      for (const monster of this.monsters) {
+        if (monster.active) {
+          outputArray.push(monster);
+        }
+      }
+      return outputArray;
+    }
     return this.monsters.filter(m => m.active);
   }
 
   /**
    * Get all active villagers
+   * @param outputArray - Optional pre-allocated array to populate
    * @returns Array of active villagers
    */
-  getActiveVillagers(): Villager[] {
+  getActiveVillagers(outputArray?: Villager[]): Villager[] {
+    if (outputArray) {
+      outputArray.length = 0;
+      for (const villager of this.villagers) {
+        if (villager.active) {
+          outputArray.push(villager);
+        }
+      }
+      return outputArray;
+    }
     return this.villagers.filter(v => v.active);
   }
 
   /**
    * Get all active power-ups
+   * @param outputArray - Optional pre-allocated array to populate
    * @returns Array of active power-ups
    */
-  getActivePowerUps(): PowerUp[] {
+  getActivePowerUps(outputArray?: PowerUp[]): PowerUp[] {
+    if (outputArray) {
+      outputArray.length = 0;
+      for (const powerUp of this.powerUps) {
+        if (powerUp.active) {
+          outputArray.push(powerUp);
+        }
+      }
+      return outputArray;
+    }
     return this.powerUps.filter(p => p.active);
   }
 

@@ -21,7 +21,7 @@ export class UITheme {
     y: number,
     width: number,
     height: number,
-    title?: string
+    title?: string,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(x, y);
 
@@ -52,7 +52,7 @@ export class UITheme {
     scene: Phaser.Scene,
     text: string,
     x: number = 0,
-    y: number = 0
+    y: number = 0,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(x, y);
     const fontSize = ResponsiveUtils.getFontSize('large');
@@ -88,7 +88,7 @@ export class UITheme {
     amount: number,
     affordable: boolean,
     x: number = 0,
-    y: number = 0
+    y: number = 0,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(x, y);
     const fontSize = ResponsiveUtils.getFontSize('medium');
@@ -128,7 +128,7 @@ export class UITheme {
     value: string | number,
     icon?: string,
     x: number = 0,
-    y: number = 0
+    y: number = 0,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(x, y);
     const fontSize = ResponsiveUtils.getFontSize('small');
@@ -174,7 +174,7 @@ export class UITheme {
     scene: Phaser.Scene,
     souls: number,
     x: number,
-    y: number
+    y: number,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(x, y);
     const fontSize = ResponsiveUtils.getFontSize('large');
@@ -210,7 +210,7 @@ export class UITheme {
   static createMaxTierBadge(
     scene: Phaser.Scene,
     x: number,
-    y: number
+    y: number,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(x, y);
     const fontSize = ResponsiveUtils.getFontSize('medium');
@@ -255,7 +255,7 @@ export class UITheme {
     width: number,
     height: number,
     unlockCost: number,
-    affordable: boolean
+    affordable: boolean,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(0, 0);
 
@@ -295,7 +295,7 @@ export class UITheme {
     text: string,
     x: number,
     y: number,
-    maxWidth: number = 300
+    maxWidth: number = 300,
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(x, y);
     const fontSize = ResponsiveUtils.getFontSize('small');
@@ -318,7 +318,7 @@ export class UITheme {
       textBounds.width + 20,
       textBounds.height + 20,
       0x1a1a2e,
-      0.95
+      0.95,
     );
     background.setStrokeStyle(2, DARK_GOTHIC_THEME.colors.accent, 0.8);
 

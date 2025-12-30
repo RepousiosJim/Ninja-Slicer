@@ -238,7 +238,7 @@ export class TestWeaponScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       this.cameras.main.width,
       this.cameras.main.height,
-      0x1a1a2e
+      0x1a1a2e,
     );
 
     // Add grid pattern
@@ -306,7 +306,7 @@ export class TestWeaponScene extends Phaser.Scene {
       this.weaponPreview = this.add.sprite(
         this.cameras.main.width / 2,
         this.cameras.main.height / 2 - 50,
-        this.testWeapon.id
+        this.testWeapon.id,
       );
       this.weaponPreview.setScale(1.5);
       this.weaponPreview.setAlpha(0.3);
@@ -396,7 +396,7 @@ export class TestWeaponScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onReset.bind(this),
-      }
+      },
     );
     this.add.existing(this.resetButton);
 
@@ -412,7 +412,7 @@ export class TestWeaponScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onExit.bind(this),
-      }
+      },
     );
     this.add.existing(this.exitButton);
   }
@@ -471,7 +471,7 @@ export class TestWeaponScene extends Phaser.Scene {
         pointer.x,
         pointer.y,
         enemy.x,
-        enemy.y
+        enemy.y,
       );
 
       if (distance < 80) {
@@ -658,7 +658,7 @@ export class TestWeaponScene extends Phaser.Scene {
   private showResults(): void {
     this.resultsContainer = this.add.container(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2
+      this.cameras.main.height / 2,
     );
 
     // Background

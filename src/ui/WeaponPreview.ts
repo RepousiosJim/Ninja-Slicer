@@ -7,7 +7,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, UI_ANIMATION_DURATION, TEXTURE_KEYS } from '../config/constants';
+import { TEXTURE_KEYS } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { WeaponConfig, WeaponRarity } from '../config/types';
 import { TierBadge } from './TierBadge';
@@ -65,7 +65,7 @@ export class WeaponPreview extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: WeaponPreviewConfig
+    config: WeaponPreviewConfig,
   ) {
     super(scene, x, y);
 
@@ -139,13 +139,13 @@ export class WeaponPreview extends Phaser.GameObjects.Container {
    */
   private getSizeDimensions(): { iconSize: number; iconScale: number; nameFontSize: number } {
     switch (this.size) {
-      case 'small':
-        return { iconSize: 100, iconScale: 0.4, nameFontSize: 18 };
-      case 'medium':
-        return { iconSize: 150, iconScale: 0.6, nameFontSize: 24 };
-      case 'large':
-      default:
-        return { iconSize: 200, iconScale: 0.8, nameFontSize: 32 };
+    case 'small':
+      return { iconSize: 100, iconScale: 0.4, nameFontSize: 18 };
+    case 'medium':
+      return { iconSize: 150, iconScale: 0.6, nameFontSize: 24 };
+    case 'large':
+    default:
+      return { iconSize: 200, iconScale: 0.8, nameFontSize: 32 };
     }
   }
 

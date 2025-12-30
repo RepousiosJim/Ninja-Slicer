@@ -38,20 +38,20 @@ export class DemonOverlord extends Boss {
 
     // Execute attack based on pattern
     switch (attackPattern) {
-      case 'fire_breath':
-        this.fireBreath();
-        break;
-      case 'summon_pillars':
-        this.summonPillars();
-        break;
-      case 'teleport_fire':
-        this.teleportFire();
-        break;
-      case 'inferno_rage':
-        this.infernoRage();
-        break;
-      default:
-        this.fireBreath();
+    case 'fire_breath':
+      this.fireBreath();
+      break;
+    case 'summon_pillars':
+      this.summonPillars();
+      break;
+    case 'teleport_fire':
+      this.teleportFire();
+      break;
+    case 'inferno_rage':
+      this.infernoRage();
+      break;
+    default:
+      this.fireBreath();
     }
   }
 
@@ -67,7 +67,7 @@ export class DemonOverlord extends Boss {
       const particle = this.scene.physics.add.sprite(
         this.x,
         this.y + 50,
-        'effect_fire_breath'
+        'effect_fire_breath',
       ) as any;
 
       particle.setScale(0.5 + Math.random() * 0.5);
@@ -75,7 +75,7 @@ export class DemonOverlord extends Boss {
       const particleBody = particle.body as Phaser.Physics.Arcade.Body;
       particleBody.setVelocity(
         Math.cos(angle) * (300 + Math.random() * 100),
-        Math.sin(angle) * (300 + Math.random() * 100)
+        Math.sin(angle) * (300 + Math.random() * 100),
       );
 
       this.fireParticles.push(particle);

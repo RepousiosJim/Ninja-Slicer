@@ -3,7 +3,8 @@
  * Helper functions for working with the theme system
  */
 
-import { ThemeConfig } from '../config/types';
+import Phaser from 'phaser';
+import { ThemeConfig, GradientPalette, ShadowConfig } from '../config/types';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 
 /**
@@ -68,7 +69,7 @@ export function getColorWithAlpha(hex: number, alpha: number): number {
 export function createGradient(
   startColor: number,
   endColor: number,
-  steps: number
+  steps: number,
 ): number[] {
   const gradient: number[] = [];
   const r1 = (startColor >> 16) & 0xff;
@@ -92,8 +93,8 @@ export function createGradient(
 /**
  * Get a theme color by name
  */
-export function getThemeColor(colorName: keyof ThemeConfig['colors']): number {
-  return DARK_GOTHIC_THEME.colors[colorName];
+export function getThemeColor(colorName: keyof ThemeConfig['colors']): number | GradientPalette | ShadowConfig {
+  return DARK_GOTHIC_THEME.colors[colorName] as number | GradientPalette | ShadowConfig;
 }
 
 /**
@@ -118,7 +119,7 @@ export function getThemeAnimationConfig(): {
   easing: string;
   hoverScale: number;
   pressScale: number;
-} {
+  } {
   return {
     duration: DARK_GOTHIC_THEME.animations.duration,
     easing: DARK_GOTHIC_THEME.animations.easing,
@@ -138,7 +139,7 @@ export function applyThemeToText(
     fontSize?: number;
     stroke?: boolean;
     shadow?: boolean;
-  } = {}
+  } = {},
 ): void {
   const theme = DARK_GOTHIC_THEME;
   const style: Phaser.Types.GameObjects.Text.TextStyle = {};
@@ -155,7 +156,10 @@ export function applyThemeToText(
 
   // Set color
   if (options.color) {
-    style.color = hexToCssColor(theme.colors[options.color]);
+    const color = theme.colors[options.color];
+    if (typeof color === 'number') {
+      style.color = hexToCssColor(color);
+    }
   }
 
   // Apply stroke if requested
@@ -189,18 +193,24 @@ export function applyThemeToRectangle(
     borderColor?: keyof ThemeConfig['colors'];
     borderWidth?: number;
     alpha?: number;
-  } = {}
+  } = {},
 ): void {
   const theme = DARK_GOTHIC_THEME;
 
   // Set fill color
   if (options.fillColor) {
-    rectangle.setFillStyle(theme.colors[options.fillColor], options.alpha ?? 1);
+    const fillColor = theme.colors[options.fillColor];
+    if (typeof fillColor === 'number') {
+      rectangle.setFillStyle(fillColor, options.alpha ?? 1);
+    }
   }
 
   // Set border
   if (options.borderColor && options.borderWidth) {
-    rectangle.setStrokeStyle(options.borderWidth, theme.colors[options.borderColor]);
+    const borderColor = theme.colors[options.borderColor];
+    if (typeof borderColor === 'number') {
+      rectangle.setStrokeStyle(options.borderWidth, borderColor);
+    }
   }
 }
 
@@ -218,7 +228,7 @@ export function createThemedText(
     fontSize?: number;
     stroke?: boolean;
     shadow?: boolean;
-  } = {}
+  } = {},
 ): Phaser.GameObjects.Text {
   const textObject = scene.add.text(x, y, text);
   applyThemeToText(textObject, options);
@@ -239,7 +249,7 @@ export function createThemedRectangle(
     borderColor?: keyof ThemeConfig['colors'];
     borderWidth?: number;
     alpha?: number;
-  } = {}
+  } = {},
 ): Phaser.GameObjects.Rectangle {
   const rectangle = scene.add.rectangle(x, y, width, height);
   applyThemeToRectangle(rectangle, options);
@@ -257,30 +267,30 @@ export function getButtonStyle(type: 'primary' | 'secondary' | 'danger' | 'disab
   const theme = DARK_GOTHIC_THEME;
 
   switch (type) {
-    case 'primary':
-      return {
-        backgroundColor: theme.colors.primary,
-        borderColor: theme.colors.accent,
-        textColor: theme.colors.text,
-      };
-    case 'secondary':
-      return {
-        backgroundColor: theme.colors.secondary,
-        borderColor: theme.colors.accent,
-        textColor: theme.colors.text,
-      };
-    case 'danger':
-      return {
-        backgroundColor: theme.colors.danger,
-        borderColor: theme.colors.primary,
-        textColor: theme.colors.text,
-      };
-    case 'disabled':
-      return {
-        backgroundColor: 0x333333,
-        borderColor: 0x333333,
-        textColor: theme.colors.disabled,
-      };
+  case 'primary':
+    return {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.accent,
+      textColor: theme.colors.text,
+    };
+  case 'secondary':
+    return {
+      backgroundColor: theme.colors.secondary,
+      borderColor: theme.colors.accent,
+      textColor: theme.colors.text,
+    };
+  case 'danger':
+    return {
+      backgroundColor: theme.colors.danger,
+      borderColor: theme.colors.primary,
+      textColor: theme.colors.text,
+    };
+  case 'disabled':
+    return {
+      backgroundColor: 0x333333,
+      borderColor: 0x333333,
+      textColor: theme.colors.disabled,
+    };
   }
 }
 
@@ -296,27 +306,27 @@ export function getCardStyle(state: 'normal' | 'locked' | 'selected'): {
   const theme = DARK_GOTHIC_THEME;
 
   switch (state) {
-    case 'normal':
-      return {
-        backgroundColor: 0x2a2a4a,
-        backgroundAlpha: 0.9,
-        borderColor: theme.colors.accent,
-        borderWidth: 3,
-      };
-    case 'locked':
-      return {
-        backgroundColor: theme.colors.background,
-        backgroundAlpha: 0.7,
-        borderColor: theme.colors.disabled,
-        borderWidth: 3,
-      };
-    case 'selected':
-      return {
-        backgroundColor: 0x2a2a4a,
-        backgroundAlpha: 0.9,
-        borderColor: theme.colors.success,
-        borderWidth: 3,
-      };
+  case 'normal':
+    return {
+      backgroundColor: 0x2a2a4a,
+      backgroundAlpha: 0.9,
+      borderColor: theme.colors.accent,
+      borderWidth: 3,
+    };
+  case 'locked':
+    return {
+      backgroundColor: theme.colors.background,
+      backgroundAlpha: 0.7,
+      borderColor: theme.colors.disabled,
+      borderWidth: 3,
+    };
+  case 'selected':
+    return {
+      backgroundColor: 0x2a2a4a,
+      backgroundAlpha: 0.9,
+      borderColor: theme.colors.success,
+      borderWidth: 3,
+    };
   }
 }
 

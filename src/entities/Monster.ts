@@ -26,6 +26,9 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
   protected slowTimer: number = 0;
   protected stunTimer: number = 0;
 
+  // Event listener reference for cleanup
+  private updateEventHandler: () => void = () => {};
+
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string, type: MonsterType) {
     super(scene, x, y, texture);
 
@@ -69,18 +72,18 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
     let borderColor = 0xffffff;
 
     switch (this.monsterType) {
-      case MonsterType.ZOMBIE:
-        backgroundColor = 0x00ff00; // Bright green
-        borderColor = 0x00aa00;
-        break;
-      case MonsterType.VAMPIRE:
-        backgroundColor = 0xff0000; // Bright red
-        borderColor = 0xaa0000;
-        break;
-      case MonsterType.GHOST:
-        backgroundColor = 0x00ffff; // Bright cyan
-        borderColor = 0x0088ff;
-        break;
+    case MonsterType.ZOMBIE:
+      backgroundColor = 0x00ff00; // Bright green
+      borderColor = 0x00aa00;
+      break;
+    case MonsterType.VAMPIRE:
+      backgroundColor = 0xff0000; // Bright red
+      borderColor = 0xaa0000;
+      break;
+    case MonsterType.GHOST:
+      backgroundColor = 0x00ffff; // Bright cyan
+      borderColor = 0x0088ff;
+      break;
     }
 
     // Create background circle
@@ -101,14 +104,15 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
     bgSprite.setDepth(49); // Just behind monster
 
     // Make background follow monster
-    this.scene.events.on('update', () => {
+    this.updateEventHandler = () => {
       if (this.active && bgSprite.active) {
         bgSprite.setPosition(this.x, this.y);
         bgSprite.setRotation(this.rotation);
       } else if (bgSprite.active) {
         bgSprite.destroy();
       }
-    });
+    };
+    this.scene.events.on('update', this.updateEventHandler);
 
     // Scale up monster for better visibility
     this.setScale(2.0); // Much larger!
@@ -128,9 +132,9 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
     if (!this.scene.anims.exists(animKey)) {
       let textureSheet = '';
       switch (this.monsterType) {
-        case MonsterType.ZOMBIE: textureSheet = 'monster_zombie_sheet'; break;
-        case MonsterType.VAMPIRE: textureSheet = 'monster_vampire_sheet'; break;
-        case MonsterType.GHOST: textureSheet = 'monster_ghost_sheet'; break;
+      case MonsterType.ZOMBIE: textureSheet = 'monster_zombie_sheet'; break;
+      case MonsterType.VAMPIRE: textureSheet = 'monster_vampire_sheet'; break;
+      case MonsterType.GHOST: textureSheet = 'monster_ghost_sheet'; break;
       }
 
       if (textureSheet && this.scene.textures.exists(textureSheet)) {
@@ -138,7 +142,7 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
           key: animKey,
           frames: this.scene.anims.generateFrameNumbers(textureSheet, { start: 0, end: 3 }),
           frameRate: 8,
-          repeat: -1
+          repeat: -1,
         });
       }
     }
@@ -302,7 +306,78 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
    * Override in subclasses for specific behavior
    */
   protected onSliced(): void {
-    this.destroy();
+    // ENHANCED: Death animation with pop effect
+    this.isSliced = true;
+
+    // Disable physics so monster doesn't fall during animation
+    this.setVelocity(0, 0);
+    if (this.body) {
+      this.body.enable = false;
+    }
+
+    // Screen shake on kill (light shake)
+    this.scene.cameras.main.shake(100, 0.003);
+
+    // Death animation: scale up + fade out
+    this.scene.tweens.add({
+      targets: this,
+      scale: { from: this.scale, to: this.scale * 1.8 },
+      alpha: { from: 1, to: 0 },
+      angle: this.angle + Phaser.Math.Between(-30, 30), // Random spin
+      duration: 250,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.destroy();
+      },
+    });
+
+    // Create particle burst effect
+    this.createDeathParticles();
+  }
+
+  /**
+   * Create particle burst on death
+   */
+  private createDeathParticles(): void {
+    // Get monster color based on type
+    const particleColors: Record<string, number> = {
+      zombie: 0x44aa44,
+      vampire: 0x6a0dad,
+      ghost: 0x00a8cc,
+    };
+
+    const color = particleColors[this.monsterType] || 0xffffff;
+
+    // Create burst of particles
+    for (let i = 0; i < 8; i++) {
+      const angle = (360 / 8) * i;
+      const speed = Phaser.Math.Between(100, 200);
+      const particle = this.scene.add.circle(
+        this.x,
+        this.y,
+        Phaser.Math.Between(3, 8),
+        color,
+        1.0,
+      );
+      particle.setDepth(this.depth + 1);
+
+      // Launch particle outward
+      const velocityX = Math.cos(angle * Math.PI / 180) * speed;
+      const velocityY = Math.sin(angle * Math.PI / 180) * speed;
+
+      this.scene.tweens.add({
+        targets: particle,
+        x: particle.x + velocityX * 0.5,
+        y: particle.y + velocityY * 0.5,
+        alpha: 0,
+        scale: 0,
+        duration: 400,
+        ease: 'Cubic.easeOut',
+        onComplete: () => {
+          particle.destroy();
+        },
+      });
+    }
   }
 
   /**
@@ -352,6 +427,8 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
    * Override destroy to clean up properly
    */
   destroy(fromScene?: boolean): void {
+    this.scene.events.off('update', this.updateEventHandler);
     super.destroy(fromScene);
   }
 }
+

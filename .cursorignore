@@ -1,0 +1,20 @@
+# =============================================================================
+# NINJA SLICER - CURSOR IGNORE FILE
+# =============================================================================
+# This file specifies which files and directories should be excluded
+# from Cursor IDE operations to improve performance and reduce noise.
+# =============================================================================
+
+node_modules/
+dist/
+public/assets/
+**/*.map
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.webp
+**/*.mp3
+**/*.ogg
+**/*.wav
+**/*.zip
+**/*.7z

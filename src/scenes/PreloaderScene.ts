@@ -7,7 +7,7 @@
  */
 
 import Phaser from 'phaser';
-import { SCENE_KEYS, COLORS, GAME_WIDTH, GAME_HEIGHT } from '@config/constants';
+import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT } from '@config/constants';
 
 export class PreloaderScene extends Phaser.Scene {
   private progressBar!: Phaser.GameObjects.Graphics;
@@ -85,7 +85,7 @@ export class PreloaderScene extends Phaser.Scene {
         centerY - 15, 
         300 * value, 
         30, 
-        5
+        5,
       );
       this.percentText.setText(`${Math.floor(value * 100)}%`);
     });

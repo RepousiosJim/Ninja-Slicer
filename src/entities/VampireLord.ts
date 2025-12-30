@@ -38,17 +38,17 @@ export class VampireLord extends Boss {
 
     // Execute attack based on pattern
     switch (attackPattern) {
-      case 'bat_wave':
-        this.batWave();
-        break;
-      case 'teleport_strike':
-        this.teleportStrike();
-        break;
-      case 'blood_rain':
-        this.bloodRain();
-        break;
-      default:
-        this.batWave();
+    case 'bat_wave':
+      this.batWave();
+      break;
+    case 'teleport_strike':
+      this.teleportStrike();
+      break;
+    case 'blood_rain':
+      this.bloodRain();
+      break;
+    default:
+      this.batWave();
     }
   }
 
@@ -65,7 +65,7 @@ export class VampireLord extends Boss {
         this.y + Math.sin(angle) * 50,
         20,
         20,
-        0x8b0000
+        0x8b0000,
       );
 
       this.scene.physics.add.existing(bat);
@@ -141,7 +141,7 @@ export class VampireLord extends Boss {
           -50,
           15,
           15,
-          0x8b0000
+          0x8b0000,
         );
 
         this.scene.physics.add.existing(drop);

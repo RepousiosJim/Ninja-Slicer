@@ -8,6 +8,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, DEFAULT_STARTING_LIVES, ENDLESS_SCALING } from '@config/constants';
 import { SlashTrail } from '../entities/SlashTrail';
 import { SpawnSystem } from '../systems/SpawnSystem';
@@ -122,7 +125,7 @@ export class EndlessGameplayScene extends Phaser.Scene {
       accuracy: 0,
     };
 
-    console.log('EndlessGameplayScene created - Phase 6 Online ready!');
+    debugLog('EndlessGameplayScene created - Phase 6 Online ready!');
   }
 
   /**
@@ -132,9 +135,9 @@ export class EndlessGameplayScene extends Phaser.Scene {
     try {
       await this.weaponManager.loadWeapons();
       await this.upgradeManager.loadUpgrades();
-      console.log('[EndlessGameplayScene] Progression data loaded');
+      debugLog('[EndlessGameplayScene] Progression data loaded');
     } catch (error) {
-      console.error('[EndlessGameplayScene] Failed to load progression data:', error);
+      debugError('[EndlessGameplayScene] Failed to load progression data:', error);
     }
   }
 
@@ -278,15 +281,15 @@ export class EndlessGameplayScene extends Phaser.Scene {
     // Calculate multipliers
     const spawnRateMultiplier = Math.min(
       1 + (this.difficultyLevel * 0.1),
-      ENDLESS_SCALING.maxSpawnRateMultiplier
+      ENDLESS_SCALING.maxSpawnRateMultiplier,
     );
     const speedMultiplier = Math.min(
       1 + (this.difficultyLevel * 0.05),
-      ENDLESS_SCALING.maxSpeedMultiplier
+      ENDLESS_SCALING.maxSpeedMultiplier,
     );
     const villagerChance = Math.min(
       0.05 + (this.difficultyLevel * 0.01),
-      ENDLESS_SCALING.maxVillagerChance
+      ENDLESS_SCALING.maxVillagerChance,
     );
 
     // Update spawn system with difficulty values
@@ -422,7 +425,7 @@ export class EndlessGameplayScene extends Phaser.Scene {
    */
   private async submitScore(): Promise<void> {
     if (!this.supabaseService.isAvailable()) {
-      console.warn('[EndlessGameplayScene] Supabase not available, skipping score submission');
+      debugWarn('[EndlessGameplayScene] Supabase not available, skipping score submission');
       return;
     }
 
@@ -446,9 +449,9 @@ export class EndlessGameplayScene extends Phaser.Scene {
     });
 
     if (result) {
-      console.log('[EndlessGameplayScene] Score submitted successfully:', result);
+      debugLog('[EndlessGameplayScene] Score submitted successfully:', result);
     } else {
-      console.warn('[EndlessGameplayScene] Failed to submit score');
+      debugWarn('[EndlessGameplayScene] Failed to submit score');
     }
   }
 
@@ -456,7 +459,7 @@ export class EndlessGameplayScene extends Phaser.Scene {
    * Restart game
    */
   private restart(): void {
-    console.log('Restarting endless game...');
+    debugLog('Restarting endless game...');
 
     // Reset all systems
     this.slashTrail.clear();

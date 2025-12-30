@@ -1,17 +1,17 @@
 /**
  * Monster Slayer - Main Entry Point
- * 
+ *
  * This file initializes the Phaser game instance with all configuration.
  */
 
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, GAME_TITLE } from '@config/constants';
+import { debugLog } from '@utils/DebugLogger';
 
 // Import scenes
 import { BootScene } from '@scenes/BootScene';
 import { PreloaderScene } from '@scenes/PreloaderScene';
 import { MainMenuScene } from '@scenes/MainMenuScene';
-import { WorldSelectScene } from '@scenes/WorldSelectScene';
 import { LevelSelectScene } from '@scenes/LevelSelectScene';
 import { LevelCompleteScene } from '@scenes/LevelCompleteScene';
 import { GameplayScene } from '@scenes/GameplayScene';
@@ -23,7 +23,6 @@ import { ShopScene } from '@scenes/ShopScene';
 import { LeaderboardScene } from '@scenes/LeaderboardScene';
 import { SettingsScene } from '@scenes/SettingsScene';
 import { PauseScene } from '@scenes/PauseScene';
-import { UpdatesScene } from '@scenes/UpdatesScene';
 
 /**
  * Phaser Game Configuration
@@ -102,7 +101,6 @@ const config: Phaser.Types.Core.GameConfig = {
     BootScene,
     PreloaderScene,
     MainMenuScene,
-    WorldSelectScene,
     LevelSelectScene,
     GameplayScene,
     EndlessGameplayScene,
@@ -114,18 +112,17 @@ const config: Phaser.Types.Core.GameConfig = {
     LeaderboardScene,
     SettingsScene,
     PauseScene,
-    UpdatesScene,
   ],
   
   // Callbacks
   callbacks: {
     preBoot: (_game) => {
       // Called before the game boots
-      console.log(`${GAME_TITLE} - Initializing...`);
+      debugLog(`${GAME_TITLE} - Initializing...`);
     },
     postBoot: (_game) => {
       // Called after the game boots
-      console.log(`${GAME_TITLE} - Ready!`);
+      debugLog(`${GAME_TITLE} - Ready!`);
     },
   },
 };

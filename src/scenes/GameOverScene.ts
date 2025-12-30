@@ -6,6 +6,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, COLORS, FONT_SIZES } from '@config/constants';
 import { SupabaseService } from '../services/SupabaseService';
 import { SaveManager } from '../managers/SaveManager';
@@ -57,7 +60,7 @@ export class GameOverScene extends Phaser.Scene {
     // Set up input
     this.setupInput();
     
-    console.log('GameOverScene created with stats:', this.finalStats);
+    debugLog('GameOverScene created with stats:', this.finalStats);
   }
 
   /**
@@ -86,7 +89,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 10,
-      }
+      },
     );
     this.titleText.setOrigin(0.5, 0);
     this.titleText.setDepth(1001);
@@ -103,7 +106,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 6,
-      }
+      },
     );
     this.scoreText.setOrigin(0.5, 0);
     this.scoreText.setDepth(1001);
@@ -120,7 +123,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
     this.soulsText.setOrigin(0.5, 0);
     this.soulsText.setDepth(1001);
@@ -137,7 +140,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
     this.monstersSlicedText.setOrigin(0.5, 0);
     this.monstersSlicedText.setDepth(1001);
@@ -145,7 +148,7 @@ export class GameOverScene extends Phaser.Scene {
     // Max combo display
     this.maxComboText = this.add.text(
       GAME_WIDTH / 2,
-  360,
+      360,
       `Max Combo: ${this.finalStats.maxCombo}x`,
       {
         fontFamily: 'Arial',
@@ -154,7 +157,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
     this.maxComboText.setOrigin(0.5, 0);
     this.maxComboText.setDepth(1001);
@@ -171,7 +174,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
     this.timeElapsedText.setOrigin(0.5, 0);
     this.timeElapsedText.setDepth(1001);
@@ -203,7 +206,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
     this.rankText.setOrigin(0.5, 0);
     this.rankText.setDepth(1001);
@@ -219,7 +222,7 @@ export class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
     this.personalBestText.setOrigin(0.5, 0);
     this.personalBestText.setDepth(1001);
@@ -369,7 +372,7 @@ export class GameOverScene extends Phaser.Scene {
       GAME_HEIGHT / 2,
       400,
       200,
-      'Enter Your Name'
+      'Enter Your Name',
     );
 
     // Create input text
@@ -518,7 +521,7 @@ export class GameOverScene extends Phaser.Scene {
    * Handle retry button click
    */
   private onRetry(): void {
-    console.log('Retrying game...');
+    debugLog('Retrying game...');
     if (this.isEndlessMode) {
       this.scene.start(SCENE_KEYS.endlessGameplay);
     } else {
@@ -530,7 +533,7 @@ export class GameOverScene extends Phaser.Scene {
    * Handle menu button click
    */
   private onMenu(): void {
-    console.log('Going to menu...');
+    debugLog('Going to menu...');
     this.scene.start(SCENE_KEYS.mainMenu);
   }
 

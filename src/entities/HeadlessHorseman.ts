@@ -39,17 +39,17 @@ export class HeadlessHorseman extends Boss {
 
     // Execute attack based on pattern
     switch (attackPattern) {
-      case 'charge':
-        this.charge();
-        break;
-      case 'head_throw':
-        this.headThrow();
-        break;
-      case 'rapid_charge':
-        this.rapidCharge();
-        break;
-      default:
-        this.charge();
+    case 'charge':
+      this.charge();
+      break;
+    case 'head_throw':
+      this.headThrow();
+      break;
+    case 'rapid_charge':
+      this.rapidCharge();
+      break;
+    default:
+      this.charge();
     }
   }
 

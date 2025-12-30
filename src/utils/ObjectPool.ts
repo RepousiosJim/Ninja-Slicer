@@ -1,16 +1,47 @@
+import Phaser from 'phaser';
+import { debugWarn } from './DebugLogger';
+
+/**
+ * Interface for game objects with visibility control
+ */
+interface VisibleGameObject {
+  setVisible(visible: boolean): void;
+}
+
+/**
+ * Interface for game objects with position control
+ */
+interface PositionableObject {
+  setPosition(x: number, y: number): void;
+}
+
+/**
+ * Type guard for visible game objects
+ */
+function isVisibleGameObject(obj: unknown): obj is VisibleGameObject {
+  return typeof obj === 'object' && obj !== null && 'setVisible' in obj;
+}
+
+/**
+ * Type guard for positionable objects
+ */
+function isPositionableObject(obj: unknown): obj is PositionableObject {
+  return typeof obj === 'object' && obj !== null && 'setPosition' in obj;
+}
+
 /**
  * ObjectPool
- * 
+ *
  * Generic object pooling utility to avoid garbage collection pauses.
  * Reuses objects instead of creating/destroying them repeatedly.
- * 
+ *
  * Usage:
  *   const pool = new ObjectPool(
  *     () => new Bullet(scene, 0, 0),  // Factory function
  *     (bullet) => bullet.reset(),      // Reset function
  *     20                                // Initial pool size
  *   );
- *   
+ *
  *   const bullet = pool.get();
  *   // ... use bullet ...
  *   pool.release(bullet);
@@ -34,7 +65,7 @@ export class ObjectPool<T> {
     factory: () => T,
     reset: (obj: T) => void,
     initialSize: number = 10,
-    maxSize: number = 0
+    maxSize: number = 0,
   ) {
     this.factory = factory;
     this.reset = reset;
@@ -59,7 +90,7 @@ export class ObjectPool<T> {
       obj = this.factory();
     } else {
       // Pool is at max capacity
-      console.warn('[ObjectPool] Pool exhausted, max size reached');
+      debugWarn('[ObjectPool] Pool exhausted, max size reached');
       return null;
     }
 
@@ -72,7 +103,7 @@ export class ObjectPool<T> {
    */
   release(obj: T): void {
     if (!this.inUse.has(obj)) {
-      console.warn('[ObjectPool] Attempting to release object not from this pool');
+      debugWarn('[ObjectPool] Attempting to release object not from this pool');
       return;
     }
 
@@ -169,13 +200,13 @@ export class PhaserPool<T extends Phaser.GameObjects.GameObject> {
   constructor(
     factory: () => T,
     initialSize: number = 10,
-    maxSize: number = 0
+    maxSize: number = 0,
   ) {
     this.pool = new ObjectPool(
       factory,
       (obj) => this.resetObject(obj),
       initialSize,
-      maxSize
+      maxSize,
     );
   }
 
@@ -202,12 +233,12 @@ export class PhaserPool<T extends Phaser.GameObjects.GameObject> {
 
     obj.setActive(true);
     
-    if ('setVisible' in obj && typeof (obj as any).setVisible === 'function') {
-      (obj as any).setVisible(true);
+    if (isVisibleGameObject(obj)) {
+      obj.setVisible(true);
     }
     
-    if ('setPosition' in obj && typeof (obj as any).setPosition === 'function') {
-      (obj as any).setPosition(x, y);
+    if (isPositionableObject(obj)) {
+      obj.setPosition(x, y);
     }
 
     return obj;

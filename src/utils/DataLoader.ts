@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /**
  * DataLoader
  *
@@ -6,6 +7,9 @@
  */
 
 import { WeaponConfig, UpgradeConfig, LevelConfig } from '@config/types';
+import { debugError } from '@utils/DebugLogger';
+
+
 
 export class DataLoader {
   private static instance: DataLoader;
@@ -45,7 +49,7 @@ export class DataLoader {
       this.weaponsCache = data.weapons || [];
       return this.weaponsCache;
     } catch (error) {
-      console.error('[DataLoader] Failed to load weapons:', error);
+      debugError('[DataLoader] Failed to load weapons:', error);
       this.weaponsCache = [];
       return [];
     }
@@ -69,7 +73,7 @@ export class DataLoader {
       this.upgradesCache = data.upgrades || [];
       return this.upgradesCache;
     } catch (error) {
-      console.error('[DataLoader] Failed to load upgrades:', error);
+      debugError('[DataLoader] Failed to load upgrades:', error);
       this.upgradesCache = [];
       return [];
     }
@@ -93,7 +97,7 @@ export class DataLoader {
       this.levelsCache = data.levels || [];
       return this.levelsCache;
     } catch (error) {
-      console.error('[DataLoader] Failed to load levels:', error);
+      debugError('[DataLoader] Failed to load levels:', error);
       this.levelsCache = [];
       return [];
     }

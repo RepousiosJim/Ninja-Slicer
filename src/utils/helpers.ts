@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Helper Utilities
  * 
@@ -93,7 +94,7 @@ export function distance(
   x1: number, 
   y1: number, 
   x2: number, 
-  y2: number
+  y2: number,
 ): number {
   return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 }
@@ -106,7 +107,7 @@ export function lineIntersectsCircle(
   lineStart: { x: number; y: number },
   lineEnd: { x: number; y: number },
   circleCenter: { x: number; y: number },
-  circleRadius: number
+  circleRadius: number,
 ): boolean {
   const d = {
     x: lineEnd.x - lineStart.x,
@@ -143,10 +144,16 @@ export function calculateLaunchVelocity(
   startY: number,
   targetX: number,
   peakY: number,
-  gravity: number
+  gravity: number,
 ): { x: number; y: number } {
   // Calculate vertical velocity to reach peak height
   const heightDiff = startY - peakY;
+  
+  // Guard against division by zero
+  if (heightDiff <= 0) {
+    return { x: 0, y: -Math.sqrt(gravity * 100) }; // Minimum velocity
+  }
+  
   const velocityY = -Math.sqrt(2 * gravity * heightDiff);
 
   // Time to reach peak
@@ -207,7 +214,7 @@ export function wait(ms: number): Promise<void> {
  */
 export function phaserDelay(
   scene: Phaser.Scene, 
-  ms: number
+  ms: number,
 ): Promise<void> {
   return new Promise((resolve) => {
     scene.time.delayedCall(ms, resolve);
@@ -224,7 +231,7 @@ export function phaserDelay(
 export async function loadImageIfNeeded(
   scene: Phaser.Scene,
   key: string,
-  path: string
+  path: string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (scene.textures.exists(key)) {
@@ -252,7 +259,7 @@ export async function loadImageIfNeeded(
 export async function loadAudioIfNeeded(
   scene: Phaser.Scene,
   key: string,
-  path: string
+  path: string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (scene.cache.audio.exists(key)) {
@@ -283,7 +290,7 @@ export async function loadAudioIfNeeded(
  */
 export function isMobile(): boolean {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
+    navigator.userAgent,
   );
 }
 
@@ -333,7 +340,7 @@ export function lerpColor(color1: number, color2: number, t: number): number {
   return rgbToHex(
     Math.round(lerp(rgb1.r, rgb2.r, t)),
     Math.round(lerp(rgb1.g, rgb2.g, t)),
-    Math.round(lerp(rgb1.b, rgb2.b, t))
+    Math.round(lerp(rgb1.b, rgb2.b, t)),
   );
 }
 

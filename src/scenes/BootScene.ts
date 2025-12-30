@@ -10,6 +10,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { SCENE_KEYS, COLORS } from '@config/constants';
 import { LevelManager } from '@managers/LevelManager';
 import { WeaponManager } from '@managers/WeaponManager';
@@ -38,7 +41,7 @@ export class BootScene extends Phaser.Scene {
    * Initialize managers and start preloader
    */
   create(): void {
-    console.log('[BootScene] Initializing...');
+    debugLog('[BootScene] Initializing...');
 
     // Generate button textures
     this.generateButtonTextures();
@@ -64,12 +67,12 @@ export class BootScene extends Phaser.Scene {
     // Weapon Manager - load weapon data
     const weaponManager = WeaponManager.getInstance();
     weaponManager.loadWeapons().then(() => {
-      console.log('[BootScene] Weapons loaded successfully');
+      debugLog('[BootScene] Weapons loaded successfully');
     }).catch((err: unknown) => {
-      console.error('[BootScene] Failed to load weapons:', err);
+      debugError('[BootScene] Failed to load weapons:', err);
     });
     
-    console.log('[BootScene] Managers initialized');
+    debugLog('[BootScene] Managers initialized');
   }
 
   /**
@@ -108,7 +111,7 @@ export class BootScene extends Phaser.Scene {
    * Generate button textures procedurally
    */
   private generateButtonTextures(): void {
-    console.log('[BootScene] Generating button textures...');
+    debugLog('[BootScene] Generating button textures...');
     const graphics = this.add.graphics();
 
     // Define button dimensions (will be scaled by Button component)
@@ -123,7 +126,7 @@ export class BootScene extends Phaser.Scene {
     this.createButtonTexture(graphics, 'ui_button_disabled', width, height, radius, 0x4a4a4a, 0x888888);
 
     graphics.destroy();
-    console.log('[BootScene] Button textures generated successfully');
+    debugLog('[BootScene] Button textures generated successfully');
   }
 
   /**
@@ -136,7 +139,7 @@ export class BootScene extends Phaser.Scene {
     height: number,
     radius: number,
     fillColor: number,
-    borderColor: number
+    borderColor: number,
   ): void {
     graphics.clear();
 

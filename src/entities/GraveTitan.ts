@@ -37,17 +37,17 @@ export class GraveTitan extends Boss {
 
     // Execute attack based on pattern
     switch (attackPattern) {
-      case 'slow_swipe':
-        this.slowSwipe();
-        break;
-      case 'double_swipe':
-        this.doubleSwipe();
-        break;
-      case 'ground_slam':
-        this.groundSlam();
-        break;
-      default:
-        this.slowSwipe();
+    case 'slow_swipe':
+      this.slowSwipe();
+      break;
+    case 'double_swipe':
+      this.doubleSwipe();
+      break;
+    case 'ground_slam':
+      this.groundSlam();
+      break;
+    default:
+      this.slowSwipe();
     }
   }
 
@@ -139,7 +139,7 @@ export class GraveTitan extends Boss {
         this.y + Math.sin(angle) * 100,
         30,
         30,
-        0x8b4513
+        0x8b4513,
       );
 
       this.scene.physics.add.existing(rock);
@@ -194,7 +194,7 @@ export class GraveTitan extends Boss {
     y: number,
     startRadius: number,
     endRadius: number,
-    duration: number
+    duration: number,
   ): void {
     const zone = this.scene.add.graphics();
     zone.fillStyle(0xff0000, 0.3);

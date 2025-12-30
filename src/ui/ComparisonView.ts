@@ -64,7 +64,7 @@ export class ComparisonView extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: ComparisonViewConfig
+    config: ComparisonViewConfig,
   ) {
     super(scene, x, y);
 
@@ -254,16 +254,16 @@ export class ComparisonView extends Phaser.GameObjects.Container {
   private getStatValue(weapon: WeaponConfig, stat: string): number {
     // Simple stat calculation based on weapon properties
     switch (stat) {
-      case 'Damage':
-        return weapon.tiers[weapon.tiers.length - 1]?.effects[0]?.value || 50;
-      case 'Speed':
-        return weapon.id.includes('lightning') ? 90 : weapon.id.includes('fire') ? 70 : 60;
-      case 'Range':
-        return weapon.id.includes('holy') ? 80 : 60;
-      case 'Effectiveness':
-        return weapon.effectiveAgainst ? 80 : 40;
-      default:
-        return 50;
+    case 'Damage':
+      return weapon.tiers[weapon.tiers.length - 1]?.effects[0]?.value || 50;
+    case 'Speed':
+      return weapon.id.includes('lightning') ? 90 : weapon.id.includes('fire') ? 70 : 60;
+    case 'Range':
+      return weapon.id.includes('holy') ? 80 : 60;
+    case 'Effectiveness':
+      return weapon.effectiveAgainst ? 80 : 40;
+    default:
+      return 50;
     }
   }
 

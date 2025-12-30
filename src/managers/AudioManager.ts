@@ -12,6 +12,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { GameSettings } from '@config/types';
 
 export class AudioManager {
@@ -55,7 +58,7 @@ export class AudioManager {
     // Update current music volume if playing
     if (this.currentMusic) {
       (this.currentMusic as Phaser.Sound.WebAudioSound).setVolume(
-        this.musicEnabled ? this.musicVolume : 0
+        this.musicEnabled ? this.musicVolume : 0,
       );
     }
   }
@@ -67,7 +70,7 @@ export class AudioManager {
   private setupUnlockListener(): void {
     if (this.scene.sound && this.scene.sound.locked) {
       this.scene.sound.once(Phaser.Sound.Events.UNLOCKED, () => {
-        console.log('[AudioManager] Audio unlocked');
+        debugLog('[AudioManager] Audio unlocked');
         
         // Play pending music if any
         if (this.pendingMusic) {
@@ -240,7 +243,7 @@ export class AudioManager {
    */
   playSFXWithVariation(
     key: string, 
-    pitchRange: number = 0.1
+    pitchRange: number = 0.1,
   ): Phaser.Sound.BaseSound | null {
     const detune = Phaser.Math.Between(-pitchRange * 1200, pitchRange * 1200);
     return this.playSFX(key, { detune });
@@ -289,7 +292,7 @@ export class AudioManager {
     
     if (this.currentMusic) {
       (this.currentMusic as Phaser.Sound.WebAudioSound).setVolume(
-        this.musicEnabled ? this.musicVolume : 0
+        this.musicEnabled ? this.musicVolume : 0,
       );
     }
     

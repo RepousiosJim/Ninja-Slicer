@@ -6,6 +6,9 @@
  */
 
 import { LevelConfig, WorldConfig, BossConfig } from '@config/types';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { SaveManager } from './SaveManager';
 import { DataLoader } from '../utils/DataLoader';
 import { LEVEL_COMPLETE_SOULS, BOSS_DEFEAT_SOULS, STAR_BONUS_MULTIPLIER } from '@config/constants';
@@ -67,9 +70,9 @@ export class LevelManager {
         }
       }
 
-      console.log('[LevelManager] Loaded', this.levels.size, 'levels,', this.worlds.size, 'worlds,', this.bosses.size, 'bosses');
+      debugLog('[LevelManager] Loaded', this.levels.size, 'levels,', this.worlds.size, 'worlds,', this.bosses.size, 'bosses');
     } catch (error) {
-      console.error('[LevelManager] Failed to load levels:', error);
+      debugError('[LevelManager] Failed to load levels:', error);
     }
   }
 

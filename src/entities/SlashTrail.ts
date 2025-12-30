@@ -120,22 +120,45 @@ export class SlashTrail {
     this.drawCursor();
 
     if (this.points.length < 2) return;
-    
+
     const firstPoint = this.points[0];
     if (!firstPoint) return;
-    
-    // Draw glow (wider, more visible)
-    this.glowGraphics.lineStyle(this.trailGlowWidth, this.trailGlow, 0.6); // More opaque
+
+    // ENHANCED: Multi-layered glow effect for dramatic impact
+    // Layer 1: Outer glow (widest, most transparent)
+    this.glowGraphics.lineStyle(this.trailGlowWidth * 2, this.trailGlow, 0.2);
     this.glowGraphics.beginPath();
     this.glowGraphics.moveTo(firstPoint.x, firstPoint.y);
-
     for (let i = 1; i < this.points.length; i++) {
       const point = this.points[i];
       if (point) {
         this.glowGraphics.lineTo(point.x, point.y);
       }
     }
+    this.glowGraphics.strokePath();
 
+    // Layer 2: Middle glow
+    this.glowGraphics.lineStyle(this.trailGlowWidth * 1.5, this.trailGlow, 0.4);
+    this.glowGraphics.beginPath();
+    this.glowGraphics.moveTo(firstPoint.x, firstPoint.y);
+    for (let i = 1; i < this.points.length; i++) {
+      const point = this.points[i];
+      if (point) {
+        this.glowGraphics.lineTo(point.x, point.y);
+      }
+    }
+    this.glowGraphics.strokePath();
+
+    // Layer 3: Inner glow (original - brightest)
+    this.glowGraphics.lineStyle(this.trailGlowWidth, this.trailGlow, 0.6);
+    this.glowGraphics.beginPath();
+    this.glowGraphics.moveTo(firstPoint.x, firstPoint.y);
+    for (let i = 1; i < this.points.length; i++) {
+      const point = this.points[i];
+      if (point) {
+        this.glowGraphics.lineTo(point.x, point.y);
+      }
+    }
     this.glowGraphics.strokePath();
 
     // Draw main trail (bright and opaque)

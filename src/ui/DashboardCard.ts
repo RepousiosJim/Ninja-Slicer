@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 import { DARK_GOTHIC_THEME, DASHBOARD_CARD_CONFIG } from '../config/theme';
 import { GlowEffect } from './GlowEffect';
 import { TextureGenerator } from '../utils/TextureGenerator';
+import { ScaledCardConfig } from '../utils/ResponsiveCardScaler';
 
 export interface DashboardCardStats {
   label: string;
@@ -38,6 +39,7 @@ export interface DashboardCardConfig {
 
 export class DashboardCard extends Phaser.GameObjects.Container {
   private config: DashboardCardConfig;
+  private scaledConfig: ScaledCardConfig; // NEW - stores scaled dimensions
   private background!: Phaser.GameObjects.Graphics;
   private borderGraphics!: Phaser.GameObjects.Graphics;
   private iconText!: Phaser.GameObjects.Text;
@@ -48,13 +50,35 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   private glowEffect?: GlowEffect;
   private lockOverlay?: Phaser.GameObjects.Container;
   private isHovered: boolean = false;
-  private originalY: number = 0;
+  private baseX: number = 0;
+  private baseY: number = 0;
+  private hoverTween?: Phaser.Tweens.Tween;
+  private debugHitBox?: Phaser.GameObjects.Graphics;
+  private debugLabel?: Phaser.GameObjects.Text;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, config: DashboardCardConfig) {
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    config: DashboardCardConfig,
+    scaledConfig?: ScaledCardConfig, // NEW - accept scaled dimensions
+  ) {
     super(scene, x, y);
 
     this.config = config;
-    this.originalY = y;
+    this.baseX = x;
+    this.baseY = y;
+
+    // Use scaled config if provided, otherwise use defaults from DASHBOARD_CARD_CONFIG
+    this.scaledConfig = scaledConfig || {
+      width: DASHBOARD_CARD_CONFIG.width,
+      height: DASHBOARD_CARD_CONFIG.height,
+      columns: DASHBOARD_CARD_CONFIG.columns,
+      rows: DASHBOARD_CARD_CONFIG.rows,
+      gap: DASHBOARD_CARD_CONFIG.gap,
+      hoverLift: DASHBOARD_CARD_CONFIG.hoverLift,
+      hoverScale: DASHBOARD_CARD_CONFIG.hoverScale,
+    };
 
     this.createBackground();
     this.createBorder();
@@ -74,7 +98,11 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       this.createGlow();
     }
 
-    this.setSize(DASHBOARD_CARD_CONFIG.width, DASHBOARD_CARD_CONFIG.height);
+    // Note: setSize is called in setupInteractivity() for non-locked cards
+    // For locked cards, set size explicitly here
+    if (config.locked) {
+      this.setSize(this.scaledConfig.width, this.scaledConfig.height);
+    }
   }
 
   /**
@@ -89,15 +117,15 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       DARK_GOTHIC_THEME.colors.gradients.cardGradient.start,
       DARK_GOTHIC_THEME.colors.gradients.cardGradient.end,
       DARK_GOTHIC_THEME.colors.gradients.cardGradient.end,
-      0.9
+      0.9,
     );
 
     this.background.fillRoundedRect(
-      -DASHBOARD_CARD_CONFIG.width / 2,
-      -DASHBOARD_CARD_CONFIG.height / 2,
-      DASHBOARD_CARD_CONFIG.width,
-      DASHBOARD_CARD_CONFIG.height,
-      DASHBOARD_CARD_CONFIG.borderRadius
+      -this.scaledConfig.width / 2,
+      -this.scaledConfig.height / 2,
+      this.scaledConfig.width,
+      this.scaledConfig.height,
+      DASHBOARD_CARD_CONFIG.borderRadius,
     );
 
     this.add(this.background);
@@ -112,14 +140,14 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     this.borderGraphics.lineStyle(
       DASHBOARD_CARD_CONFIG.borderWidth,
       DARK_GOTHIC_THEME.colors.accent,
-      1.0
+      1.0,
     );
     this.borderGraphics.strokeRoundedRect(
-      -DASHBOARD_CARD_CONFIG.width / 2,
-      -DASHBOARD_CARD_CONFIG.height / 2,
-      DASHBOARD_CARD_CONFIG.width,
-      DASHBOARD_CARD_CONFIG.height,
-      DASHBOARD_CARD_CONFIG.borderRadius
+      -this.scaledConfig.width / 2,
+      -this.scaledConfig.height / 2,
+      this.scaledConfig.width,
+      this.scaledConfig.height,
+      DASHBOARD_CARD_CONFIG.borderRadius,
     );
 
     this.add(this.borderGraphics);
@@ -129,21 +157,32 @@ export class DashboardCard extends Phaser.GameObjects.Container {
    * Create card content (icon, title, description, stats)
    */
   private createContent(): void {
-    const cardConfig = DASHBOARD_CARD_CONFIG;
-    const halfWidth = cardConfig.width / 2;
-    const halfHeight = cardConfig.height / 2;
+    // Calculate scale factor based on card dimensions
+    const scaleFactor = this.scaledConfig.width / (DASHBOARD_CARD_CONFIG.maxWidth || 380);
+    const halfWidth = this.scaledConfig.width / 2;
+    const halfHeight = this.scaledConfig.height / 2;
+
+    // Scaled dimensions
+    const iconSize = Math.round((DASHBOARD_CARD_CONFIG.iconSize || 80) * scaleFactor);
+    const titleFontSize = Math.round((DASHBOARD_CARD_CONFIG.titleFontSize || 28) * scaleFactor);
+    const descriptionFontSize = Math.round((DASHBOARD_CARD_CONFIG.descriptionFontSize || 16) * scaleFactor);
+
+    // Scaled positioning
+    const iconOffsetY = Math.round(60 * scaleFactor);
+    const titleOffsetY = Math.round(140 * scaleFactor);
+    const descriptionOffsetY = Math.round(175 * scaleFactor);
 
     // Icon (emoji or texture)
     this.iconText = this.scene.add.text(
       0,
-      -halfHeight + 60,
+      -halfHeight + iconOffsetY,
       this.config.icon,
       {
-        fontSize: `${cardConfig.iconSize}px`,
+        fontSize: `${iconSize}px`,
         fontFamily: DARK_GOTHIC_THEME.fonts.primary,
         color: '#ffffff',
         align: 'center',
-      }
+      },
     );
     this.iconText.setOrigin(0.5);
     this.add(this.iconText);
@@ -151,15 +190,15 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     // Title
     this.titleText = this.scene.add.text(
       0,
-      -halfHeight + 140,
+      -halfHeight + titleOffsetY,
       this.config.title,
       {
-        fontSize: `${cardConfig.titleFontSize}px`,
+        fontSize: `${titleFontSize}px`,
         fontFamily: DARK_GOTHIC_THEME.fonts.primary,
         color: '#ffd700',
         align: 'center',
         fontStyle: 'bold',
-      }
+      },
     );
     this.titleText.setOrigin(0.5);
     this.add(this.titleText);
@@ -167,14 +206,14 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     // Description
     this.descriptionText = this.scene.add.text(
       0,
-      -halfHeight + 175,
+      -halfHeight + descriptionOffsetY,
       this.config.description,
       {
-        fontSize: `${cardConfig.descriptionFontSize}px`,
+        fontSize: `${descriptionFontSize}px`,
         fontFamily: DARK_GOTHIC_THEME.fonts.secondary,
         color: '#cccccc',
         align: 'center',
-      }
+      },
     );
     this.descriptionText.setOrigin(0.5);
     this.add(this.descriptionText);
@@ -189,10 +228,15 @@ export class DashboardCard extends Phaser.GameObjects.Container {
    * Create stats display
    */
   private createStats(): void {
-    this.statsContainer = this.scene.add.container(0, DASHBOARD_CARD_CONFIG.height / 2 - 50);
+    // Calculate scale factor for stats
+    const scaleFactor = this.scaledConfig.width / (DASHBOARD_CARD_CONFIG.maxWidth || 380);
+    const statFontSize = Math.round((DASHBOARD_CARD_CONFIG.statFontSize || 14) * scaleFactor);
+    const statSpacing = Math.round(10 * scaleFactor);
+    const statsOffsetY = Math.round(50 * scaleFactor);
+
+    this.statsContainer = this.scene.add.container(0, this.scaledConfig.height / 2 - statsOffsetY);
 
     const stats = this.config.stats || [];
-    const statSpacing = 10;
     let currentY = 0;
 
     stats.forEach((stat) => {
@@ -201,11 +245,11 @@ export class DashboardCard extends Phaser.GameObjects.Container {
         currentY,
         `${stat.icon || '•'} ${stat.label}: ${stat.value}`,
         {
-          fontSize: `${DASHBOARD_CARD_CONFIG.statFontSize}px`,
+          fontSize: `${statFontSize}px`,
           fontFamily: DARK_GOTHIC_THEME.fonts.secondary,
           color: '#ffffff',
           align: 'center',
-        }
+        },
       );
       statText.setOrigin(0.5);
       this.statsContainer.add(statText);
@@ -222,18 +266,25 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   private createBadge(): void {
     if (!this.config.badge) return;
 
-    const halfWidth = DASHBOARD_CARD_CONFIG.width / 2;
-    const halfHeight = DASHBOARD_CARD_CONFIG.height / 2;
+    // Calculate scale factor for badge
+    const scaleFactor = this.scaledConfig.width / (DASHBOARD_CARD_CONFIG.maxWidth || 380);
+    const halfWidth = this.scaledConfig.width / 2;
+    const halfHeight = this.scaledConfig.height / 2;
 
-    this.badgeContainer = this.scene.add.container(halfWidth - 30, -halfHeight + 30);
+    // Scaled badge dimensions
+    const badgeRadius = Math.round(20 * scaleFactor);
+    const badgeOffset = Math.round(30 * scaleFactor);
+    const badgeFontSize = Math.round(14 * scaleFactor);
+
+    this.badgeContainer = this.scene.add.container(halfWidth - badgeOffset, -halfHeight + badgeOffset);
 
     // Badge background
-    const badgeBg = this.scene.add.circle(0, 0, 20, this.config.badge.color);
+    const badgeBg = this.scene.add.circle(0, 0, badgeRadius, this.config.badge.color);
     this.badgeContainer.add(badgeBg);
 
     // Badge text
     const badgeText = this.scene.add.text(0, 0, this.config.badge.text, {
-      fontSize: '14px',
+      fontSize: `${badgeFontSize}px`,
       fontFamily: DARK_GOTHIC_THEME.fonts.primary,
       color: '#ffffff',
       fontStyle: 'bold',
@@ -269,7 +320,7 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       pulse: false,
     });
 
-    this.glowEffect.setScale(DASHBOARD_CARD_CONFIG.width / 100);
+    this.glowEffect.setScale(this.scaledConfig.width / 100);
     this.add(this.glowEffect);
     this.sendToBack(this.glowEffect);
   }
@@ -278,8 +329,8 @@ export class DashboardCard extends Phaser.GameObjects.Container {
    * Create lock overlay
    */
   private createLockOverlay(): void {
-    const halfWidth = DASHBOARD_CARD_CONFIG.width / 2;
-    const halfHeight = DASHBOARD_CARD_CONFIG.height / 2;
+    const halfWidth = this.scaledConfig.width / 2;
+    const halfHeight = this.scaledConfig.height / 2;
 
     this.lockOverlay = this.scene.add.container(0, 0);
 
@@ -291,7 +342,7 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       -halfHeight,
       DASHBOARD_CARD_CONFIG.width,
       DASHBOARD_CARD_CONFIG.height,
-      DASHBOARD_CARD_CONFIG.borderRadius
+      DASHBOARD_CARD_CONFIG.borderRadius,
     );
     this.lockOverlay.add(overlay);
 
@@ -314,7 +365,7 @@ export class DashboardCard extends Phaser.GameObjects.Container {
           fontFamily: DARK_GOTHIC_THEME.fonts.primary,
           color: '#ffd700',
           align: 'center',
-        }
+        },
       );
       costText.setOrigin(0.5);
       this.lockOverlay.add(costText);
@@ -327,18 +378,30 @@ export class DashboardCard extends Phaser.GameObjects.Container {
    * Setup interactivity (hover, click)
    */
   private setupInteractivity(): void {
-    const halfWidth = DASHBOARD_CARD_CONFIG.width / 2;
-    const halfHeight = DASHBOARD_CARD_CONFIG.height / 2;
+    // Card dimensions - must match visual card exactly (use SCALED dimensions)
+    const cardWidth = this.scaledConfig.width;
+    const cardHeight = this.scaledConfig.height;
+    const borderWidth = DASHBOARD_CARD_CONFIG.borderWidth;
 
-    // Create interactive zone
+    // The border stroke extends OUTWARD from the base rectangle
+    // Visual card size = base size + border width (stroke adds 1.5px on each side)
+    const halfWidth = cardWidth / 2;
+    const halfHeight = cardHeight / 2;
+    const borderOffset = borderWidth / 2; // Border extends outward by half its width
+
+    // Create interactive zone - matches the OUTER edge of the border
     const hitArea = new Phaser.Geom.Rectangle(
-      -halfWidth,
-      -halfHeight,
-      DASHBOARD_CARD_CONFIG.width,
-      DASHBOARD_CARD_CONFIG.height
+      -halfWidth - borderOffset,
+      -halfHeight - borderOffset,
+      cardWidth + borderWidth,
+      cardHeight + borderWidth,
     );
 
+    // Set interactive with explicit hit area
     this.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+    // Also set the container size to match
+    this.setSize(cardWidth, cardHeight);
 
     // Hover effects
     this.on('pointerover', this.onHoverStart, this);
@@ -358,16 +421,129 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   }
 
   /**
+   * Enable debug visualization of hit box
+   */
+  enableDebugHitBox(): void {
+    if (this.debugHitBox) {
+      return; // Already enabled
+    }
+
+    const cardWidth = this.scaledConfig.width;
+    const cardHeight = this.scaledConfig.height;
+    const borderWidth = DASHBOARD_CARD_CONFIG.borderWidth;
+    const halfHeight = cardHeight / 2;
+
+    // Calculate actual hit area size
+    const hitWidth = cardWidth - borderWidth;
+    const hitHeight = cardHeight - borderWidth;
+
+    this.debugHitBox = this.scene.add.graphics();
+
+    // Add to container so it transforms with card
+    this.add(this.debugHitBox);
+
+    // Add size label showing actual hit area dimensions
+    this.debugLabel = this.scene.add.text(
+      0,
+      halfHeight + 15,
+      `Hit: ${hitWidth}×${hitHeight}`,
+      {
+        fontSize: '14px',
+        color: '#00ff00',
+        fontStyle: 'bold',
+        backgroundColor: '#000000',
+        padding: { x: 4, y: 2 },
+      },
+    );
+    this.debugLabel.setOrigin(0.5);
+    this.add(this.debugLabel);
+
+    // Redraw debug box every frame to show live transforms
+    this.scene.events.on('update', this.updateDebugBox, this);
+  }
+
+  /**
+   * Update debug box visualization every frame
+   */
+  private updateDebugBox(): void {
+    if (!this.debugHitBox) return;
+
+    const cardWidth = this.scaledConfig.width;
+    const cardHeight = this.scaledConfig.height;
+    const borderWidth = DASHBOARD_CARD_CONFIG.borderWidth;
+    const borderOffset = borderWidth / 2;
+
+    // Calculate hit area bounds (same as in setupInteractivity)
+    const halfWidth = cardWidth / 2;
+    const halfHeight = cardHeight / 2;
+    const hitX = -halfWidth - borderOffset;
+    const hitY = -halfHeight - borderOffset;
+    const hitWidth = cardWidth + borderWidth;
+    const hitHeight = cardHeight + borderWidth;
+
+    this.debugHitBox.clear();
+
+    // Semi-transparent fill
+    this.debugHitBox.fillStyle(0x00ff00, 0.15);
+    this.debugHitBox.fillRect(hitX, hitY, hitWidth, hitHeight);
+
+    // Thick outline
+    this.debugHitBox.lineStyle(3, 0x00ff00, 1);
+    this.debugHitBox.strokeRect(hitX, hitY, hitWidth, hitHeight);
+
+    // Corner markers
+    const markerSize = 10;
+    this.debugHitBox.lineStyle(2, 0xffff00, 1);
+    this.debugHitBox.strokeRect(hitX, hitY, markerSize, markerSize);
+    this.debugHitBox.strokeRect(hitX + hitWidth - markerSize, hitY, markerSize, markerSize);
+    this.debugHitBox.strokeRect(hitX, hitY + hitHeight - markerSize, markerSize, markerSize);
+    this.debugHitBox.strokeRect(hitX + hitWidth - markerSize, hitY + hitHeight - markerSize, markerSize, markerSize);
+  }
+
+  /**
+   * Disable debug visualization
+   */
+  disableDebugHitBox(): void {
+    // Remove update listener
+    this.scene.events.off('update', this.updateDebugBox, this);
+
+    if (this.debugHitBox) {
+      this.debugHitBox.destroy();
+      this.debugHitBox = undefined;
+    }
+    if (this.debugLabel) {
+      this.debugLabel.destroy();
+      this.debugLabel = undefined;
+    }
+  }
+
+  /**
    * Handle hover start
    */
   private onHoverStart(): void {
     this.isHovered = true;
 
-    // Lift and scale animation
-    this.scene.tweens.add({
+    // Cancel any ongoing hover animation
+    if (this.hoverTween) {
+      this.hoverTween.stop();
+      this.hoverTween = undefined;
+    }
+
+    // Calculate target position (ABSOLUTE, not relative) - use SCALED config
+    // Constrain hover to prevent overflow above viewport
+    const maxLiftAllowed = Math.min(
+      Math.abs(this.scaledConfig.hoverLift),
+      this.baseY - this.scaledConfig.height / 2 - 20,  // Don't lift above screen top
+    );
+    const constrainedLift = -maxLiftAllowed; // Negative = up
+
+    const targetY = this.baseY + constrainedLift;
+
+    // Lift and scale animation with SCALED values
+    this.hoverTween = this.scene.tweens.add({
       targets: this,
-      scale: DASHBOARD_CARD_CONFIG.hoverScale,
-      y: this.y + DASHBOARD_CARD_CONFIG.hoverLift,
+      scale: this.scaledConfig.hoverScale,
+      y: targetY,
       duration: DARK_GOTHIC_THEME.animations.presets.cardHover.duration,
       ease: DARK_GOTHIC_THEME.animations.presets.cardHover.easing,
     });
@@ -377,21 +553,21 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     this.borderGraphics.lineStyle(
       DASHBOARD_CARD_CONFIG.borderWidth,
       DARK_GOTHIC_THEME.colors.warning,
-      1.0
+      1.0,
     );
     this.borderGraphics.strokeRoundedRect(
-      -DASHBOARD_CARD_CONFIG.width / 2,
-      -DASHBOARD_CARD_CONFIG.height / 2,
-      DASHBOARD_CARD_CONFIG.width,
-      DASHBOARD_CARD_CONFIG.height,
-      DASHBOARD_CARD_CONFIG.borderRadius
+      -this.scaledConfig.width / 2,
+      -this.scaledConfig.height / 2,
+      this.scaledConfig.width,
+      this.scaledConfig.height,
+      DASHBOARD_CARD_CONFIG.borderRadius,
     );
 
     // Enhance glow
     if (this.glowEffect) {
       this.glowEffect.setGlowIntensity(
         DASHBOARD_CARD_CONFIG.hoverGlowIntensity / 10,
-        DASHBOARD_CARD_CONFIG.hoverGlowIntensity / 20
+        DASHBOARD_CARD_CONFIG.hoverGlowIntensity / 20,
       );
     }
   }
@@ -403,11 +579,17 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     if (!this.isHovered) return;
     this.isHovered = false;
 
-    // Return to original position and scale
-    this.scene.tweens.add({
+    // Cancel any ongoing hover animation
+    if (this.hoverTween) {
+      this.hoverTween.stop();
+      this.hoverTween = undefined;
+    }
+
+    // Return to base position (ABSOLUTE)
+    this.hoverTween = this.scene.tweens.add({
       targets: this,
       scale: 1,
-      y: this.originalY,
+      y: this.baseY,
       duration: DARK_GOTHIC_THEME.animations.presets.cardHover.duration,
       ease: DARK_GOTHIC_THEME.animations.presets.cardHover.easing,
     });
@@ -417,21 +599,21 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     this.borderGraphics.lineStyle(
       DASHBOARD_CARD_CONFIG.borderWidth,
       DARK_GOTHIC_THEME.colors.accent,
-      1.0
+      1.0,
     );
     this.borderGraphics.strokeRoundedRect(
-      -DASHBOARD_CARD_CONFIG.width / 2,
-      -DASHBOARD_CARD_CONFIG.height / 2,
-      DASHBOARD_CARD_CONFIG.width,
-      DASHBOARD_CARD_CONFIG.height,
-      DASHBOARD_CARD_CONFIG.borderRadius
+      -this.scaledConfig.width / 2,
+      -this.scaledConfig.height / 2,
+      this.scaledConfig.width,
+      this.scaledConfig.height,
+      DASHBOARD_CARD_CONFIG.borderRadius,
     );
 
     // Restore glow
     if (this.glowEffect && this.config.glow) {
       this.glowEffect.setGlowIntensity(
         this.config.glow.intensity,
-        this.config.glow.intensity * 0.5
+        this.config.glow.intensity * 0.5,
       );
     }
   }
@@ -467,9 +649,17 @@ export class DashboardCard extends Phaser.GameObjects.Container {
    * Update card position (for responsive layout)
    */
   updatePosition(x: number, y: number): void {
-    this.x = x;
-    this.y = y;
-    this.originalY = y;
+    this.baseX = x;
+    this.baseY = y;
+
+    // If currently hovering, maintain hover offset
+    if (this.isHovered) {
+      this.x = x;
+      this.y = y + DASHBOARD_CARD_CONFIG.hoverLift;
+    } else {
+      this.x = x;
+      this.y = y;
+    }
   }
 
   /**
@@ -521,6 +711,16 @@ export class DashboardCard extends Phaser.GameObjects.Container {
    * Cleanup
    */
   destroy(fromScene?: boolean): void {
+    // Stop any active hover animation
+    if (this.hoverTween) {
+      this.hoverTween.stop();
+      this.hoverTween = undefined;
+    }
+
+    // Remove debug update listener
+    this.scene.events.off('update', this.updateDebugBox, this);
+
+    // Remove event listeners
     this.off('pointerover');
     this.off('pointerout');
     this.off('pointerdown');

@@ -127,7 +127,7 @@ export class WorldSelectScene extends Phaser.Scene {
       -cardHeight / 2 + 160,
       (cardWidth - 40) * (progress / 100),
       8,
-      0x44ff44
+      0x44ff44,
     );
     progressFill.setOrigin(0, 0.5);
 

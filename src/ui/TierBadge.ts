@@ -7,7 +7,6 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { WeaponRarity } from '../config/types';
 import { getTierColor } from '../utils/ThemeUtils';
@@ -50,7 +49,7 @@ export class TierBadge extends Phaser.GameObjects.Container {
     y: number,
     tier: number,
     rarity: WeaponRarity = WeaponRarity.COMMON,
-    size: 'small' | 'medium' | 'large' = 'medium'
+    size: 'small' | 'medium' | 'large' = 'medium',
   ) {
     super(scene, x, y);
 
@@ -97,13 +96,13 @@ export class TierBadge extends Phaser.GameObjects.Container {
    */
   private getSizeDimensions(): { width: number; height: number; fontSize: number } {
     switch (this.size) {
-      case 'small':
-        return { width: 30, height: 30, fontSize: 14 };
-      case 'large':
-        return { width: 50, height: 50, fontSize: 28 };
-      case 'medium':
-      default:
-        return { width: 40, height: 40, fontSize: 20 };
+    case 'small':
+      return { width: 30, height: 30, fontSize: 14 };
+    case 'large':
+      return { width: 50, height: 50, fontSize: 28 };
+    case 'medium':
+    default:
+      return { width: 40, height: 40, fontSize: 20 };
     }
   }
 

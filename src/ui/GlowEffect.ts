@@ -29,7 +29,7 @@ export class GlowEffect extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number = 0,
     y: number = 0,
-    config: GlowConfig = {}
+    config: GlowConfig = {},
   ) {
     super(scene, x, y);
 
@@ -63,7 +63,7 @@ export class GlowEffect extends Phaser.GameObjects.Container {
       this.scene,
       glowSize,
       this.config.color,
-      1.0
+      1.0,
     );
 
     // Inner glow layer (bright and concentrated)
@@ -171,7 +171,7 @@ export class GlowEffect extends Phaser.GameObjects.Container {
  */
 export function addGlowToObject(
   target: Phaser.GameObjects.GameObject,
-  config: GlowConfig = {}
+  config: GlowConfig = {},
 ): GlowEffect {
   const scene = target.scene;
 

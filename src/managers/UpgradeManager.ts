@@ -6,6 +6,9 @@
  */
 
 import { UpgradeId, UpgradeConfig, PlayerStats } from '@config/types';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { dataLoader } from '@utils/DataLoader';
 import { SaveManager } from '@managers/SaveManager';
 import { EventBus } from '@utils/EventBus';
@@ -48,7 +51,7 @@ export class UpgradeManager {
       this.upgrades.set(upgrade.id as UpgradeId, upgrade);
     }
 
-    console.log('[UpgradeManager] Loaded', this.upgrades.size, 'upgrades');
+    debugLog('[UpgradeManager] Loaded', this.upgrades.size, 'upgrades');
   }
 
   /**
@@ -91,13 +94,13 @@ export class UpgradeManager {
   purchaseUpgrade(upgradeId: UpgradeId): boolean {
     const config = this.getUpgradeConfig(upgradeId);
     if (!config) {
-      console.warn('[UpgradeManager] Cannot purchase unknown upgrade:', upgradeId);
+      debugWarn('[UpgradeManager] Cannot purchase unknown upgrade:', upgradeId);
       return false;
     }
 
     const currentTier = this.getUpgradeTier(upgradeId);
     if (currentTier >= config.maxTier) {
-      console.warn('[UpgradeManager] Upgrade already at max tier:', upgradeId);
+      debugWarn('[UpgradeManager] Upgrade already at max tier:', upgradeId);
       return false;
     }
 

@@ -8,6 +8,8 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog } from '@utils/DebugLogger';
+
 import {
   SCENE_KEYS,
   COLORS,
@@ -31,6 +33,8 @@ import { ComparisonView } from '../ui/ComparisonView';
 import { UITheme } from '../utils/UITheme';
 import { ResponsiveUtils } from '../utils/ResponsiveUtils';
 import { formatNumber } from '../utils/helpers';
+import { MessageDisplay } from '../utils/MessageDisplay';
+import { WeaponStatCalculator } from '../utils/WeaponStatCalculator';
 
 /**
  * Character Scene - Enhanced
@@ -102,7 +106,7 @@ export class CharacterScene extends Phaser.Scene {
     const padding = ResponsiveUtils.getPadding('large');
     this.mainContentContainer = this.add.container(
       GAME_WIDTH / 2,
-      GAME_HEIGHT / 2 + padding
+      GAME_HEIGHT / 2 + padding,
     );
 
     // Create weapon preview area (center)
@@ -150,7 +154,7 @@ export class CharacterScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       this.cameras.main.width,
       this.cameras.main.height,
-      COLORS.background
+      COLORS.background,
     );
     this.background.setAlpha(0);
 
@@ -165,7 +169,7 @@ export class CharacterScene extends Phaser.Scene {
       0x1a1a2e,
       0x2a2a4a,
       0x2a2a4a,
-      1
+      1,
     );
     gradient.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
     gradient.setAlpha(0.3);
@@ -218,7 +222,7 @@ export class CharacterScene extends Phaser.Scene {
 
     this.headerContainer = this.add.container(
       GAME_WIDTH / 2,
-      padding * 2
+      padding * 2,
     );
 
     // Title
@@ -253,7 +257,7 @@ export class CharacterScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: ResponsiveUtils.getFontSize('small'),
         onClick: this.onBack.bind(this),
-      }
+      },
     );
     backButton.setAlpha(0);
     this.headerContainer.add(backButton);
@@ -264,7 +268,7 @@ export class CharacterScene extends Phaser.Scene {
       this,
       souls,
       GAME_WIDTH / 2 - buttonSize.width - padding * 2,
-      0
+      0,
     );
     soulsBalance.setAlpha(0);
     this.headerContainer.add(soulsBalance);
@@ -281,7 +285,7 @@ export class CharacterScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: ResponsiveUtils.getFontSize('medium'),
         onClick: this.onHelp.bind(this),
-      }
+      },
     );
     helpButton.setAlpha(0);
     this.headerContainer.add(helpButton);
@@ -331,35 +335,32 @@ export class CharacterScene extends Phaser.Scene {
       maxTierBadge.setAlpha(0);
       this.weaponPreviewContainer.add(maxTierBadge);
     } else {
-      // Show upgrade cost
-      const nextTierData = this.currentWeapon.tiers[this.currentTier]; // Next tier (0-indexed)
-      if (nextTierData) {
-        const upgradeCost = nextTierData.upgradeCost || 0;
-        const souls = this.saveManager.getSouls();
-        const affordable = souls >= upgradeCost;
+      // Show upgrade cost using WeaponStatCalculator
+      const upgradeCost = WeaponStatCalculator.getUpgradeCost(this.currentWeapon, this.currentTier);
+      const souls = this.saveManager.getSouls();
+      const affordable = souls >= upgradeCost;
 
-        // Create cost display
-        const costDisplay = UITheme.createCostDisplay(
-          this,
-          upgradeCost,
-          affordable,
-          0,
-          120
-        );
-        costDisplay.setAlpha(0);
-        this.weaponPreviewContainer.add(costDisplay);
+      // Create cost display
+      const costDisplay = UITheme.createCostDisplay(
+        this,
+        upgradeCost,
+        affordable,
+        0,
+        120,
+      );
+      costDisplay.setAlpha(0);
+      this.weaponPreviewContainer.add(costDisplay);
 
-        // Add "UPGRADE" label above cost
-        const upgradeLabel = this.add.text(0, 90, 'NEXT TIER', {
-          fontFamily: 'Arial',
-          fontSize: `${ResponsiveUtils.getFontSize('small')}px`,
-          color: '#aaaaaa',
-          fontStyle: 'bold',
-        });
-        upgradeLabel.setOrigin(0.5, 0.5);
-        upgradeLabel.setAlpha(0);
-        this.weaponPreviewContainer.add(upgradeLabel);
-      }
+      // Add "UPGRADE" label above cost
+      const upgradeLabel = this.add.text(0, 90, 'NEXT TIER', {
+        fontFamily: 'Arial',
+        fontSize: `${ResponsiveUtils.getFontSize('small')}px`,
+        color: '#aaaaaa',
+        fontStyle: 'bold',
+      });
+      upgradeLabel.setOrigin(0.5, 0.5);
+      upgradeLabel.setAlpha(0);
+      this.weaponPreviewContainer.add(upgradeLabel);
     }
   }
 
@@ -407,17 +408,13 @@ export class CharacterScene extends Phaser.Scene {
   }
 
   /**
-   * Create weapon stat bars
+   * Create weapon stat bars using WeaponStatCalculator
    */
   private createWeaponStatBars(): void {
     if (!this.currentWeapon) return;
 
-    const stats = [
-      { label: 'Damage', value: this.getWeaponStatValue('damage'), max: 100 },
-      { label: 'Speed', value: this.getWeaponStatValue('speed'), max: 100 },
-      { label: 'Range', value: this.getWeaponStatValue('range'), max: 100 },
-      { label: 'Effectiveness', value: this.getWeaponStatValue('effectiveness'), max: 100 },
-    ];
+    // Use WeaponStatCalculator for consistent stat calculation
+    const stats = WeaponStatCalculator.getAllStats(this.currentWeapon, this.currentTier);
 
     const panelWidth = GAME_WIDTH * 0.22;
     const panelHeight = GAME_HEIGHT * 0.5;
@@ -497,164 +494,6 @@ export class CharacterScene extends Phaser.Scene {
   }
 
   /**
-   * Get weapon stat value (calculated from actual tier data)
-   */
-  private getWeaponStatValue(stat: string): number {
-    if (!this.currentWeapon) return 50;
-
-    const tierData = this.currentWeapon.tiers[this.currentTier - 1];
-    if (!tierData) return 50;
-
-    switch (stat) {
-      case 'damage':
-        return this.calculateDamageRating(tierData);
-      case 'speed':
-        return this.calculateSpeedRating(tierData);
-      case 'range':
-        return this.calculateRangeRating(tierData);
-      case 'effectiveness':
-        return this.calculateEffectivenessRating();
-      default:
-        return 50;
-    }
-  }
-
-  /**
-   * Calculate damage rating from tier effects
-   */
-  private calculateDamageRating(tierData: any): number {
-    let rating = 50; // Base rating
-
-    for (const effect of tierData.effects) {
-      // Bonus damage effects
-      if (effect.type === 'bonus_damage') {
-        rating += (effect.value - 1.0) * 30; // +25% damage = +7.5 rating
-      }
-
-      // Damage over time effects
-      if (effect.type === 'damage_over_time') {
-        const totalDoTDamage = effect.ticks * effect.damagePerTick;
-        rating += totalDoTDamage * 5; // DoT adds to damage rating
-      }
-
-      // Chain damage effects
-      if (effect.type === 'chain_damage') {
-        rating += effect.chainCount * 8; // Each chain adds to damage
-      }
-
-      // Spread damage effects
-      if (effect.type === 'spread_damage') {
-        rating += effect.damage * 6; // AoE damage bonus
-      }
-
-      // Slash width increases effective damage
-      if (effect.type === 'slash_width') {
-        rating += (effect.value - 1.0) * 15;
-      }
-    }
-
-    return Math.min(100, Math.round(rating)); // Cap at 100
-  }
-
-  /**
-   * Calculate speed rating from tier effects
-   */
-  private calculateSpeedRating(tierData: any): number {
-    let rating = 60; // Base speed rating
-
-    for (const effect of tierData.effects) {
-      // Chain attacks are fast
-      if (effect.type === 'chain_damage') {
-        rating += effect.chainCount * 10; // Chain attacks = faster
-      }
-
-      // DoT effects mean less burst speed
-      if (effect.type === 'damage_over_time') {
-        rating += 5; // Slight bonus for sustained damage
-      }
-
-      // Spread damage is instant
-      if (effect.type === 'spread_damage') {
-        rating += 8;
-      }
-    }
-
-    return Math.min(100, Math.round(rating)); // Cap at 100
-  }
-
-  /**
-   * Calculate range rating from tier effects
-   */
-  private calculateRangeRating(tierData: any): number {
-    let rating = 60; // Base range
-
-    for (const effect of tierData.effects) {
-      // Proximity reveal increases effective range
-      if (effect.type === 'proximity_reveal') {
-        rating += (effect.radius / 150) * 20; // Scale by radius
-      }
-
-      // Chain damage increases range
-      if (effect.type === 'chain_damage') {
-        rating += (effect.chainRadius / 100) * 15;
-      }
-
-      // Spread damage increases range
-      if (effect.type === 'spread_damage') {
-        rating += (effect.radius / 80) * 15;
-      }
-
-      // Ghost visibility represents range
-      if (effect.type === 'ghost_visibility') {
-        rating += (effect.value - 1.0) * 10;
-      }
-    }
-
-    return Math.min(100, Math.round(rating)); // Cap at 100
-  }
-
-  /**
-   * Calculate overall effectiveness rating
-   */
-  private calculateEffectivenessRating(): number {
-    if (!this.currentWeapon) return 50;
-
-    const tierData = this.currentWeapon.tiers[this.currentTier - 1];
-    if (!tierData) return 50;
-
-    let effectiveCount = 0;
-    let totalBonus = 0;
-
-    // Count how many monster types this weapon is effective against
-    for (const effect of tierData.effects) {
-      if (effect.type === 'bonus_damage' && effect.target) {
-        effectiveCount++;
-        totalBonus += (effect.value - 1.0) * 100;
-      }
-
-      if (effect.type === 'damage_over_time' && effect.target) {
-        effectiveCount++;
-        totalBonus += effect.ticks * effect.damagePerTick * 10;
-      }
-
-      if (effect.type === 'ghost_visibility') {
-        effectiveCount++;
-        totalBonus += (effect.value - 1.0) * 20;
-      }
-    }
-
-    // Base effectiveness
-    let rating = 50;
-
-    // Add bonus based on specialization
-    if (effectiveCount > 0) {
-      rating = 50 + (totalBonus / effectiveCount);
-    }
-
-    return Math.min(100, Math.round(rating)); // Cap at 100
-  }
-
-  /**
    * Create effectiveness chart (right side)
    */
   private createEffectivenessChart(): void {
@@ -681,12 +520,8 @@ export class CharacterScene extends Phaser.Scene {
     title.setOrigin(0.5);
     this.effectivenessContainer.add(title);
 
-    // Create effectiveness chart
-    const data: EffectivenessData[] = [
-      { monsterType: MonsterType.ZOMBIE, effectiveness: this.getEffectivenessValue(MonsterType.ZOMBIE) },
-      { monsterType: MonsterType.VAMPIRE, effectiveness: this.getEffectivenessValue(MonsterType.VAMPIRE) },
-      { monsterType: MonsterType.GHOST, effectiveness: this.getEffectivenessValue(MonsterType.GHOST) },
-    ];
+    // Create effectiveness chart using WeaponStatCalculator
+    const data = WeaponStatCalculator.getAllEffectiveness(this.currentWeapon, this.currentTier);
 
     this.effectivenessChart = new EffectivenessChart(this, 0, 0, {
       data: data,
@@ -700,51 +535,6 @@ export class CharacterScene extends Phaser.Scene {
     this.effectivenessContainer.add(this.effectivenessChart);
 
     this.mainContentContainer?.add(this.effectivenessContainer);
-  }
-
-  /**
-   * Get effectiveness value for monster type (from actual tier effects)
-   */
-  private getEffectivenessValue(monsterType: MonsterType): number {
-    if (!this.currentWeapon) return 50;
-
-    const tierData = this.currentWeapon.tiers[this.currentTier - 1];
-    if (!tierData) return 50;
-
-    let effectiveness = 50; // Base 50% = 1.0x damage
-    const monsterTypeStr = monsterType.toLowerCase();
-
-    // Calculate from actual effects
-    for (const effect of tierData.effects) {
-      // Bonus damage effects
-      if (effect.type === 'bonus_damage' && effect.target === monsterTypeStr) {
-        // Convert multiplier to percentage (1.25 = 75%, 1.5 = 100%, 1.75 = 125%)
-        effectiveness = 50 + (effect.value - 1.0) * 100;
-      }
-
-      // Damage over time effects
-      if (effect.type === 'damage_over_time' && effect.target === monsterTypeStr) {
-        const totalDoTDamage = effect.ticks * effect.damagePerTick;
-        effectiveness += totalDoTDamage * 10; // Add DoT contribution
-      }
-
-      // Ghost visibility effects (makes ghosts easier to hit = more effective)
-      if (effect.type === 'ghost_visibility' && monsterTypeStr === 'ghost') {
-        effectiveness = 50 + (effect.value - 1.0) * 25;
-      }
-
-      // Stun effects
-      if (effect.type === 'stun' && effect.target === monsterTypeStr) {
-        effectiveness += 15; // Stun adds effectiveness
-      }
-
-      // Slow effects (universal)
-      if (effect.type === 'slow') {
-        effectiveness += (1.0 - effect.value) * 20; // 10% slow = +2% effectiveness
-      }
-    }
-
-    return Math.min(100, Math.round(effectiveness)); // Cap at 100
   }
 
   /**
@@ -834,7 +624,7 @@ export class CharacterScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onTestWeapon.bind(this),
-      }
+      },
     );
     this.testWeaponButton.setAlpha(0);
     this.buttonsContainer.add(this.testWeaponButton);
@@ -851,7 +641,7 @@ export class CharacterScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onViewDetails.bind(this),
-      }
+      },
     );
     this.viewDetailsButton.setAlpha(0);
     this.buttonsContainer.add(this.viewDetailsButton);
@@ -868,7 +658,7 @@ export class CharacterScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onCompare.bind(this),
-      }
+      },
     );
     this.compareButton.setAlpha(0);
     this.buttonsContainer.add(this.compareButton);
@@ -885,7 +675,7 @@ export class CharacterScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onChangeWeapon.bind(this),
-      }
+      },
     );
     this.changeWeaponButton.setAlpha(0);
     this.buttonsContainer.add(this.changeWeaponButton);
@@ -902,7 +692,7 @@ export class CharacterScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onBack.bind(this),
-      }
+      },
     );
     this.backButton.setAlpha(0);
     this.buttonsContainer.add(this.backButton);
@@ -1064,7 +854,7 @@ export class CharacterScene extends Phaser.Scene {
         onEquip: this.onEquipFromModal.bind(this),
         onUpgrade: this.onUpgradeFromModal.bind(this),
         onClose: this.onDetailsModalClose.bind(this),
-      }
+      },
     );
     this.add.existing(this.weaponDetailsModal);
     this.weaponDetailsModal.open();
@@ -1098,7 +888,7 @@ export class CharacterScene extends Phaser.Scene {
         weapon2Tier: otherTier,
         onSwitch: this.onSwitchWeapon.bind(this),
         onClose: this.onComparisonClose.bind(this),
-      }
+      },
     );
     this.add.existing(this.comparisonView);
   }
@@ -1132,7 +922,7 @@ export class CharacterScene extends Phaser.Scene {
       GAME_HEIGHT / 2,
       ResponsiveUtils.getButtonSize().width * 3,
       GAME_HEIGHT * 0.7,
-      'CHARACTER PAGE HELP'
+      'CHARACTER PAGE HELP',
     );
     helpPanel.setDepth(10000);
 
@@ -1161,7 +951,7 @@ export class CharacterScene extends Phaser.Scene {
         align: 'left',
         wordWrap: { width: ResponsiveUtils.getButtonSize().width * 2.8 },
         lineSpacing: 4,
-      }
+      },
     );
     helpText.setOrigin(0.5, 0);
     helpPanel.add(helpText);
@@ -1173,7 +963,7 @@ export class CharacterScene extends Phaser.Scene {
       GAME_WIDTH,
       GAME_HEIGHT,
       0x000000,
-      0.7
+      0.7,
     );
     overlay.setDepth(9999);
     overlay.setInteractive();
@@ -1211,7 +1001,7 @@ export class CharacterScene extends Phaser.Scene {
 
     this.saveManager.equipWeapon(this.currentWeapon.id);
     this.audioManager.playSFX('uiClick');
-    console.log('Weapon equipped:', this.currentWeapon.name);
+    debugLog('Weapon equipped:', this.currentWeapon.name);
   }
 
   /**
@@ -1231,7 +1021,7 @@ export class CharacterScene extends Phaser.Scene {
         this.updateUI();
 
         this.audioManager.playSFX('uiClick');
-        console.log('Weapon upgraded to tier', this.currentTier);
+        debugLog('Weapon upgraded to tier', this.currentTier);
       }
     }
   }
@@ -1255,7 +1045,7 @@ export class CharacterScene extends Phaser.Scene {
     // Switch to comparison weapon - note: ComparisonView handles switching internally
     // The onSwitch callback is triggered when user clicks switch button
     this.audioManager.playSFX('uiClick');
-    console.log('Switch weapon triggered - comparison view handles switching');
+    debugLog('Switch weapon triggered - comparison view handles switching');
   }
 
   /**
@@ -1269,7 +1059,7 @@ export class CharacterScene extends Phaser.Scene {
   }
 
   /**
-   * Update UI with current weapon data
+   * Update UI with current weapon data using WeaponStatCalculator
    */
   private updateUI(): void {
     // Update weapon preview
@@ -1278,23 +1068,19 @@ export class CharacterScene extends Phaser.Scene {
       this.weaponPreview.setTier(this.currentTier);
     }
 
-    // Update weapon stat bars
-    this.weaponStatBars.forEach((bar, index) => {
-      const stats: Array<'damage' | 'speed' | 'range' | 'effectiveness'> = ['damage', 'speed', 'range', 'effectiveness'];
-      const statName = stats[index];
-      if (statName) {
-        const newValue = this.getWeaponStatValue(statName);
-        bar.setValue(newValue);
-      }
-    });
+    // Update weapon stat bars using WeaponStatCalculator
+    if (this.currentWeapon) {
+      const stats = WeaponStatCalculator.getAllStats(this.currentWeapon, this.currentTier);
+      this.weaponStatBars.forEach((bar, index) => {
+        if (index < stats.length) {
+          bar.setValue(stats[index].value);
+        }
+      });
+    }
 
-    // Update effectiveness chart
+    // Update effectiveness chart using WeaponStatCalculator
     if (this.effectivenessChart && this.currentWeapon) {
-      const data: EffectivenessData[] = [
-        { monsterType: MonsterType.ZOMBIE, effectiveness: this.getEffectivenessValue(MonsterType.ZOMBIE) },
-        { monsterType: MonsterType.VAMPIRE, effectiveness: this.getEffectivenessValue(MonsterType.VAMPIRE) },
-        { monsterType: MonsterType.GHOST, effectiveness: this.getEffectivenessValue(MonsterType.GHOST) },
-      ];
+      const data = WeaponStatCalculator.getAllEffectiveness(this.currentWeapon, this.currentTier);
       this.effectivenessChart.updateData(data);
     }
 

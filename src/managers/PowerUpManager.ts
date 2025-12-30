@@ -138,22 +138,22 @@ export class PowerUpManager {
    */
   private getDuration(type: PowerUpType): number {
     switch (type) {
-      case PowerUpType.SLOW_MOTION:
-        // Apply upgrade bonus to slow motion duration
-        let duration: number = POWERUP_SLOW_MOTION.duration;
-        if (this.upgradeManager) {
-          const bonus = this.upgradeManager.getUpgradeValue(UpgradeId.SLOW_MOTION_DURATION);
-          duration = bonus;
-        }
-        return duration;
-      case PowerUpType.FRENZY:
-        return POWERUP_FRENZY.duration;
-      case PowerUpType.SHIELD:
-        return POWERUP_SHIELD.duration;
-      case PowerUpType.SOUL_MAGNET:
-        return POWERUP_SOUL_MAGNET.duration;
-      default:
-        return 0;
+    case PowerUpType.SLOW_MOTION:
+      // Apply upgrade bonus to slow motion duration
+      let duration: number = POWERUP_SLOW_MOTION.duration;
+      if (this.upgradeManager) {
+        const bonus = this.upgradeManager.getUpgradeValue(UpgradeId.SLOW_MOTION_DURATION);
+        duration = bonus;
+      }
+      return duration;
+    case PowerUpType.FRENZY:
+      return POWERUP_FRENZY.duration;
+    case PowerUpType.SHIELD:
+      return POWERUP_SHIELD.duration;
+    case PowerUpType.SOUL_MAGNET:
+      return POWERUP_SOUL_MAGNET.duration;
+    default:
+      return 0;
     }
   }
 

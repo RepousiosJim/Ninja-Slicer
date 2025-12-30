@@ -287,7 +287,7 @@ export class ResponsiveManager {
           pointer1.x,
           pointer1.y,
           pointer2.x,
-          pointer2.y
+          pointer2.y,
         );
 
         if (this.initialPinchDistance === 0) {
@@ -395,20 +395,20 @@ export class ResponsiveManager {
    */
   public getResponsiveScale(): number {
     switch (this.currentBreakpoint) {
-      case Breakpoint.MOBILE_SMALL:
-        return 0.7;
-      case Breakpoint.MOBILE_SMALL:
-        return 0.8;
-      case Breakpoint.MOBILE:
-        return 0.9;
-      case Breakpoint.TABLET:
-        return 1.0;
-      case Breakpoint.DESKTOP:
-        return 1.0;
-      case Breakpoint.LARGE_DESKTOP:
-        return 1.1;
-      default:
-        return 1.0;
+    case Breakpoint.MOBILE_SMALL:
+      return 0.7;
+    case Breakpoint.MOBILE_SMALL:
+      return 0.8;
+    case Breakpoint.MOBILE:
+      return 0.9;
+    case Breakpoint.TABLET:
+      return 1.0;
+    case Breakpoint.DESKTOP:
+      return 1.0;
+    case Breakpoint.LARGE_DESKTOP:
+      return 1.1;
+    default:
+      return 1.0;
     }
   }
 
@@ -417,19 +417,19 @@ export class ResponsiveManager {
    */
   public getGridColumns(defaultColumns: number = 3): number {
     switch (this.currentBreakpoint) {
-      case Breakpoint.MOBILE_SMALL:
-      case Breakpoint.MOBILE_SMALL:
-        return 1;
-      case Breakpoint.MOBILE:
-        return 2;
-      case Breakpoint.TABLET:
-        return 2;
-      case Breakpoint.DESKTOP:
-        return defaultColumns;
-      case Breakpoint.LARGE_DESKTOP:
-        return defaultColumns + 1;
-      default:
-        return defaultColumns;
+    case Breakpoint.MOBILE_SMALL:
+    case Breakpoint.MOBILE_SMALL:
+      return 1;
+    case Breakpoint.MOBILE:
+      return 2;
+    case Breakpoint.TABLET:
+      return 2;
+    case Breakpoint.DESKTOP:
+      return defaultColumns;
+    case Breakpoint.LARGE_DESKTOP:
+      return defaultColumns + 1;
+    default:
+      return defaultColumns;
     }
   }
 
@@ -438,19 +438,19 @@ export class ResponsiveManager {
    */
   public getGridRows(defaultRows: number = 2): number {
     switch (this.currentBreakpoint) {
-      case Breakpoint.MOBILE_SMALL:
-      case Breakpoint.MOBILE_SMALL:
-        return 3;
-      case Breakpoint.MOBILE:
-        return 2;
-      case Breakpoint.TABLET:
-        return 2;
-      case Breakpoint.DESKTOP:
-        return defaultRows;
-      case Breakpoint.LARGE_DESKTOP:
-        return defaultRows;
-      default:
-        return defaultRows;
+    case Breakpoint.MOBILE_SMALL:
+    case Breakpoint.MOBILE_SMALL:
+      return 3;
+    case Breakpoint.MOBILE:
+      return 2;
+    case Breakpoint.TABLET:
+      return 2;
+    case Breakpoint.DESKTOP:
+      return defaultRows;
+    case Breakpoint.LARGE_DESKTOP:
+      return defaultRows;
+    default:
+      return defaultRows;
     }
   }
 
@@ -484,7 +484,7 @@ export class ResponsiveManager {
       padding,
       padding,
       this.scene.scale.width - padding * 2,
-      this.scene.scale.height - padding * 2
+      this.scene.scale.height - padding * 2,
     );
   }
 

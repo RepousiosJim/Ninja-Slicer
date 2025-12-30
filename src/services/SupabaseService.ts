@@ -10,6 +10,9 @@
  */
 
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { GameSave } from '@config/types';
 
 // Types for database tables
@@ -54,14 +57,14 @@ export class SupabaseService {
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('[SupabaseService] Missing Supabase credentials. Online features disabled.');
+      debugWarn('[SupabaseService] Missing Supabase credentials. Online features disabled.');
       return;
     }
 
     try {
       this.client = createClient(supabaseUrl, supabaseKey);
       this.initialized = true;
-      console.log('[SupabaseService] Initialized');
+      debugLog('[SupabaseService] Initialized');
     } catch (error) {
       console.error('[SupabaseService] Failed to initialize:', error);
     }
@@ -92,7 +95,7 @@ export class SupabaseService {
       this.user = data.user;
       return this.user;
     } catch (error) {
-      console.error('[SupabaseService] Anonymous sign-in failed:', error);
+      debugError('[SupabaseService] Anonymous sign-in failed:', error);
       return null;
     }
   }
@@ -108,7 +111,7 @@ export class SupabaseService {
       this.user = user;
       return user;
     } catch (error) {
-      console.error('[SupabaseService] Failed to get user:', error);
+      debugError('[SupabaseService] Failed to get user:', error);
       return null;
     }
   }
@@ -123,7 +126,7 @@ export class SupabaseService {
       await this.client.auth.signOut();
       this.user = null;
     } catch (error) {
-      console.error('[SupabaseService] Sign out failed:', error);
+      debugError('[SupabaseService] Sign out failed:', error);
     }
   }
 
@@ -143,7 +146,7 @@ export class SupabaseService {
     timeElapsedSeconds: number;
   }): Promise<LeaderboardEntry | null> {
     if (!this.client) {
-      console.warn('[SupabaseService] Cannot submit score: not initialized');
+      debugWarn('[SupabaseService] Cannot submit score: not initialized');
       return null;
     }
 
@@ -166,7 +169,7 @@ export class SupabaseService {
 
       return data as LeaderboardEntry;
     } catch (error) {
-      console.error('[SupabaseService] Failed to submit score:', error);
+      debugError('[SupabaseService] Failed to submit score:', error);
       return null;
     }
   }
@@ -176,7 +179,7 @@ export class SupabaseService {
    */
   async getLeaderboard(
     limit: number = 100,
-    timeFilter: 'all' | 'weekly' | 'daily' = 'all'
+    timeFilter: 'all' | 'weekly' | 'daily' = 'all',
   ): Promise<LeaderboardEntry[]> {
     if (!this.client) return [];
 
@@ -208,7 +211,7 @@ export class SupabaseService {
         rank: index + 1,
       })) as LeaderboardEntry[];
     } catch (error) {
-      console.error('[SupabaseService] Failed to get leaderboard:', error);
+      debugError('[SupabaseService] Failed to get leaderboard:', error);
       return [];
     }
   }
@@ -229,7 +232,7 @@ export class SupabaseService {
 
       return (count || 0) + 1;
     } catch (error) {
-      console.error('[SupabaseService] Failed to get rank:', error);
+      debugError('[SupabaseService] Failed to get rank:', error);
       return -1;
     }
   }
@@ -252,7 +255,7 @@ export class SupabaseService {
 
       return (data || []) as LeaderboardEntry[];
     } catch (error) {
-      console.error('[SupabaseService] Failed to get personal bests:', error);
+      debugError('[SupabaseService] Failed to get personal bests:', error);
       return [];
     }
   }
@@ -266,7 +269,7 @@ export class SupabaseService {
    */
   async saveToCloud(saveData: GameSave): Promise<boolean> {
     if (!this.client || !this.user) {
-      console.warn('[SupabaseService] Cannot save to cloud: not authenticated');
+      debugWarn('[SupabaseService] Cannot save to cloud: not authenticated');
       return false;
     }
 
@@ -283,10 +286,10 @@ export class SupabaseService {
 
       if (error) throw error;
 
-      console.log('[SupabaseService] Cloud save successful');
+      debugLog('[SupabaseService] Cloud save successful');
       return true;
     } catch (error) {
-      console.error('[SupabaseService] Cloud save failed:', error);
+      debugError('[SupabaseService] Cloud save failed:', error);
       return false;
     }
   }
@@ -296,7 +299,7 @@ export class SupabaseService {
    */
   async loadFromCloud(): Promise<GameSave | null> {
     if (!this.client || !this.user) {
-      console.warn('[SupabaseService] Cannot load from cloud: not authenticated');
+      debugWarn('[SupabaseService] Cannot load from cloud: not authenticated');
       return null;
     }
 
@@ -317,7 +320,7 @@ export class SupabaseService {
 
       return data?.save_data as GameSave || null;
     } catch (error) {
-      console.error('[SupabaseService] Cloud load failed:', error);
+      debugError('[SupabaseService] Cloud load failed:', error);
       return null;
     }
   }
@@ -338,7 +341,7 @@ export class SupabaseService {
 
       return true;
     } catch (error) {
-      console.error('[SupabaseService] Failed to delete cloud save:', error);
+      debugError('[SupabaseService] Failed to delete cloud save:', error);
       return false;
     }
   }
@@ -366,12 +369,12 @@ export class SupabaseService {
       weaponTiers: this.mergeObjects(
         localSave.weaponTiers,
         cloudSave.weaponTiers,
-        Math.max
+        Math.max,
       ),
       upgrades: this.mergeObjects(
         localSave.upgrades,
         cloudSave.upgrades,
-        Math.max
+        Math.max,
       ) as GameSave['upgrades'],
       completedLevels: [...new Set([
         ...localSave.completedLevels,
@@ -380,12 +383,12 @@ export class SupabaseService {
       levelStars: this.mergeObjects(
         localSave.levelStars,
         cloudSave.levelStars,
-        Math.max
+        Math.max,
       ),
       highScores: this.mergeObjects(
         localSave.highScores,
         cloudSave.highScores,
-        Math.max
+        Math.max,
       ),
       personalBests: [...new Set([
         ...localSave.personalBests,
@@ -406,7 +409,7 @@ export class SupabaseService {
   private mergeObjects<T extends Record<string, number>>(
     obj1: T,
     obj2: T,
-    mergeFn: (a: number, b: number) => number
+    mergeFn: (a: number, b: number) => number,
   ): T {
     const result = { ...obj1 } as T;
     for (const key of Object.keys(obj2)) {

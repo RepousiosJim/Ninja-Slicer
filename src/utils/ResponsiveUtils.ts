@@ -21,14 +21,14 @@ export class ResponsiveUtils {
    */
   static getUIScaleMultiplier(): number {
     switch (this.currentUIScale) {
-      case 'small':
-        return 0.85;
-      case 'medium':
-        return 1.0;
-      case 'large':
-        return 1.15;
-      default:
-        return 1.0;
+    case 'small':
+      return 0.85;
+    case 'medium':
+      return 1.0;
+    case 'large':
+      return 1.15;
+    default:
+      return 1.0;
     }
   }
 
@@ -100,17 +100,17 @@ export class ResponsiveUtils {
 
     let padding = basePadding;
     switch (size) {
-      case 'small':
-        padding = basePadding;
-        break;
-      case 'medium':
-        padding = basePadding * 1.5;
-        break;
-      case 'large':
-        padding = basePadding * 2;
-        break;
-      default:
-        padding = basePadding;
+    case 'small':
+      padding = basePadding;
+      break;
+    case 'medium':
+      padding = basePadding * 1.5;
+      break;
+    case 'large':
+      padding = basePadding * 2;
+      break;
+    default:
+      padding = basePadding;
     }
 
     return Math.floor(padding * scale);
@@ -125,23 +125,23 @@ export class ResponsiveUtils {
 
     let fontSize = baseFontSize;
     switch (size) {
-      case 'small':
-        fontSize = baseFontSize * 0.8;
-        break;
-      case 'medium':
-        fontSize = baseFontSize;
-        break;
-      case 'large':
-        fontSize = baseFontSize * 1.5;
-        break;
-      case 'xlarge':
-        fontSize = baseFontSize * 2;
-        break;
-      case 'title':
-        fontSize = baseFontSize * 2.5;
-        break;
-      default:
-        fontSize = baseFontSize;
+    case 'small':
+      fontSize = baseFontSize * 0.8;
+      break;
+    case 'medium':
+      fontSize = baseFontSize;
+      break;
+    case 'large':
+      fontSize = baseFontSize * 1.5;
+      break;
+    case 'xlarge':
+      fontSize = baseFontSize * 2;
+      break;
+    case 'title':
+      fontSize = baseFontSize * 2.5;
+      break;
+    default:
+      fontSize = baseFontSize;
     }
 
     return Math.floor(fontSize * scale);
@@ -196,7 +196,7 @@ export class ResponsiveUtils {
     // All buttons same size, only scale changes
     return {
       width: Math.floor(baseWidth * scale),
-      height: Math.floor(baseHeight * scale)
+      height: Math.floor(baseHeight * scale),
     };
   }
 }

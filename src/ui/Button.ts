@@ -6,7 +6,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
+import { FONT_SIZES } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { getButtonStyle } from '../utils/ThemeUtils';
 
@@ -77,7 +77,7 @@ export class Button extends Phaser.GameObjects.Container {
     width: number = 200,
     height: number = 50,
     text: string,
-    config: Partial<ButtonConfig> = {}
+    config: Partial<ButtonConfig> = {},
   ) {
     super(scene, x, y);
 
@@ -90,7 +90,7 @@ export class Button extends Phaser.GameObjects.Container {
       normal: 'ui_button_normal',
       hover: 'ui_button_hover',
       pressed: 'ui_button_pressed',
-      disabled: 'ui_button_disabled'
+      disabled: 'ui_button_disabled',
     };
 
     // Create background with scaling to match requested dimensions
@@ -107,7 +107,7 @@ export class Button extends Phaser.GameObjects.Container {
       color: '#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'),
       fontStyle: 'bold',
       stroke: '#000000',
-      strokeThickness: 3
+      strokeThickness: 3,
     });
     this.text.setOrigin(0.5);
     this.text.setDepth(1);

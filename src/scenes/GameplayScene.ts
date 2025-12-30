@@ -7,6 +7,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, DEFAULT_STARTING_LIVES } from '@config/constants';
 import { LevelConfig } from '@config/types';
 import { SlashTrail } from '../entities/SlashTrail';
@@ -125,7 +128,7 @@ export class GameplayScene extends Phaser.Scene {
     // Set up event listeners
     this.setupEventListeners();
 
-    console.log('GameplayScene created - Phase 4 Campaign ready!');
+    debugLog('GameplayScene created - Phase 4 Campaign ready!');
   }
 
   /**
@@ -169,7 +172,7 @@ export class GameplayScene extends Phaser.Scene {
 
       console.log(`[GameplayScene] Campaign mode: World ${this.currentWorld}, Level ${this.currentLevel}`);
     } catch (error) {
-      console.error('[GameplayScene] Failed to setup campaign mode:', error);
+      debugError('[GameplayScene] Failed to setup campaign mode:', error);
     }
   }
 
@@ -226,24 +229,24 @@ export class GameplayScene extends Phaser.Scene {
 
     // Create boss based on ID
     switch (bossId) {
-      case 'grave_titan':
-        this.boss = new GraveTitan(this);
-        break;
-      case 'headless_horseman':
-        this.boss = new HeadlessHorseman(this);
-        break;
-      case 'vampire_lord':
-        this.boss = new VampireLord(this);
-        break;
-      case 'phantom_king':
-        this.boss = new PhantomKing(this);
-        break;
-      case 'demon_overlord':
-        this.boss = new DemonOverlord(this);
-        break;
-      default:
-        console.error(`[GameplayScene] Unknown boss ID: ${bossId}`);
-        return;
+    case 'grave_titan':
+      this.boss = new GraveTitan(this);
+      break;
+    case 'headless_horseman':
+      this.boss = new HeadlessHorseman(this);
+      break;
+    case 'vampire_lord':
+      this.boss = new VampireLord(this);
+      break;
+    case 'phantom_king':
+      this.boss = new PhantomKing(this);
+      break;
+    case 'demon_overlord':
+      this.boss = new DemonOverlord(this);
+      break;
+    default:
+      console.error(`[GameplayScene] Unknown boss ID: ${bossId}`);
+      return;
     }
 
     // Get boss config
@@ -280,7 +283,7 @@ export class GameplayScene extends Phaser.Scene {
   private handleBossDefeated(data: any): void {
     if (!this.boss) return;
 
-    console.log(`[GameplayScene] Boss defeated!`);
+    console.log('[GameplayScene] Boss defeated!');
 
     // Hide boss health bar
     // this.hud.showBossHealthBar(false);
@@ -300,7 +303,7 @@ export class GameplayScene extends Phaser.Scene {
     try {
       await this.weaponManager.loadWeapons();
       await this.upgradeManager.loadUpgrades();
-      console.log('[GameplayScene] Progression data loaded');
+      debugLog('[GameplayScene] Progression data loaded');
     } catch (error) {
       console.error('[GameplayScene] Failed to load progression data:', error);
     }
@@ -621,7 +624,7 @@ export class GameplayScene extends Phaser.Scene {
    * Restart game
    */
   private restart(): void {
-    console.log('Restarting game...');
+    debugLog('Restarting game...');
 
     // Reset all systems
     this.slashTrail.clear();

@@ -4,7 +4,10 @@
  */
 
 import { Scene } from 'phaser';
-import { ThemeConfig } from '../config/types';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
+import { ThemeConfig, GradientPalette, ShadowConfig, AnimationPresets } from '../config/types';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 
 /**
@@ -51,7 +54,7 @@ export class ThemeManager {
     if (this.validateTheme(theme)) {
       this.currentTheme = theme;
     } else {
-      console.error('Invalid theme configuration provided');
+      debugError('Invalid theme configuration provided');
     }
   }
 
@@ -122,7 +125,7 @@ export class ThemeManager {
 
       return true;
     } catch (error) {
-      console.error('Theme validation error:', error);
+      debugError('Theme validation error:', error);
       return false;
     }
   }
@@ -164,8 +167,8 @@ export class ThemeManager {
   /**
    * Get a color from the current theme
    */
-  public getColor(colorName: keyof ThemeConfig['colors']): number {
-    return this.currentTheme.colors[colorName];
+  public getColor(colorName: keyof ThemeConfig['colors']): number | GradientPalette | ShadowConfig {
+    return this.currentTheme.colors[colorName] as number | GradientPalette | ShadowConfig;
   }
 
   /**
@@ -185,8 +188,8 @@ export class ThemeManager {
   /**
    * Get animation config from the current theme
    */
-  public getAnimation(animationName: keyof ThemeConfig['animations']): number | string {
-    return this.currentTheme.animations[animationName];
+  public getAnimation(animationName: keyof ThemeConfig['animations']): number | string | AnimationPresets {
+    return this.currentTheme.animations[animationName] as number | string | AnimationPresets;
   }
 
   /**
@@ -200,7 +203,7 @@ export class ThemeManager {
       fontSize?: number;
       stroke?: boolean;
       shadow?: boolean;
-    } = {}
+    } = {},
   ): void {
     const theme = this.currentTheme;
     const style: Phaser.Types.GameObjects.Text.TextStyle = {};
@@ -251,18 +254,24 @@ export class ThemeManager {
       borderColor?: keyof ThemeConfig['colors'];
       borderWidth?: number;
       alpha?: number;
-    } = {}
+    } = {},
   ): void {
     const theme = this.currentTheme;
 
     // Set fill color
     if (options.fillColor) {
-      rectangle.setFillStyle(theme.colors[options.fillColor], options.alpha ?? 1);
+      const fillColor = theme.colors[options.fillColor];
+      if (typeof fillColor === 'number') {
+        rectangle.setFillStyle(fillColor, options.alpha ?? 1);
+      }
     }
 
     // Set border
     if (options.borderColor && options.borderWidth) {
-      rectangle.setStrokeStyle(options.borderWidth, theme.colors[options.borderColor]);
+      const borderColor = theme.colors[options.borderColor];
+      if (typeof borderColor === 'number') {
+        rectangle.setStrokeStyle(options.borderWidth, borderColor);
+      }
     }
   }
 
@@ -280,7 +289,7 @@ export class ThemeManager {
       fontSize?: number;
       stroke?: boolean;
       shadow?: boolean;
-    } = {}
+    } = {},
   ): Phaser.GameObjects.Text {
     const textObject = scene.add.text(x, y, text);
     this.applyThemeToText(textObject, options);
@@ -301,7 +310,7 @@ export class ThemeManager {
       borderColor?: keyof ThemeConfig['colors'];
       borderWidth?: number;
       alpha?: number;
-    } = {}
+    } = {},
   ): Phaser.GameObjects.Rectangle {
     const rectangle = scene.add.rectangle(x, y, width, height);
     this.applyThemeToRectangle(rectangle, options);
@@ -316,7 +325,7 @@ export class ThemeManager {
     easing: string;
     hoverScale: number;
     pressScale: number;
-  } {
+    } {
     return {
       duration: this.currentTheme.animations.duration,
       easing: this.currentTheme.animations.easing,

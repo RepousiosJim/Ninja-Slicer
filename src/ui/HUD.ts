@@ -5,7 +5,7 @@
  */
 
 import Phaser from 'phaser';
-import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { FONT_SIZES, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { EventBus } from '../utils/EventBus';
 import { Button, ButtonStyle } from './Button';
@@ -25,6 +25,7 @@ export class HUD {
   private powerUpContainer!: Phaser.GameObjects.Container;
   private powerUpIcons: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private pauseButton: Button | null = null;
+  private eventListeners: Array<{ event: string; handler: Function }> = [];
   
   // Campaign mode elements
   private timerText!: Phaser.GameObjects.Text;
@@ -112,7 +113,7 @@ export class HUD {
     this.comboLabel.setVisible(false);
 
     // Combo value (center screen) with theme
-    this.comboText = this.scene.add.text(1280 / 2, 200, '0', {
+    this.comboText = this.scene.add.text(GAME_WIDTH / 2, 200, '0', {
       fontFamily: DARK_GOTHIC_THEME.fonts.primary,
       fontSize: `${FONT_SIZES.title}px`,
       color: '#' + DARK_GOTHIC_THEME.colors.warning.toString(16).padStart(6, '0'),
@@ -123,10 +124,10 @@ export class HUD {
     this.comboText.setVisible(false);
 
     // Power-up container (bottom)
-    this.powerUpContainer = this.scene.add.container(1280 / 2, 680);
+    this.powerUpContainer = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 40);
 
     // Timer label (top-center, below combo) with theme
-    this.timerLabel = this.scene.add.text(1280 / 2, 220, 'Time:', {
+    this.timerLabel = this.scene.add.text(GAME_WIDTH / 2, 220, 'Time:', {
       fontFamily: DARK_GOTHIC_THEME.fonts.primary,
       fontSize: `${FONT_SIZES.medium}px`,
       color: '#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'),
@@ -137,7 +138,7 @@ export class HUD {
     this.timerLabel.setVisible(false);
 
     // Timer value (top-center, below timer label) with theme
-    this.timerText = this.scene.add.text(1280 / 2, 260, '0:00', {
+    this.timerText = this.scene.add.text(GAME_WIDTH / 2, 260, '0:00', {
       fontFamily: DARK_GOTHIC_THEME.fonts.monospace,
       fontSize: `${FONT_SIZES.large}px`,
       color: '#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'),
@@ -148,7 +149,7 @@ export class HUD {
     this.timerText.setVisible(false);
 
     // Kill quota label (top-center, below timer) with theme
-    this.killQuotaLabel = this.scene.add.text(1280 / 2, 300, 'Kills:', {
+    this.killQuotaLabel = this.scene.add.text(GAME_WIDTH / 2, 300, 'Kills:', {
       fontFamily: DARK_GOTHIC_THEME.fonts.primary,
       fontSize: `${FONT_SIZES.medium}px`,
       color: '#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'),
@@ -159,7 +160,7 @@ export class HUD {
     this.killQuotaLabel.setVisible(false);
 
     // Kill quota value (top-center, below kill quota label) with theme
-    this.killQuotaText = this.scene.add.text(1280 / 2, 340, '0 / 0', {
+    this.killQuotaText = this.scene.add.text(GAME_WIDTH / 2, 340, '0 / 0', {
       fontFamily: DARK_GOTHIC_THEME.fonts.monospace,
       fontSize: `${FONT_SIZES.large}px`,
       color: '#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'),
@@ -170,7 +171,7 @@ export class HUD {
     this.killQuotaText.setVisible(false);
 
     // Boss health bar container (top-center) with theme
-    this.bossHealthBarContainer = this.scene.add.container(1280 / 2, 80);
+    this.bossHealthBarContainer = this.scene.add.container(GAME_WIDTH / 2, 80);
     this.bossHealthBarContainer.setVisible(false);
 
     // Boss health bar background with theme
@@ -202,7 +203,7 @@ export class HUD {
   addPauseButton(callback: () => void): void {
     this.pauseButton = new Button(
       this.scene,
-      1280 - 60,
+      GAME_WIDTH - 60,
       20,
       40,
       40,
@@ -211,7 +212,7 @@ export class HUD {
         style: ButtonStyle.SECONDARY,
         fontSize: 20,
         onClick: callback,
-      }
+      },
     );
     this.scene.add.existing(this.pauseButton);
   }
@@ -296,28 +297,17 @@ export class HUD {
    * Setup event listeners for HUD updates
    */
   private setupEventListeners(): void {
-    EventBus.on('score-updated', (data: { score: number }) => {
-      this.updateScore(data.score);
-    });
+    this.eventListeners = [
+      { event: 'score-updated', handler: (data: { score: number }) => this.updateScore(data.score) },
+      { event: 'souls-updated', handler: (data: { souls: number }) => this.updateSouls(data.souls) },
+      { event: 'combo-updated', handler: (data: { count: number; multiplier: number }) => this.updateCombo(data.count, data.multiplier) },
+      { event: 'lives-changed', handler: (data: { lives: number }) => this.updateLives(data.lives) },
+      { event: 'powerup-activated', handler: (data: { type: string }) => this.showPowerUpIndicator(data.type) },
+      { event: 'powerup-ended', handler: (data: { type: string }) => this.hidePowerUpIndicator(data.type) },
+    ];
 
-    EventBus.on('souls-updated', (data: { souls: number }) => {
-      this.updateSouls(data.souls);
-    });
-
-    EventBus.on('combo-updated', (data: { count: number; multiplier: number }) => {
-      this.updateCombo(data.count, data.multiplier);
-    });
-
-    EventBus.on('lives-changed', (data: { lives: number }) => {
-      this.updateLives(data.lives);
-    });
-
-    EventBus.on('powerup-activated', (data: { type: string }) => {
-      this.showPowerUpIndicator(data.type);
-    });
-
-    EventBus.on('powerup-ended', (data: { type: string }) => {
-      this.hidePowerUpIndicator(data.type);
+    this.eventListeners.forEach(({ event, handler }) => {
+      EventBus.on(event, handler);
     });
   }
 
@@ -404,22 +394,22 @@ export class HUD {
     let color = 0xffffff;
 
     switch (type) {
-      case 'slow_motion':
-        textureKey = 'powerup_slowmotion';
-        color = DARK_GOTHIC_THEME.colors.ghostlyBlue;
-        break;
-      case 'frenzy':
-        textureKey = 'powerup_frenzy';
-        color = DARK_GOTHIC_THEME.colors.danger;
-        break;
-      case 'shield':
-        textureKey = 'powerup_shield';
-        color = DARK_GOTHIC_THEME.colors.success;
-        break;
-      case 'soul_magnet':
-        textureKey = 'powerup_soulmagnet';
-        color = DARK_GOTHIC_THEME.colors.accent;
-        break;
+    case 'slow_motion':
+      textureKey = 'powerup_slowmotion';
+      color = DARK_GOTHIC_THEME.colors.ghostlyBlue;
+      break;
+    case 'frenzy':
+      textureKey = 'powerup_frenzy';
+      color = DARK_GOTHIC_THEME.colors.danger;
+      break;
+    case 'shield':
+      textureKey = 'powerup_shield';
+      color = DARK_GOTHIC_THEME.colors.success;
+      break;
+    case 'soul_magnet':
+      textureKey = 'powerup_soulmagnet';
+      color = DARK_GOTHIC_THEME.colors.accent;
+      break;
     }
 
     if (textureKey && !this.powerUpIcons.has(type)) {
@@ -477,12 +467,10 @@ export class HUD {
    */
   destroy(): void {
     // Remove event listeners
-    EventBus.off('score-updated');
-    EventBus.off('souls-updated');
-    EventBus.off('combo-updated');
-    EventBus.off('lives-changed');
-    EventBus.off('powerup-activated');
-    EventBus.off('powerup-ended');
+    this.eventListeners.forEach(({ event, handler }) => {
+      EventBus.off(event, handler);
+    });
+    this.eventListeners = [];
 
     // Destroy all elements
     if (this.scoreText) {

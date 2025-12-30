@@ -6,7 +6,6 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS } from '../config/constants';
 
 /**
  * Particle type enum
@@ -251,118 +250,118 @@ export class ParticleSystem {
     let config: any = {};
 
     switch (type) {
-      case ParticleType.SOUL_WISP:
-        textureKey = 'particle_soul_wisp';
-        config = {
-          speedX: { min: -20, max: 20 },
-          speedY: { min: -30, max: -10 },
-          scale: { start: 0.3, end: 0 },
-          alpha: { start: 0.6, end: 0 },
-          lifespan: 4000,
-          frequency: 200,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.SOUL_WISP:
+      textureKey = 'particle_soul_wisp';
+      config = {
+        speedX: { min: -20, max: 20 },
+        speedY: { min: -30, max: -10 },
+        scale: { start: 0.3, end: 0 },
+        alpha: { start: 0.6, end: 0 },
+        lifespan: 4000,
+        frequency: 200,
+        blendMode: 'ADD',
+      };
+      break;
 
-      case ParticleType.GHOST_MIST:
-        textureKey = 'particle_ghost_mist';
-        config = {
-          speedX: { min: -10, max: 10 },
-          speedY: { min: -5, max: 5 },
-          scale: { start: 1, end: 2 },
-          alpha: { start: 0.2, end: 0 },
-          lifespan: 6000,
-          frequency: 300,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.GHOST_MIST:
+      textureKey = 'particle_ghost_mist';
+      config = {
+        speedX: { min: -10, max: 10 },
+        speedY: { min: -5, max: 5 },
+        scale: { start: 1, end: 2 },
+        alpha: { start: 0.2, end: 0 },
+        lifespan: 6000,
+        frequency: 300,
+        blendMode: 'ADD',
+      };
+      break;
 
-      case ParticleType.BLOOD_SPLATTER:
-        textureKey = 'particle_blood';
-        config = {
-          speed: { min: 50, max: 150 },
-          scale: { start: 0.5, end: 0.2 },
-          alpha: { start: 1, end: 0 },
-          lifespan: 800,
-          quantity: 5,
-          blendMode: 'NORMAL',
-        };
-        break;
+    case ParticleType.BLOOD_SPLATTER:
+      textureKey = 'particle_blood';
+      config = {
+        speed: { min: 50, max: 150 },
+        scale: { start: 0.5, end: 0.2 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 800,
+        quantity: 5,
+        blendMode: 'NORMAL',
+      };
+      break;
 
-      case ParticleType.FIRE:
-        textureKey = 'particle_fire';
-        config = {
-          speed: { min: 30, max: 80 },
-          scale: { start: 0.3, end: 0.1 },
-          alpha: { start: 1, end: 0 },
-          lifespan: 1000,
-          quantity: 10,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.FIRE:
+      textureKey = 'particle_fire';
+      config = {
+        speed: { min: 30, max: 80 },
+        scale: { start: 0.3, end: 0.1 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 1000,
+        quantity: 10,
+        blendMode: 'ADD',
+      };
+      break;
 
-      case ParticleType.ICE:
-        textureKey = 'particle_ice';
-        config = {
-          speed: { min: 20, max: 60 },
-          scale: { start: 0.4, end: 0.1 },
-          alpha: { start: 1, end: 0 },
-          lifespan: 1200,
-          quantity: 8,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.ICE:
+      textureKey = 'particle_ice';
+      config = {
+        speed: { min: 20, max: 60 },
+        scale: { start: 0.4, end: 0.1 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 1200,
+        quantity: 8,
+        blendMode: 'ADD',
+      };
+      break;
 
-      case ParticleType.LIGHTNING:
-        textureKey = 'particle_lightning';
-        config = {
-          speed: { min: 100, max: 200 },
-          scale: { start: 0.3, end: 0 },
-          alpha: { start: 1, end: 0 },
-          lifespan: 500,
-          quantity: 15,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.LIGHTNING:
+      textureKey = 'particle_lightning';
+      config = {
+        speed: { min: 100, max: 200 },
+        scale: { start: 0.3, end: 0 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 500,
+        quantity: 15,
+        blendMode: 'ADD',
+      };
+      break;
 
-      case ParticleType.BUTTON_CLICK:
-        textureKey = 'particle_sparkle';
-        config = {
-          speed: { min: 50, max: 150 },
-          scale: { start: 0.5, end: 0 },
-          alpha: { start: 1, end: 0 },
-          lifespan: 400,
-          quantity: 8,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.BUTTON_CLICK:
+      textureKey = 'particle_sparkle';
+      config = {
+        speed: { min: 50, max: 150 },
+        scale: { start: 0.5, end: 0 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 400,
+        quantity: 8,
+        blendMode: 'ADD',
+      };
+      break;
 
-      case ParticleType.WEAPON_TRAIL:
-        textureKey = 'particle_sparkle';
-        config = {
-          speed: { min: 10, max: 30 },
-          scale: { start: 0.3, end: 0 },
-          alpha: { start: 0.8, end: 0 },
-          lifespan: 300,
-          quantity: 3,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.WEAPON_TRAIL:
+      textureKey = 'particle_sparkle';
+      config = {
+        speed: { min: 10, max: 30 },
+        scale: { start: 0.3, end: 0 },
+        alpha: { start: 0.8, end: 0 },
+        lifespan: 300,
+        quantity: 3,
+        blendMode: 'ADD',
+      };
+      break;
 
-      case ParticleType.SPARKLE:
-        textureKey = 'particle_sparkle';
-        config = {
-          speed: { min: 20, max: 50 },
-          scale: { start: 0.4, end: 0 },
-          alpha: { start: 1, end: 0 },
-          lifespan: 600,
-          quantity: 5,
-          blendMode: 'ADD',
-        };
-        break;
+    case ParticleType.SPARKLE:
+      textureKey = 'particle_sparkle';
+      config = {
+        speed: { min: 20, max: 50 },
+        scale: { start: 0.4, end: 0 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 600,
+        quantity: 5,
+        blendMode: 'ADD',
+      };
+      break;
 
-      default:
-        return null;
+    default:
+      return null;
     }
 
     return this.scene.add.particles(0, 0, textureKey, config);

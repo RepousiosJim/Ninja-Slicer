@@ -38,17 +38,17 @@ export class PhantomKing extends Boss {
 
     // Execute attack based on pattern
     switch (attackPattern) {
-      case 'phase_shift':
-        this.phaseShift();
-        break;
-      case 'clone_summon':
-        this.cloneSummon();
-        break;
-      case 'soul_storm':
-        this.soulStorm();
-        break;
-      default:
-        this.phaseShift();
+    case 'phase_shift':
+      this.phaseShift();
+      break;
+    case 'clone_summon':
+      this.cloneSummon();
+      break;
+    case 'soul_storm':
+      this.soulStorm();
+      break;
+    default:
+      this.phaseShift();
     }
   }
 
@@ -160,7 +160,7 @@ export class PhantomKing extends Boss {
       const soul = this.scene.physics.add.sprite(
         this.x + Math.cos(angle) * distance,
         this.y + Math.sin(angle) * distance,
-        'effect_soul'
+        'effect_soul',
       ) as any;
 
       const soulBody = soul.body as Phaser.Physics.Arcade.Body;

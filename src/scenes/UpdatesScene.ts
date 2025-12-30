@@ -101,7 +101,7 @@ export class UpdatesScene extends Phaser.Scene {
         fontFamily: DARK_GOTHIC_THEME.fonts.monospace,
         fontSize: `${fontSizeSm}px`,
         color: '#888888',
-      }
+      },
     );
     this.contentContainer.add(versionText);
     currentY += fontSizeSm + padding / 2;
@@ -210,8 +210,8 @@ export class UpdatesScene extends Phaser.Scene {
       {
         onClick: () => {
           this.scene.start(SCENE_KEYS.mainMenu);
-        }
-      }
+        },
+      },
     );
     backButton.setDepth(1000);
   }

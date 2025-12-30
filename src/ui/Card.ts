@@ -6,7 +6,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION, TEXTURE_KEYS } from '../config/constants';
+import { FONT_SIZES, TEXTURE_KEYS } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { getCardStyle } from '../utils/ThemeUtils';
 
@@ -61,7 +61,7 @@ export class Card extends Phaser.GameObjects.Container {
     y: number,
     width: number,
     height: number,
-    config: CardConfig
+    config: CardConfig,
   ) {
     super(scene, x, y);
 

@@ -6,7 +6,7 @@
  */
 
 import Phaser from 'phaser';
-import { SCENE_KEYS, COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
+import { SCENE_KEYS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
 import { Button, ButtonStyle } from '../ui/Button';
 import { AudioManager } from '../managers/AudioManager';
 
@@ -66,7 +66,7 @@ export class PauseScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       this.cameras.main.width,
       this.cameras.main.height,
-      0x000000
+      0x000000,
     );
 
     this.overlay.setAlpha(0.7);
@@ -87,7 +87,7 @@ export class PauseScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 8,
-      }
+      },
     );
 
     this.title.setOrigin(0.5);
@@ -126,7 +126,7 @@ export class PauseScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.large,
         onClick: this.onResume.bind(this),
-      }
+      },
     );
 
     this.resumeButton.setAlpha(0);
@@ -144,7 +144,7 @@ export class PauseScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.medium,
         onClick: this.onRestart.bind(this),
-      }
+      },
     );
 
     this.restartButton.setAlpha(0);
@@ -163,7 +163,7 @@ export class PauseScene extends Phaser.Scene {
         fontSize: FONT_SIZES.medium,
         icon: 'ui_settings_gear',
         onClick: this.onSettings.bind(this),
-      }
+      },
     );
 
     this.settingsButton.setAlpha(0);
@@ -181,7 +181,7 @@ export class PauseScene extends Phaser.Scene {
         style: ButtonStyle.DANGER,
         fontSize: FONT_SIZES.medium,
         onClick: this.onQuit.bind(this),
-      }
+      },
     );
 
     this.quitButton.setAlpha(0);

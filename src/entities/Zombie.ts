@@ -5,6 +5,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { Monster } from './Monster';
 import { MonsterType } from '@config/types';
 import { GRAVITY } from '@config/constants';
@@ -59,7 +62,7 @@ export class Zombie extends Monster {
   private createHalves(): void {
     // Check if textures exist
     if (!this.scene.textures.exists('zombie_left_half') || !this.scene.textures.exists('zombie_right_half')) {
-      console.warn('Zombie half textures not found, skipping split effect');
+      debugWarn('Zombie half textures not found, skipping split effect');
       return;
     }
 

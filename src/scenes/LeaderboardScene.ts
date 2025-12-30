@@ -7,6 +7,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, LEADERBOARD_DISPLAY_LIMIT, LEADERBOARD_PERSONAL_LIMIT, COLORS, FONT_SIZES } from '@config/constants';
 import { Button, ButtonStyle } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -82,7 +85,7 @@ export class LeaderboardScene extends Phaser.Scene {
     // Setup scroll handling
     this.setupScrollHandling();
 
-    console.log('LeaderboardScene created - Phase 6 Online ready!');
+    debugLog('LeaderboardScene created - Phase 6 Online ready!');
   }
 
   /**
@@ -136,7 +139,7 @@ export class LeaderboardScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.small,
         onClick: () => this.onTabChange('all'),
-      }
+      },
     );
     this.tabsContainer.add(this.allTimeButton);
 
@@ -152,7 +155,7 @@ export class LeaderboardScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: () => this.onTabChange('weekly'),
-      }
+      },
     );
     this.tabsContainer.add(this.weeklyButton);
 
@@ -168,7 +171,7 @@ export class LeaderboardScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: () => this.onTabChange('personal'),
-      }
+      },
     );
     this.tabsContainer.add(this.personalButton);
   }
@@ -219,7 +222,7 @@ export class LeaderboardScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.medium,
         onClick: () => this.onRefresh(),
-      }
+      },
     );
 
     // Back button
@@ -234,7 +237,7 @@ export class LeaderboardScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.medium,
         onClick: () => this.onBack(),
-      }
+      },
     );
   }
 
@@ -277,7 +280,7 @@ export class LeaderboardScene extends Phaser.Scene {
       this.leaderboardEntries = entries;
       this.createLeaderboardList();
     } catch (error) {
-      console.error('[LeaderboardScene] Failed to load leaderboard:', error);
+      debugError('[LeaderboardScene] Failed to load leaderboard:', error);
       this.loadingText.setText('Failed to load leaderboard');
     } finally {
       this.isLoading = false;
@@ -341,7 +344,7 @@ export class LeaderboardScene extends Phaser.Scene {
         description: `Weapon: ${entry.weapon_used} | Monsters: ${entry.monsters_sliced} | Max Combo: ${entry.max_combo}`,
         locked: false,
         selected: isPlayerEntry,
-      }
+      },
     );
 
     // Highlight player's entries

@@ -121,7 +121,7 @@ export class FrenzyPowerUp extends PowerUp {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 6,
-      }
+      },
     );
     this.indicator.setOrigin(0.5);
     this.indicator.setDepth(1000);

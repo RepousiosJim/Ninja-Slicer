@@ -14,6 +14,45 @@ export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 export const GAME_TITLE = 'Monster Slayer';
 
+// Screen boundaries
+export const SCREEN_TOP_Y = -50;
+export const SCREEN_BOTTOM_Y = 800;
+export const SCREEN_LEFT_X = -50;
+export const SCREEN_RIGHT_X = 1330;
+
+// Entity bounds for collision checking
+export const ENTITY_BOUNDS = {
+  top: -50,
+  bottom: 800,
+} as const;
+
+// Spawn ranges
+export const SPAWN_RANGES = {
+  xMin: 100,
+  xMax: 1180,
+  ySpawn: 750,
+  targetXMin: 200,
+  targetXMax: 1080,
+  targetYMin: 100,
+  targetYMax: 400,
+} as const;
+
+// Visual effect durations
+export const EFFECT_DURATIONS = {
+  flashFade: 50,
+  textFloat: 800,
+  burstFade: 200,
+  pulse: 500,
+} as const;
+
+// Visual effect sizes
+export const EFFECT_SIZES = {
+  hitFlashRadius: 50,
+  burstRadius: 60,
+  textOffset: 50,
+  textFloatDistance: 100,
+} as const;
+
 // =============================================================================
 // PHYSICS
 // =============================================================================
@@ -62,6 +101,12 @@ export const MONSTER_SOULS = {
   vampire: 8,
   ghost: 10,
 } as const;
+
+// Villager hitbox radius
+export const VILLAGER_HITBOX_RADIUS = 35;
+
+// Power-up hitbox radius
+export const POWERUP_HITBOX_RADIUS = 30;
 
 // Ghost visibility timing
 export const GHOST_VISIBLE_DURATION = 2.0; // seconds
@@ -213,6 +258,7 @@ export const AUDIO_VOLUME = {
 // =============================================================================
 
 export const SAVE_KEY = 'monster_slayer_save';
+export const SETTINGS_KEY = 'monster_slayer_settings';
 export const SAVE_VERSION = 1;
 
 // =============================================================================

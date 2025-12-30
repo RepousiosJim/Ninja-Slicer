@@ -96,7 +96,7 @@ export class ShopScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       this.cameras.main.width,
       this.cameras.main.height,
-      COLORS.background
+      COLORS.background,
     );
   }
 
@@ -114,7 +114,7 @@ export class ShopScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 6,
-      }
+      },
     );
 
     this.title.setOrigin(0.5);
@@ -146,7 +146,7 @@ export class ShopScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
 
     this.soulsDisplay.setOrigin(1, 0);
@@ -167,7 +167,7 @@ export class ShopScene extends Phaser.Scene {
   private createTabs(): void {
     this.tabsContainer = this.add.container(
       this.cameras.main.width / 2,
-      130
+      130,
     );
 
     const tabWidth = 200;
@@ -184,7 +184,7 @@ export class ShopScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.medium,
         onClick: () => this.onTabChange('weapons'),
-      }
+      },
     );
 
     this.upgradesTab = new Button(
@@ -198,7 +198,7 @@ export class ShopScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.medium,
         onClick: () => this.onTabChange('upgrades'),
-      }
+      },
     );
 
     this.tabsContainer.add(this.weaponsTab);
@@ -220,7 +220,7 @@ export class ShopScene extends Phaser.Scene {
   private createWeaponsTab(): void {
     this.weaponsContainer = this.add.container(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2 + 50
+      this.cameras.main.height / 2 + 50,
     );
 
     const weapons = this.weaponManager.getAllWeapons();
@@ -248,7 +248,7 @@ export class ShopScene extends Phaser.Scene {
     index: number,
     isUnlocked: boolean,
     weaponTier: number,
-    isMaxTier: boolean
+    isMaxTier: boolean,
   ): Phaser.GameObjects.Container {
     const weapon = this.weaponManager.getWeaponConfig(weaponId);
     if (!weapon) {
@@ -323,7 +323,7 @@ export class ShopScene extends Phaser.Scene {
         fontSize: FONT_SIZES.small,
         disabled: isMaxTier,
         onClick: () => this.onPurchaseWeapon(weaponId, isUnlocked, cost),
-      }
+      },
     );
 
     container.add(button);
@@ -337,7 +337,7 @@ export class ShopScene extends Phaser.Scene {
   private createUpgradesTab(): void {
     this.upgradesContainer = this.add.container(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2 + 50
+      this.cameras.main.height / 2 + 50,
     );
 
     const upgrades = this.upgradeManager.getAllUpgrades();
@@ -363,7 +363,7 @@ export class ShopScene extends Phaser.Scene {
     upgradeId: UpgradeId,
     index: number,
     upgradeTier: number,
-    isMaxTier: boolean
+    isMaxTier: boolean,
   ): Phaser.GameObjects.Container {
     const upgrade = this.upgradeManager.getUpgradeConfig(upgradeId);
     if (!upgrade) {
@@ -414,7 +414,7 @@ export class ShopScene extends Phaser.Scene {
       150,
       10,
       upgrade.maxTier,
-      upgradeTier
+      upgradeTier,
     );
     progressBar.setColor(COLORS.success);
     container.add(progressBar);
@@ -446,7 +446,7 @@ export class ShopScene extends Phaser.Scene {
         fontSize: FONT_SIZES.small,
         disabled: isMaxTier,
         onClick: () => this.onPurchaseUpgrade(upgradeId, cost),
-      }
+      },
     );
 
     container.add(button);
@@ -507,7 +507,7 @@ export class ShopScene extends Phaser.Scene {
     this.pendingPurchase = { type: 'weapon', id: weaponId, cost };
     this.showConfirmation(
       isUnlocked ? 'Upgrade weapon?' : 'Purchase weapon?',
-      () => this.confirmPurchase()
+      () => this.confirmPurchase(),
     );
   }
 
@@ -526,7 +526,7 @@ export class ShopScene extends Phaser.Scene {
     this.pendingPurchase = { type: 'upgrade', id: upgradeId, cost };
     this.showConfirmation(
       'Purchase upgrade?',
-      () => this.confirmPurchase()
+      () => this.confirmPurchase(),
     );
   }
 
@@ -544,7 +544,7 @@ export class ShopScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       400,
       200,
-      'CONFIRM'
+      'CONFIRM',
     );
 
     const messageText = this.add.text(0, -20, message, {
@@ -565,7 +565,7 @@ export class ShopScene extends Phaser.Scene {
         style: ButtonStyle.PRIMARY,
         fontSize: FONT_SIZES.small,
         onClick: callback,
-      }
+      },
     );
 
     const cancelButton = new Button(
@@ -579,7 +579,7 @@ export class ShopScene extends Phaser.Scene {
         style: ButtonStyle.DANGER,
         fontSize: FONT_SIZES.small,
         onClick: () => this.closeConfirmation(),
-      }
+      },
     );
 
     this.confirmationPanel.add(confirmButton);
@@ -653,7 +653,7 @@ export class ShopScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
 
     message.setOrigin(0.5);
@@ -685,7 +685,7 @@ export class ShopScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
 
     message.setOrigin(0.5);
@@ -730,7 +730,7 @@ export class ShopScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onBack.bind(this),
-      }
+      },
     );
 
     this.backButton.setAlpha(0);

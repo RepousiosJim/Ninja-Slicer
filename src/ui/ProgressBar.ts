@@ -6,7 +6,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
+import { FONT_SIZES } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 
 /**
@@ -60,7 +60,7 @@ export class ProgressBar extends Phaser.GameObjects.Container {
     width: number,
     height: number,
     max: number,
-    current: number
+    current: number,
   ) {
     super(scene, x, y);
 
@@ -156,7 +156,7 @@ export class ProgressBar extends Phaser.GameObjects.Container {
           fontFamily: DARK_GOTHIC_THEME.fonts.primary,
           fontSize: `${FONT_SIZES.small}px`,
           color: '#FFFFFF',
-        }
+        },
       );
       this.label.setOrigin(0, 0.5);
       this.add(this.label);
@@ -184,7 +184,7 @@ export class ProgressBar extends Phaser.GameObjects.Container {
           fontSize: `${FONT_SIZES.small}px`,
           color: '#FFFFFF',
           fontStyle: 'bold',
-        }
+        },
       );
       this.percentage.setOrigin(0.5);
       this.add(this.percentage);

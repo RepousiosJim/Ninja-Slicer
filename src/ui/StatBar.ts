@@ -7,7 +7,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
+import { FONT_SIZES } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 
 /**
@@ -58,7 +58,7 @@ export class StatBar extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: StatBarConfig
+    config: StatBarConfig,
   ) {
     super(scene, x, y);
 
@@ -150,7 +150,7 @@ export class StatBar extends Phaser.GameObjects.Container {
         fontSize: `${FONT_SIZES.small}px`,
         color: isBetter ? '#44ff44' : '#ff4444',
         fontStyle: 'bold',
-      }
+      },
     );
     this.comparisonIndicator.setOrigin(0, 0.5);
     this.add(this.comparisonIndicator);

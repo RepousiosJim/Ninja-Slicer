@@ -100,8 +100,8 @@ export const DARK_GOTHIC_THEME: ThemeConfig = {
         to: { alpha: 1, scale: 1, y: 0 },
       },
       cardHover: {
-        duration: 300,
-        easing: 'Power2.easeOut',
+        duration: 200,            // ENHANCED: from 300 to 200 (snappier response)
+        easing: 'Back.easeOut',   // ENHANCED: from 'Power2.easeOut' (more bounce)
         scale: 1.05,
         y: -8, // Lift effect
         shadow: { blur: 20 }, // Enhanced shadow
@@ -362,24 +362,31 @@ export const ELEMENT_COLORS = {
  * New constants for card-based main menu layout
  */
 export const DASHBOARD_CARD_CONFIG: DashboardCardConfig = {
-  // Card dimensions
+  // Card dimensions (serve as maximum, will scale down for smaller screens)
   width: 380,
   height: 280,
+  minWidth: 200,    // NEW - minimum card width
+  maxWidth: 380,    // NEW - maximum card width
+  minHeight: 150,   // NEW - minimum card height
+  maxHeight: 280,   // NEW - maximum card height
 
   // Layout
   columns: 3,
   rows: 2,
   gap: 20,
+  minGap: 10,       // NEW - minimum gap for small screens
+  maxGap: 20,       // NEW - maximum gap for large screens
+  adaptiveLayout: true,  // NEW - enable responsive grid layout
 
   // Visual style
   borderRadius: 12,
   borderWidth: 3,
   innerPadding: 20,
 
-  // Animation
-  hoverLift: -12,
-  hoverScale: 1.03,
-  hoverGlowIntensity: 16,
+  // Animation (constrained to prevent overflow)
+  hoverLift: -12,    // REDUCED from -20 to prevent viewport overflow
+  hoverScale: 1.03,  // REDUCED from 1.05 for better control
+  hoverGlowIntensity: 20,
 
   // Content
   iconSize: 80,

@@ -8,7 +8,6 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { MonsterType } from '../config/types';
 import { getMonsterColor } from '../utils/ThemeUtils';
@@ -64,7 +63,7 @@ export class EffectivenessChart extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: EffectivenessChartConfig
+    config: EffectivenessChartConfig,
   ) {
     super(scene, x, y);
 

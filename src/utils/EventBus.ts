@@ -106,7 +106,7 @@ export interface GameEvents {
  */
 export function emitEvent<K extends keyof GameEvents>(
   event: K, 
-  data?: GameEvents[K]
+  data?: GameEvents[K],
 ): void {
   EventBus.emit(event, data);
 }
@@ -114,7 +114,7 @@ export function emitEvent<K extends keyof GameEvents>(
 export function onEvent<K extends keyof GameEvents>(
   event: K, 
   callback: (data: GameEvents[K]) => void,
-  context?: unknown
+  context?: unknown,
 ): void {
   EventBus.on(event, callback, context);
 }
@@ -122,7 +122,7 @@ export function onEvent<K extends keyof GameEvents>(
 export function offEvent<K extends keyof GameEvents>(
   event: K, 
   callback: (data: GameEvents[K]) => void,
-  context?: unknown
+  context?: unknown,
 ): void {
   EventBus.off(event, callback, context);
 }

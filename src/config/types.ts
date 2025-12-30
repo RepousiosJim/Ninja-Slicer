@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Monster Slayer - TypeScript Type Definitions
  * Central location for all game interfaces and types
@@ -631,9 +632,16 @@ export interface ThemeConfig {
 export interface DashboardCardConfig {
   width: number;
   height: number;
+  minWidth?: number; // NEW - minimum card width for scaling
+  maxWidth?: number; // NEW - maximum card width for scaling
+  minHeight?: number; // NEW - minimum card height for scaling
+  maxHeight?: number; // NEW - maximum card height for scaling
   columns: number;
   rows: number;
   gap: number;
+  minGap?: number; // NEW - minimum gap for small screens
+  maxGap?: number; // NEW - maximum gap for large screens
+  adaptiveLayout?: boolean; // NEW - enable responsive grid layout
   borderRadius: number;
   borderWidth: number;
   innerPadding: number;

@@ -1,9 +1,9 @@
 /**
  * SaveManager
- * 
+ *
  * Handles all game save/load operations using localStorage.
  * Includes versioning for save data migrations.
- * 
+ *
  * Usage:
  *   const saveManager = new SaveManager();
  *   saveManager.save();
@@ -11,10 +11,10 @@
  */
 
 import { GameSave, GameSettings } from '@config/types';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
-const SAVE_KEY = 'monster_slayer_save';
-const SETTINGS_KEY = 'monster_slayer_settings';
-const SAVE_VERSION = 1;
+
+import { SAVE_KEY, SETTINGS_KEY, SAVE_VERSION } from '@config/constants';
 
 // Default save data
 const DEFAULT_SAVE: GameSave = {
@@ -95,7 +95,7 @@ export class SaveManager {
       // Merge with defaults to ensure all fields exist
       return { ...DEFAULT_SAVE, ...data };
     } catch (error) {
-      console.error('[SaveManager] Failed to load save:', error);
+      debugError('[SaveManager] Failed to load save:', error);
       return { ...DEFAULT_SAVE };
     }
   }
@@ -109,7 +109,7 @@ export class SaveManager {
       localStorage.setItem(SAVE_KEY, JSON.stringify(this.saveData));
       return true;
     } catch (error) {
-      console.error('[SaveManager] Failed to save:', error);
+      debugError('[SaveManager] Failed to save:', error);
       return false;
     }
   }
@@ -141,18 +141,180 @@ export class SaveManager {
    */
   importSave(jsonString: string): boolean {
     try {
-      const data = JSON.parse(jsonString) as GameSave;
-      // Validate it has required fields
-      if (typeof data.souls !== 'number' || typeof data.version !== 'number') {
-        throw new Error('Invalid save data format');
+      // First parse to get raw data
+      const rawData = JSON.parse(jsonString);
+      
+      // Validate the data structure before using it
+      if (!this.validateSaveData(rawData)) {
+        debugWarn('[SaveManager] Invalid save data structure');
+        return false;
       }
-      this.saveData = { ...DEFAULT_SAVE, ...data };
+      
+      // Type-safe data after validation
+      const data = rawData as GameSave;
+      
+      // Validate version
+      if (typeof data.version !== 'number' || data.version < 0) {
+        debugWarn('[SaveManager] Invalid save version');
+        return false;
+      }
+      
+      // Validate souls is non-negative
+      if (data.souls < 0) {
+        debugWarn('[SaveManager] Negative souls value detected');
+        return false;
+      }
+      
+      // Sanitize: only allow whitelisted fields to prevent prototype pollution
+      const sanitizedData = this.sanitizeSaveData(data);
+      
+      this.saveData = { ...DEFAULT_SAVE, ...sanitizedData };
       this.save();
       return true;
     } catch (error) {
-      console.error('[SaveManager] Failed to import save:', error);
+      debugError('[SaveManager] Failed to import save:', error);
       return false;
     }
+  }
+
+  /**
+   * Validate save data structure using whitelist approach
+   */
+  private validateSaveData(data: any): data is Partial<GameSave> {
+    if (data === null || data === undefined || typeof data !== 'object') {
+      return false;
+    }
+
+    // Validate required top-level fields
+    if (typeof data.version !== 'undefined' && typeof data.version !== 'number') {
+      return false;
+    }
+    
+    if (typeof data.souls !== 'undefined' && typeof data.souls !== 'number') {
+      return false;
+    }
+    
+    if (typeof data.unlockedWeapons !== 'undefined' && !Array.isArray(data.unlockedWeapons)) {
+      return false;
+    }
+    
+    if (typeof data.equippedWeapon !== 'undefined' && typeof data.equippedWeapon !== 'string') {
+      return false;
+    }
+    
+    if (typeof data.weaponTiers !== 'undefined' && (typeof data.weaponTiers !== 'object' || data.weaponTiers === null)) {
+      return false;
+    }
+    
+    if (typeof data.upgrades !== 'undefined' && (typeof data.upgrades !== 'object' || data.upgrades === null)) {
+      return false;
+    }
+    
+    if (typeof data.completedLevels !== 'undefined' && !Array.isArray(data.completedLevels)) {
+      return false;
+    }
+    
+    if (typeof data.levelStars !== 'undefined' && (typeof data.levelStars !== 'object' || data.levelStars === null)) {
+      return false;
+    }
+    
+    if (typeof data.highScores !== 'undefined' && (typeof data.highScores !== 'object' || data.highScores === null)) {
+      return false;
+    }
+    
+    if (typeof data.personalBests !== 'undefined' && !Array.isArray(data.personalBests)) {
+      return false;
+    }
+    
+    if (typeof data.playerName !== 'undefined' && 
+        data.playerName !== null && 
+        typeof data.playerName !== 'string') {
+      return false;
+    }
+    
+    if (typeof data.createdAt !== 'undefined' && typeof data.createdAt !== 'string') {
+      return false;
+    }
+    
+    if (typeof data.updatedAt !== 'undefined' && typeof data.updatedAt !== 'string') {
+      return false;
+    }
+    
+    // Validate settings if present
+    if (typeof data.settings !== 'undefined') {
+      if (typeof data.settings !== 'object' || data.settings === null) {
+        return false;
+      }
+      
+      const settings = data.settings;
+      if (typeof settings.soundEnabled !== 'undefined' && typeof settings.soundEnabled !== 'boolean') {
+        return false;
+      }
+      if (typeof settings.musicEnabled !== 'undefined' && typeof settings.musicEnabled !== 'boolean') {
+        return false;
+      }
+      if (typeof settings.soundVolume !== 'undefined' && typeof settings.soundVolume !== 'number') {
+        return false;
+      }
+      if (typeof settings.musicVolume !== 'undefined' && typeof settings.musicVolume !== 'number') {
+        return false;
+      }
+      if (typeof settings.sfxVolume !== 'undefined' && typeof settings.sfxVolume !== 'number') {
+        return false;
+      }
+      if (typeof settings.sfxEnabled !== 'undefined' && typeof settings.sfxEnabled !== 'boolean') {
+        return false;
+      }
+      if (typeof settings.cloudSaveEnabled !== 'undefined' && typeof settings.cloudSaveEnabled !== 'boolean') {
+        return false;
+      }
+      if (typeof settings.uiScale !== 'undefined' && 
+          settings.uiScale !== 'small' && 
+          settings.uiScale !== 'medium' && 
+          settings.uiScale !== 'large') {
+        return false;
+      }
+    }
+
+    // Check for any unknown properties (prototype pollution prevention)
+    const knownProperties = new Set([
+      'version', 'souls', 'unlockedWeapons', 'weaponTiers', 'equippedWeapon',
+      'upgrades', 'completedLevels', 'levelStars', 'highScores', 'settings',
+      'personalBests', 'playerName', 'createdAt', 'updatedAt', 'testResults'
+    ]);
+    
+    for (const key of Object.keys(data)) {
+      if (!knownProperties.has(key)) {
+        debugWarn(`[SaveManager] Unknown property in save data: ${key}`);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Sanitize save data by only allowing whitelisted fields
+   * Prevents prototype pollution and other injection attacks
+   */
+  private sanitizeSaveData(data: GameSave): Partial<GameSave> {
+    const sanitized: Partial<GameSave> = {};
+    
+    // Whitelist of allowed properties
+    const allowedFields: (keyof GameSave)[] = [
+      'version', 'souls', 'unlockedWeapons', 'weaponTiers', 'equippedWeapon',
+      'upgrades', 'completedLevels', 'levelStars', 'highScores', 'settings',
+      'personalBests', 'playerName', 'createdAt', 'updatedAt', 'testResults'
+    ];
+    
+    for (const field of allowedFields) {
+      if (field in data && data[field] !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (sanitized as any)[field] = data[field as keyof GameSave];
+      }
+    }
+    
+    return sanitized;
   }
 
   // ===========================================================================
@@ -170,7 +332,7 @@ export class SaveManager {
       }
       return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
     } catch (error) {
-      console.error('[SaveManager] Failed to load settings:', error);
+      debugError('[SaveManager] Failed to load settings:', error);
       return { ...DEFAULT_SETTINGS };
     }
   }
@@ -183,7 +345,7 @@ export class SaveManager {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
       return true;
     } catch (error) {
-      console.error('[SaveManager] Failed to save settings:', error);
+      debugError('[SaveManager] Failed to save settings:', error);
       return false;
     }
   }
@@ -233,6 +395,9 @@ export class SaveManager {
    * Add souls to the player's total
    */
   addSouls(amount: number): number {
+    if (amount < 0) {
+      throw new Error('Cannot add negative souls');
+    }
     this.saveData.souls += amount;
     this.saveData.updatedAt = new Date().toISOString();
     this.save();
@@ -243,6 +408,9 @@ export class SaveManager {
    * Spend souls (returns false if not enough)
    */
   spendSouls(amount: number): boolean {
+    if (amount < 0) {
+      throw new Error('Cannot spend negative souls');
+    }
     if (this.saveData.souls < amount) {
       return false;
     }
@@ -417,7 +585,7 @@ export class SaveManager {
    * Migrate old save data to current version
    */
   private migrateSave(oldData: GameSave): GameSave {
-    let data = { ...oldData };
+    const data = { ...oldData };
 
     // Example migration from version 0 to 1
     // if (data.version < 1) {

@@ -5,7 +5,7 @@
  * details modal, pagination, and thematic UI elements.
  */
 
-import Phaser from 'phaser';
+import { MessageDisplay } from '../utils/MessageDisplay';
 import { SCENE_KEYS, TEXTURE_KEYS, COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
 import { Button, ButtonStyle } from '../ui/Button';
 import { SaveManager } from '../managers/SaveManager';
@@ -124,7 +124,7 @@ export class InventoryScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       this.cameras.main.width,
       this.cameras.main.height,
-      COLORS.background
+      COLORS.background,
     );
 
     // Add subtle gradient overlay
@@ -155,7 +155,7 @@ export class InventoryScene extends Phaser.Scene {
           blur: 5,
           fill: true,
         },
-      }
+      },
     );
 
     this.title.setOrigin(0.5);
@@ -221,30 +221,30 @@ export class InventoryScene extends Phaser.Scene {
 
     this.filteredWeapons = allWeapons.filter(weapon => {
       switch (filter) {
-        case FilterType.ALL:
-          return true;
-        case FilterType.OWNED:
-          return saveData.unlockedWeapons.includes(weapon.id as WeaponId);
-        case FilterType.LOCKED:
-          return !saveData.unlockedWeapons.includes(weapon.id as WeaponId);
-        case FilterType.TYPE_MELEE:
-          return getWeaponType(weapon.id) === WeaponType.MELEE;
-        case FilterType.TYPE_MAGIC:
-          return getWeaponType(weapon.id) === WeaponType.MAGIC;
-        case FilterType.TYPE_ELEMENTAL:
-          return getWeaponType(weapon.id) === WeaponType.ELEMENTAL;
-        case FilterType.RARITY_COMMON:
-          return weapon.rarity === 'common';
-        case FilterType.RARITY_UNCOMMON:
-          return weapon.rarity === 'uncommon';
-        case FilterType.RARITY_RARE:
-          return weapon.rarity === 'rare';
-        case FilterType.RARITY_EPIC:
-          return weapon.rarity === 'epic';
-        case FilterType.RARITY_LEGENDARY:
-          return weapon.rarity === 'legendary';
-        default:
-          return true;
+      case FilterType.ALL:
+        return true;
+      case FilterType.OWNED:
+        return saveData.unlockedWeapons.includes(weapon.id as WeaponId);
+      case FilterType.LOCKED:
+        return !saveData.unlockedWeapons.includes(weapon.id as WeaponId);
+      case FilterType.TYPE_MELEE:
+        return getWeaponType(weapon.id) === WeaponType.MELEE;
+      case FilterType.TYPE_MAGIC:
+        return getWeaponType(weapon.id) === WeaponType.MAGIC;
+      case FilterType.TYPE_ELEMENTAL:
+        return getWeaponType(weapon.id) === WeaponType.ELEMENTAL;
+      case FilterType.RARITY_COMMON:
+        return weapon.rarity === 'common';
+      case FilterType.RARITY_UNCOMMON:
+        return weapon.rarity === 'uncommon';
+      case FilterType.RARITY_RARE:
+        return weapon.rarity === 'rare';
+      case FilterType.RARITY_EPIC:
+        return weapon.rarity === 'epic';
+      case FilterType.RARITY_LEGENDARY:
+        return weapon.rarity === 'legendary';
+      default:
+        return true;
       }
     });
 
@@ -259,34 +259,34 @@ export class InventoryScene extends Phaser.Scene {
    */
   private applySort(sort: SortType): void {
     switch (sort) {
-      case SortType.NAME:
-        this.filteredWeapons.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case SortType.RARITY:
-        const rarityOrder: Record<WeaponRarity, number> = {
-          common: 0,
-          uncommon: 1,
-          rare: 2,
-          epic: 3,
-          legendary: 4,
-        };
-        this.filteredWeapons.sort((a, b) => rarityOrder[b.rarity] - rarityOrder[a.rarity]);
-        break;
-      case SortType.TIER:
-        const saveData = this.saveManager.getSaveData();
-        this.filteredWeapons.sort((a, b) => {
-          const tierA = saveData.weaponTiers[a.id] || 1;
-          const tierB = saveData.weaponTiers[b.id] || 1;
-          return tierB - tierA;
-        });
-        break;
-      case SortType.EFFECTIVENESS:
-        this.filteredWeapons.sort((a, b) => {
-          const effectivenessA = a.effectiveAgainst ? 80 : 40;
-          const effectivenessB = b.effectiveAgainst ? 80 : 40;
-          return effectivenessB - effectivenessA;
-        });
-        break;
+    case SortType.NAME:
+      this.filteredWeapons.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case SortType.RARITY:
+      const rarityOrder: Record<WeaponRarity, number> = {
+        common: 0,
+        uncommon: 1,
+        rare: 2,
+        epic: 3,
+        legendary: 4,
+      };
+      this.filteredWeapons.sort((a, b) => rarityOrder[b.rarity] - rarityOrder[a.rarity]);
+      break;
+    case SortType.TIER:
+      const saveData = this.saveManager.getSaveData();
+      this.filteredWeapons.sort((a, b) => {
+        const tierA = saveData.weaponTiers[a.id] || 1;
+        const tierB = saveData.weaponTiers[b.id] || 1;
+        return tierB - tierA;
+      });
+      break;
+    case SortType.EFFECTIVENESS:
+      this.filteredWeapons.sort((a, b) => {
+        const effectivenessA = a.effectiveAgainst ? 80 : 40;
+        const effectivenessB = b.effectiveAgainst ? 80 : 40;
+        return effectivenessB - effectivenessA;
+      });
+      break;
     }
 
     this.currentPage = 1;
@@ -344,7 +344,7 @@ export class InventoryScene extends Phaser.Scene {
     y: number,
     isUnlocked: boolean,
     isEquipped: boolean,
-    weaponTier: number
+    weaponTier: number,
   ): WeaponCard {
     const config: WeaponCardConfig = {
       weapon: weapon,
@@ -421,8 +421,8 @@ export class InventoryScene extends Phaser.Scene {
       card.setEquipped(id === weaponId);
     });
 
-    // Show equipped message
-    this.showEquippedMessage();
+    // Show equipped message using MessageDisplay
+    MessageDisplay.showEquipped(this);
   }
 
   /**
@@ -471,10 +471,10 @@ export class InventoryScene extends Phaser.Scene {
 
     const success = this.weaponManager.upgradeWeapon(weaponId);
     if (success) {
-      this.showUpgradeSuccessMessage();
+      MessageDisplay.showUpgraded(this);
       this.renderWeaponCards();
     } else {
-      this.showUpgradeFailedMessage();
+      MessageDisplay.showUpgradeFailed(this);
     }
   }
 
@@ -499,7 +499,7 @@ export class InventoryScene extends Phaser.Scene {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
 
     message.setOrigin(0.5);
@@ -534,7 +534,7 @@ export class InventoryScene extends Phaser.Scene {
           message.destroy();
           buyButton.destroy();
         },
-      }
+      },
     );
 
     this.add.existing(buyButton);
@@ -552,7 +552,7 @@ export class InventoryScene extends Phaser.Scene {
 
       // Refresh display
       this.renderWeaponCards();
-      this.showUnlockSuccessMessage();
+      MessageDisplay.showUnlocked(this);
     }
   }
 
@@ -575,7 +575,7 @@ export class InventoryScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: () => this.onPreviousPage(),
-      }
+      },
     );
     this.paginationContainer.add(prevButton);
 
@@ -601,7 +601,7 @@ export class InventoryScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: () => this.onNextPage(),
-      }
+      },
     );
     this.paginationContainer.add(nextButton);
 
@@ -674,7 +674,7 @@ export class InventoryScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: () => this.onCompareClick(),
-      }
+      },
     );
     this.actionButtonsContainer.add(compareButton);
 
@@ -690,7 +690,7 @@ export class InventoryScene extends Phaser.Scene {
         style: ButtonStyle.SECONDARY,
         fontSize: FONT_SIZES.small,
         onClick: this.onBack.bind(this),
-      }
+      },
     );
     this.actionButtonsContainer.add(this.backButton);
 
@@ -710,7 +710,7 @@ export class InventoryScene extends Phaser.Scene {
     this.audioManager.playSFX('uiClick');
 
     if (!this.selectedWeaponId) {
-      this.showSelectWeaponMessage();
+      MessageDisplay.showSelectWeapon(this);
       return;
     }
 
@@ -718,7 +718,7 @@ export class InventoryScene extends Phaser.Scene {
     const equippedWeaponId = saveData.equippedWeapon as WeaponId;
 
     if (this.selectedWeaponId === equippedWeaponId) {
-      this.showSelectDifferentWeaponMessage();
+      MessageDisplay.showSelectDifferentWeapon(this);
       return;
     }
 
@@ -789,198 +789,6 @@ export class InventoryScene extends Phaser.Scene {
         duration: UI_ANIMATION_DURATION,
       });
     }
-  }
-
-  /**
-   * Show equipped message
-   */
-  private showEquippedMessage(): void {
-    const message = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height - 150,
-      'WEAPON EQUIPPED!',
-      {
-        fontSize: `${FONT_SIZES.medium}px`,
-        color: '#44ff44',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }
-    );
-
-    message.setOrigin(0.5);
-    message.setAlpha(0);
-
-    this.tweens.add({
-      targets: message,
-      alpha: 1,
-      duration: UI_ANIMATION_DURATION,
-      yoyo: true,
-      hold: 1500,
-      onComplete: () => {
-        message.destroy();
-      },
-    });
-  }
-
-  /**
-   * Show unlock success message
-   */
-  private showUnlockSuccessMessage(): void {
-    const message = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height - 150,
-      'WEAPON UNLOCKED!',
-      {
-        fontSize: `${FONT_SIZES.medium}px`,
-        color: '#ffd700',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }
-    );
-
-    message.setOrigin(0.5);
-    message.setAlpha(0);
-
-    this.tweens.add({
-      targets: message,
-      alpha: 1,
-      duration: UI_ANIMATION_DURATION,
-      yoyo: true,
-      hold: 1500,
-      onComplete: () => {
-        message.destroy();
-      },
-    });
-  }
-
-  /**
-   * Show upgrade success message
-   */
-  private showUpgradeSuccessMessage(): void {
-    const message = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height - 150,
-      'WEAPON UPGRADED!',
-      {
-        fontSize: `${FONT_SIZES.medium}px`,
-        color: '#44aaff',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }
-    );
-
-    message.setOrigin(0.5);
-    message.setAlpha(0);
-
-    this.tweens.add({
-      targets: message,
-      alpha: 1,
-      duration: UI_ANIMATION_DURATION,
-      yoyo: true,
-      hold: 1500,
-      onComplete: () => {
-        message.destroy();
-      },
-    });
-  }
-
-  /**
-   * Show upgrade failed message
-   */
-  private showUpgradeFailedMessage(): void {
-    const message = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height - 150,
-      'UPGRADE FAILED',
-      {
-        fontSize: `${FONT_SIZES.medium}px`,
-        color: '#ff4444',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }
-    );
-
-    message.setOrigin(0.5);
-    message.setAlpha(0);
-
-    this.tweens.add({
-      targets: message,
-      alpha: 1,
-      duration: UI_ANIMATION_DURATION,
-      yoyo: true,
-      hold: 1500,
-      onComplete: () => {
-        message.destroy();
-      },
-    });
-  }
-
-  /**
-   * Show select weapon message
-   */
-  private showSelectWeaponMessage(): void {
-    const message = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height - 150,
-      'SELECT A WEAPON TO COMPARE',
-      {
-        fontSize: `${FONT_SIZES.medium}px`,
-        color: '#ffaa00',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }
-    );
-
-    message.setOrigin(0.5);
-    message.setAlpha(0);
-
-    this.tweens.add({
-      targets: message,
-      alpha: 1,
-      duration: UI_ANIMATION_DURATION,
-      yoyo: true,
-      hold: 1500,
-      onComplete: () => {
-        message.destroy();
-      },
-    });
-  }
-
-  /**
-   * Show select different weapon message
-   */
-  private showSelectDifferentWeaponMessage(): void {
-    const message = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height - 150,
-      'SELECT A DIFFERENT WEAPON TO COMPARE',
-      {
-        fontSize: `${FONT_SIZES.medium}px`,
-        color: '#ffaa00',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }
-    );
-
-    message.setOrigin(0.5);
-    message.setAlpha(0);
-
-    this.tweens.add({
-      targets: message,
-      alpha: 1,
-      duration: UI_ANIMATION_DURATION,
-      yoyo: true,
-      hold: 1500,
-      onComplete: () => {
-        message.destroy();
-      },
-    });
   }
 
   /**

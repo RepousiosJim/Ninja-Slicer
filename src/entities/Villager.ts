@@ -122,14 +122,14 @@ export class Villager extends Phaser.Physics.Arcade.Sprite {
           key: animKey,
           frames: this.scene.anims.generateFrameNumbers(sheetKey, { start: 0, end: 1 }),
           frameRate: 4,
-          repeat: -1
+          repeat: -1,
         });
         
         this.scene.anims.create({
           key: `${texture}_panic`,
           frames: this.scene.anims.generateFrameNumbers(sheetKey, { start: 2, end: 5 }),
           frameRate: 10,
-          repeat: -1
+          repeat: -1,
         });
         
         this.play(animKey);
@@ -218,7 +218,7 @@ export class Villager extends Phaser.Physics.Arcade.Sprite {
         fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 4,
-      }
+      },
     );
     penaltyText.setOrigin(0.5);
 

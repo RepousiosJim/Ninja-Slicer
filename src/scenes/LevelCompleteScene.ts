@@ -58,7 +58,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       this.scale.width,
       this.scale.height,
       0x000000,
-      0.8
+      0.8,
     );
     bg.setDepth(0);
   }
@@ -110,7 +110,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       {
         fontSize: '20px',
         color: '#cccccc',
-      }
+      },
     );
     this.statsText.setOrigin(0.5);
     this.statsText.setDepth(10);

@@ -50,7 +50,7 @@ export class EffectCard extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: EffectCardConfig
+    config: EffectCardConfig,
   ) {
     super(scene, x, y);
 
@@ -103,76 +103,76 @@ export class EffectCard extends Phaser.GameObjects.Container {
 
     // Draw icon based on effect type
     switch (this.effect.type) {
-      case 'bonus_damage':
-        // Draw sword icon
-        this.icon.lineStyle(3, iconColor, 1);
-        this.icon.beginPath();
-        this.icon.moveTo(-iconSize / 2, iconSize / 2);
-        this.icon.lineTo(iconSize / 2, -iconSize / 2);
-        this.icon.strokePath();
-        break;
+    case 'bonus_damage':
+      // Draw sword icon
+      this.icon.lineStyle(3, iconColor, 1);
+      this.icon.beginPath();
+      this.icon.moveTo(-iconSize / 2, iconSize / 2);
+      this.icon.lineTo(iconSize / 2, -iconSize / 2);
+      this.icon.strokePath();
+      break;
 
-      case 'stun':
-        // Draw lightning bolt
-        this.icon.lineStyle(3, iconColor, 1);
-        this.icon.beginPath();
-        this.icon.moveTo(0, -iconSize / 2);
-        this.icon.lineTo(-iconSize / 4, 0);
-        this.icon.lineTo(iconSize / 4, 0);
-        this.icon.lineTo(0, iconSize / 2);
-        this.icon.strokePath();
-        break;
+    case 'stun':
+      // Draw lightning bolt
+      this.icon.lineStyle(3, iconColor, 1);
+      this.icon.beginPath();
+      this.icon.moveTo(0, -iconSize / 2);
+      this.icon.lineTo(-iconSize / 4, 0);
+      this.icon.lineTo(iconSize / 4, 0);
+      this.icon.lineTo(0, iconSize / 2);
+      this.icon.strokePath();
+      break;
 
-      case 'ghost_visibility':
-        // Draw eye icon
-        this.icon.lineStyle(3, iconColor, 1);
-        this.icon.strokeCircle(0, 0, iconSize / 3);
-        this.icon.fillCircle(0, 0, iconSize / 6);
-        break;
+    case 'ghost_visibility':
+      // Draw eye icon
+      this.icon.lineStyle(3, iconColor, 1);
+      this.icon.strokeCircle(0, 0, iconSize / 3);
+      this.icon.fillCircle(0, 0, iconSize / 6);
+      break;
 
-      case 'damage_over_time':
-        // Draw fire icon
-        this.icon.fillStyle(iconColor, 1);
-        this.icon.fillCircle(0, 0, iconSize / 3);
-        this.icon.lineStyle(2, 0xff0000, 1);
-        this.icon.beginPath();
-        this.icon.arc(0, 0, iconSize / 2, 0, Math.PI * 2);
-        this.icon.strokePath();
-        break;
+    case 'damage_over_time':
+      // Draw fire icon
+      this.icon.fillStyle(iconColor, 1);
+      this.icon.fillCircle(0, 0, iconSize / 3);
+      this.icon.lineStyle(2, 0xff0000, 1);
+      this.icon.beginPath();
+      this.icon.arc(0, 0, iconSize / 2, 0, Math.PI * 2);
+      this.icon.strokePath();
+      break;
 
-      case 'freeze_chance':
-        // Draw snowflake
-        this.icon.lineStyle(2, iconColor, 1);
-        for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI * 2 / 6) * i;
-          this.icon.beginPath();
-          this.icon.moveTo(0, 0);
-          this.icon.lineTo(Math.cos(angle) * iconSize / 2, Math.sin(angle) * iconSize / 2);
-          this.icon.strokePath();
-        }
-        break;
+    case 'freeze_chance':
+      // Draw snowflake
+      this.icon.lineStyle(2, iconColor, 1);
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 / 6) * i;
+        this.icon.beginPath();
+        this.icon.moveTo(0, 0);
+        this.icon.lineTo(Math.cos(angle) * iconSize / 2, Math.sin(angle) * iconSize / 2);
+        this.icon.strokePath();
+      }
+      break;
 
-      case 'chain_damage':
-      case 'chain_stun':
-        // Draw chain icon
-        this.icon.lineStyle(2, iconColor, 1);
-        this.icon.beginPath();
-        this.icon.arc(-iconSize / 4, 0, iconSize / 4, 0, Math.PI * 2);
-        this.icon.strokePath();
-        this.icon.beginPath();
-        this.icon.arc(iconSize / 4, 0, iconSize / 4, 0, Math.PI * 2);
-        this.icon.strokePath();
-        this.icon.beginPath();
-        this.icon.moveTo(-iconSize / 4, 0);
-        this.icon.lineTo(iconSize / 4, 0);
-        this.icon.strokePath();
-        break;
+    case 'chain_damage':
+    case 'chain_stun':
+      // Draw chain icon
+      this.icon.lineStyle(2, iconColor, 1);
+      this.icon.beginPath();
+      this.icon.arc(-iconSize / 4, 0, iconSize / 4, 0, Math.PI * 2);
+      this.icon.strokePath();
+      this.icon.beginPath();
+      this.icon.arc(iconSize / 4, 0, iconSize / 4, 0, Math.PI * 2);
+      this.icon.strokePath();
+      this.icon.beginPath();
+      this.icon.moveTo(-iconSize / 4, 0);
+      this.icon.lineTo(iconSize / 4, 0);
+      this.icon.strokePath();
+      break;
 
-      default:
-        // Draw default star icon
-        this.icon.fillStyle(iconColor, 1);
-        this.icon.fillCircle(0, 0, iconSize / 3);
-        break;
+    default:
+      // Draw default star icon
+      this.icon.fillStyle(iconColor, 1);
+      this.icon.fillCircle(0, 0, iconSize / 3);
+      break;
     }
   }
 
@@ -181,21 +181,21 @@ export class EffectCard extends Phaser.GameObjects.Container {
    */
   private getEffectColor(): number {
     switch (this.effect.type) {
-      case 'bonus_damage':
-        return 0xff4500; // Fire orange
-      case 'stun':
-        return 0x9932cc; // Lightning purple
-      case 'ghost_visibility':
-        return 0x00bfff; // Ice blue
-      case 'damage_over_time':
-        return 0xff0000; // Fire red
-      case 'freeze_chance':
-        return 0x00ffff; // Ice cyan
-      case 'chain_damage':
-      case 'chain_stun':
-        return 0xffd700; // Gold
-      default:
-        return COLORS.accent;
+    case 'bonus_damage':
+      return 0xff4500; // Fire orange
+    case 'stun':
+      return 0x9932cc; // Lightning purple
+    case 'ghost_visibility':
+      return 0x00bfff; // Ice blue
+    case 'damage_over_time':
+      return 0xff0000; // Fire red
+    case 'freeze_chance':
+      return 0x00ffff; // Ice cyan
+    case 'chain_damage':
+    case 'chain_stun':
+      return 0xffd700; // Gold
+    default:
+      return COLORS.accent;
     }
   }
 

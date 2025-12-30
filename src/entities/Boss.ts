@@ -6,6 +6,9 @@
  */
 
 import Phaser from 'phaser';
+import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+
+
 import { BossConfig, BossPhase, MonsterType } from '@config/types';
 import { BOSS_PHASE_THRESHOLDS, BOSS_INVULNERABLE_DURATION, BOSS_MINION_SPAWN_DELAY } from '@config/constants';
 import { EventBus } from '../utils/EventBus';
@@ -32,14 +35,67 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
   protected healthBarFill: Phaser.GameObjects.Rectangle | null = null;
   protected healthBarText: Phaser.GameObjects.Text | null = null;
 
+  // Visual effects
+  protected glowEffect: Phaser.GameObjects.Graphics | null = null;
+
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
     super(scene, x, y, texture);
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    
+
+    // ENHANCED: Make boss MUCH larger than regular monsters
+    this.setScale(3.0); // 3x size of monsters
+
+    // Create ominous glow effect
+    this.createBossGlow();
+
     // Create animations after delay to ensure config is loaded
     scene.events.once('update', () => {
       this.createAnimations();
+    });
+  }
+
+  /**
+   * Create pulsing glow effect for boss
+   */
+  protected createBossGlow(): void {
+    this.glowEffect = this.scene.add.graphics();
+    this.glowEffect.setDepth(this.depth - 1);
+
+    // Draw multi-layered glow
+    const drawGlow = () => {
+      if (!this.glowEffect || this.isDead) return;
+
+      this.glowEffect.clear();
+
+      // Outer glow (widest)
+      this.glowEffect.fillStyle(0xff0000, 0.1);
+      this.glowEffect.fillCircle(this.x, this.y, 120);
+
+      // Middle glow
+      this.glowEffect.fillStyle(0xff0000, 0.15);
+      this.glowEffect.fillCircle(this.x, this.y, 80);
+
+      // Inner glow (brightest)
+      this.glowEffect.fillStyle(0xff0000, 0.25);
+      this.glowEffect.fillCircle(this.x, this.y, 50);
+    };
+
+    // Update glow position in scene update
+    this.scene.events.on('update', () => {
+      if (this.glowEffect && this.active) {
+        drawGlow();
+      }
+    });
+
+    // Pulsing animation
+    this.scene.tweens.add({
+      targets: this.glowEffect,
+      alpha: { from: 0.6, to: 1.0 },
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
     });
   }
 
@@ -57,7 +113,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
           key: animKey,
           frames: this.scene.anims.generateFrameNumbers(sheetKey, { start: 0, end: 2 }),
           frameRate: 6,
-          repeat: -1
+          repeat: -1,
         });
         this.play(animKey);
       }
@@ -310,15 +366,72 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
    * Play spawn animation
    */
   protected playSpawnAnimation(): void {
-    // Scale up animation
+    // ENHANCED: Dramatic entrance with shake and flash
+
+    // Screen shake
+    this.scene.cameras.main.shake(500, 0.01);
+
+    // Flash effect
+    this.scene.cameras.main.flash(300, 255, 0, 0, false); // Red flash
+
+    // Scale up animation (from 0 to 3.0)
     this.setScale(0);
     this.scene.tweens.add({
       targets: this,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 500,
+      scaleX: 3.0,
+      scaleY: 3.0,
+      duration: 800,
       ease: 'Back.easeOut',
     });
+
+    // Fade in from transparent
+    this.setAlpha(0);
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 1,
+      duration: 800,
+      ease: 'Cubic.easeOut',
+    });
+
+    // Spawn particles around boss
+    this.createSpawnParticles();
+  }
+
+  /**
+   * Create particle effect on boss spawn
+   */
+  protected createSpawnParticles(): void {
+    const particleCount = 20;
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (360 / particleCount) * i;
+      const distance = 150;
+      const startX = this.x + Math.cos(angle * Math.PI / 180) * distance;
+      const startY = this.y + Math.sin(angle * Math.PI / 180) * distance;
+
+      const particle = this.scene.add.circle(
+        startX,
+        startY,
+        8,
+        0xff0000,
+        0.8,
+      );
+      particle.setDepth(this.depth - 2);
+
+      // Particles converge toward boss
+      this.scene.tweens.add({
+        targets: particle,
+        x: this.x,
+        y: this.y,
+        scale: 0,
+        alpha: 0,
+        duration: 600,
+        ease: 'Cubic.easeIn',
+        onComplete: () => {
+          particle.destroy();
+        },
+      });
+    }
   }
 
   /**
@@ -328,12 +441,25 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.isDead = true;
     this.setActive(false);
 
+    // ENHANCED: Destroy glow effect
+    if (this.glowEffect) {
+      this.scene.tweens.add({
+        targets: this.glowEffect,
+        alpha: 0,
+        duration: 500,
+        onComplete: () => {
+          this.glowEffect?.destroy();
+          this.glowEffect = null;
+        },
+      });
+    }
+
     // Play death animation
     this.scene.tweens.add({
       targets: this,
       alpha: 0,
-      scaleX: 1.5,
-      scaleY: 1.5,
+      scaleX: 4.5, // Bigger explosion
+      scaleY: 4.5,
       duration: 500,
       ease: 'Power2',
       onComplete: () => {

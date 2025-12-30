@@ -6,7 +6,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
+import { FONT_SIZES } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { Button, ButtonStyle } from './Button';
 
@@ -54,7 +54,7 @@ export class Panel extends Phaser.GameObjects.Container {
     y: number,
     width: number,
     height: number,
-    title?: string
+    title?: string,
   ) {
     super(scene, x, y);
 
@@ -214,7 +214,7 @@ export class Panel extends Phaser.GameObjects.Container {
         style: ButtonStyle.DANGER,
         fontSize: FONT_SIZES.small,
         onClick: callback,
-      }
+      },
     );
 
     this.add(this.closeButton);

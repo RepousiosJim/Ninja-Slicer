@@ -12,7 +12,7 @@ import { Villager } from '../entities/Villager';
 import { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
 import { MonsterType } from '@config/types';
-import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS } from '@config/constants';
+import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS, VILLAGER_HITBOX_RADIUS, POWERUP_HITBOX_RADIUS, ENTITY_BOUNDS, EFFECT_DURATIONS, EFFECT_SIZES } from '@config/constants';
 import { lineIntersectsCircle } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
@@ -91,7 +91,7 @@ export class SlashSystem {
     slashTrail: SlashTrail,
     monsters: Monster[],
     villagers: Villager[],
-    powerUps: PowerUp[]
+    powerUps: PowerUp[],
   ): void {
     // Only check collisions if slash is active
     if (!slashTrail.isActive()) {
@@ -124,123 +124,142 @@ export class SlashSystem {
   private checkMonsterCollisions(
     prevPoint: Phaser.Math.Vector2,
     currentPoint: Phaser.Math.Vector2,
-    monsters: Monster[]
+    monsters: Monster[],
   ): void {
     for (const monster of monsters) {
-      if (!monster.active || monster.getIsSliced()) {
-        continue;
-      }
+      if (!this.canSliceMonster(monster)) continue;
+      if (!this.checkCollision(prevPoint, currentPoint, monster)) continue;
       
-      // Check if monster is on screen
-      if (monster.y < -50 || monster.y > 800) {
-        continue;
-      }
-      
-      // Special check for ghosts - only sliceable when visible
-      if (monster instanceof Ghost && !monster.isSliceable()) {
-        continue;
-      }
-      
-      // Check line-circle intersection
-      if (this.checkCollision(prevPoint, currentPoint, monster)) {
-        // Monster was hit
-        monster.slice();
-        this.monstersSliced++;
-        
-        // Apply weapon effects
-        if (this.weaponManager) {
-          this.weaponManager.applyWeaponEffects(
-            { position: { x: monster.x, y: monster.y } },
-            {
-              type: monster.getMonsterType(),
-              position: { x: monster.x, y: monster.y },
-              health: monster.getHealth(),
-              applyDamage: (damage: number) => monster.applyDamage(damage),
-              applyBurn: (damage: number, duration: number) => monster.applyBurn(damage, duration),
-              applySlow: (multiplier: number, duration: number) => monster.applySlow(multiplier, duration),
-              applyStun: (duration: number) => monster.applyStun(duration),
-              setAlwaysVisible: (visible: boolean) => {
-                if (monster instanceof Ghost) {
-                  monster.setAlwaysVisible(visible);
-                }
-              },
-            }
-          );
-        }
-        
-        // Calculate score with combo multiplier
-        const basePoints = monster.getPoints();
-        let multiplier = 1.0;
-        
-        if (this.comboSystem) {
-          multiplier = this.comboSystem.getMultiplier();
-          this.comboSystem.increment();
-        }
-        
-        // Apply frenzy multiplier if active
-        if (this.powerUpManager && this.powerUpManager.isFrenzyActive()) {
-          multiplier *= 2;
-        }
-        
-        // Apply score multiplier from upgrades
-        if (this.upgradeManager) {
-          const stats = this.upgradeManager.getPlayerStats();
-          multiplier *= stats.scoreMultiplier;
-        }
-        
-        // Check for critical hit
-        let isCritical = false;
-        if (this.upgradeManager) {
-          const stats = this.upgradeManager.getPlayerStats();
-          const critChance = stats.criticalHitChance;
-          
-          if (Math.random() < critChance) {
-            isCritical = true;
-            multiplier *= stats.criticalHitMultiplier;
+      this.handleMonsterHit(monster);
+    }
+  }
+
+  /**
+   * Check if monster can be sliced
+   */
+  private canSliceMonster(monster: Monster): boolean {
+    if (!monster.active || monster.getIsSliced()) return false;
+    if (monster.y < ENTITY_BOUNDS.top || monster.y > ENTITY_BOUNDS.bottom) return false;
+    if (monster instanceof Ghost && !monster.isSliceable()) return false;
+    return true;
+  }
+
+  /**
+   * Handle monster being hit
+   */
+  private handleMonsterHit(monster: Monster): void {
+    monster.slice();
+    this.monstersSliced++;
+    
+    this.applyWeaponEffects(monster);
+    const { finalScore, finalSouls, isCritical } = this.calculateMonsterScore(monster);
+    
+    this.score += finalScore;
+    this.souls += finalSouls;
+    
+    this.emitMonsterEvents(monster, finalScore, finalSouls, isCritical);
+    this.createHitEffect(monster.x, monster.y, isCritical);
+  }
+
+  /**
+   * Apply weapon effects to monster
+   */
+  private applyWeaponEffects(monster: Monster): void {
+    if (!this.weaponManager) return;
+    
+    this.weaponManager.applyWeaponEffects(
+      { position: { x: monster.x, y: monster.y } },
+      {
+        type: monster.getMonsterType(),
+        position: { x: monster.x, y: monster.y },
+        health: monster.getHealth(),
+        applyDamage: (damage: number) => monster.applyDamage(damage),
+        applyBurn: (damage: number, duration: number) => monster.applyBurn(damage, duration),
+        applySlow: (multiplier: number, duration: number) => monster.applySlow(multiplier, duration),
+        applyStun: (duration: number) => monster.applyStun(duration),
+        setAlwaysVisible: (visible: boolean) => {
+          if (monster instanceof Ghost) {
+            monster.setAlwaysVisible(visible);
           }
-        }
-        
-        const finalScore = Math.floor(basePoints * multiplier);
-        this.score += finalScore;
-        
-        // Calculate souls
-        const monsterType = monster.getMonsterType();
-        const baseSouls = MONSTER_SOULS[monsterType] || 5;
-        let finalSouls: number = baseSouls;
-        
-        // Apply soul magnet if active
-        if (this.powerUpManager && this.powerUpManager.isSoulMagnetActive()) {
-          finalSouls = Math.floor(baseSouls * 1.5) as number;
-        }
-        
-        this.souls += finalSouls;
-        
-        // Emit monster sliced event
-        EventBus.emit('monster-sliced', {
-          monsterType: monsterType,
-          position: { x: monster.x, y: monster.y },
-          points: finalScore,
-          souls: finalSouls,
-          isCritical: isCritical,
-          comboCount: this.comboSystem ? this.comboSystem.getCombo() : 0,
-        });
-        
-        // Emit score updated event
-        EventBus.emit('score-updated', {
-          score: this.score,
-          delta: finalScore,
-        });
-        
-        // Emit souls updated event
-        EventBus.emit('souls-updated', {
-          souls: this.souls,
-          delta: finalSouls,
-        });
-        
-        // Create visual feedback
-        this.createHitEffect(monster.x, monster.y, isCritical);
+        },
+      },
+    );
+  }
+
+  /**
+   * Calculate score and souls for monster
+   */
+  private calculateMonsterScore(monster: Monster): {
+    finalScore: number;
+    finalSouls: number;
+    isCritical: boolean;
+  } {
+    const basePoints = monster.getPoints();
+    let multiplier = 1.0;
+    
+    // Combo multiplier
+    if (this.comboSystem) {
+      multiplier = this.comboSystem.getMultiplier();
+      this.comboSystem.increment();
+    }
+    
+    // Frenzy multiplier
+    if (this.powerUpManager && this.powerUpManager.isFrenzyActive()) {
+      multiplier *= 2;
+    }
+    
+    // Upgrade multiplier
+    if (this.upgradeManager) {
+      const stats = this.upgradeManager.getPlayerStats();
+      multiplier *= stats.scoreMultiplier;
+    }
+    
+    // Critical hit
+    let isCritical = false;
+    if (this.upgradeManager) {
+      const stats = this.upgradeManager.getPlayerStats();
+      if (Math.random() < stats.criticalHitChance) {
+        isCritical = true;
+        multiplier *= stats.criticalHitMultiplier;
       }
     }
+    
+    const finalScore = Math.floor(basePoints * multiplier);
+    
+    // Souls calculation
+    const monsterType = monster.getMonsterType();
+    const baseSouls = MONSTER_SOULS[monsterType] || 5;
+    const finalSouls = this.powerUpManager && this.powerUpManager.isSoulMagnetActive()
+      ? Math.floor(baseSouls * 1.5)
+      : baseSouls;
+    
+    return { finalScore, finalSouls, isCritical };
+  }
+
+  /**
+   * Emit monster-related events
+   */
+  private emitMonsterEvents(monster: Monster, finalScore: number, finalSouls: number, isCritical: boolean): void {
+    const monsterType = monster.getMonsterType();
+    
+    EventBus.emit('monster-sliced', {
+      monsterType,
+      position: { x: monster.x, y: monster.y },
+      points: finalScore,
+      souls: finalSouls,
+      isCritical,
+      comboCount: this.comboSystem ? this.comboSystem.getCombo() : 0,
+    });
+    
+    EventBus.emit('score-updated', {
+      score: this.score,
+      delta: finalScore,
+    });
+    
+    EventBus.emit('souls-updated', {
+      souls: this.souls,
+      delta: finalSouls,
+    });
   }
 
   /**
@@ -249,54 +268,59 @@ export class SlashSystem {
   private checkVillagerCollisions(
     prevPoint: Phaser.Math.Vector2,
     currentPoint: Phaser.Math.Vector2,
-    villagers: Villager[]
+    villagers: Villager[],
   ): void {
     for (const villager of villagers) {
-      if (!villager.active || villager.getIsSliced()) {
-        continue;
-      }
+      if (!this.canSliceVillager(villager)) continue;
+      if (!this.checkVillagerCollision(prevPoint, currentPoint, villager)) continue;
       
-      // Check if villager is on screen
-      if (villager.y < -50 || villager.y > 800) {
-        continue;
-      }
-      
-      // Check line-circle intersection
-      if (this.checkVillagerCollision(prevPoint, currentPoint, villager)) {
-        // Villager was hit
-        villager.slice();
-        this.villagersSliced++;
-        
-        // Check if shield is active
-        if (this.powerUpManager && this.powerUpManager.isShieldActive()) {
-          // Consume shield, no penalty
-          this.powerUpManager.consumeShield();
-          
-          // Show shield consumed feedback
-          this.createShieldConsumedEffect(villager.x, villager.y);
-        } else {
-          // Apply penalty
-          this.score -= VILLAGER_PENALTY;
-          
-          // Reset combo
-          if (this.comboSystem) {
-            this.comboSystem.reset();
-          }
-          
-          // Emit villager sliced event
-          EventBus.emit('villager-sliced', {
-            position: { x: villager.x, y: villager.y },
-            penalty: VILLAGER_PENALTY,
-          });
-          
-          // Emit score updated event
-          EventBus.emit('score-updated', {
-            score: this.score,
-            delta: -VILLAGER_PENALTY,
-          });
-        }
-      }
+      this.handleVillagerHit(villager);
     }
+  }
+
+  /**
+   * Check if villager can be sliced
+   */
+  private canSliceVillager(villager: Villager): boolean {
+    if (!villager.active || villager.getIsSliced()) return false;
+    if (villager.y < ENTITY_BOUNDS.top || villager.y > ENTITY_BOUNDS.bottom) return false;
+    return true;
+  }
+
+  /**
+   * Handle villager being hit
+   */
+  private handleVillagerHit(villager: Villager): void {
+    villager.slice();
+    this.villagersSliced++;
+    
+    if (this.powerUpManager && this.powerUpManager.isShieldActive()) {
+      this.powerUpManager.consumeShield();
+      this.createShieldConsumedEffect(villager.x, villager.y);
+    } else {
+      this.applyVillagerPenalty(villager);
+    }
+  }
+
+  /**
+   * Apply villager penalty
+   */
+  private applyVillagerPenalty(villager: Villager): void {
+    this.score -= VILLAGER_PENALTY;
+    
+    if (this.comboSystem) {
+      this.comboSystem.reset();
+    }
+    
+    EventBus.emit('villager-sliced', {
+      position: { x: villager.x, y: villager.y },
+      penalty: VILLAGER_PENALTY,
+    });
+    
+    EventBus.emit('score-updated', {
+      score: this.score,
+      delta: -VILLAGER_PENALTY,
+    });
   }
 
   /**
@@ -305,38 +329,41 @@ export class SlashSystem {
   private checkPowerUpCollisions(
     prevPoint: Phaser.Math.Vector2,
     currentPoint: Phaser.Math.Vector2,
-    powerUps: PowerUp[]
+    powerUps: PowerUp[],
   ): void {
     for (const powerUp of powerUps) {
-      if (!powerUp.active || powerUp.getIsSliced()) {
-        continue;
-      }
+      if (!this.canSlicePowerUp(powerUp)) continue;
+      if (!this.checkPowerUpCollision(prevPoint, currentPoint, powerUp)) continue;
       
-      // Check if power-up is on screen
-      if (powerUp.y < -50 || powerUp.y > 800) {
-        continue;
-      }
-      
-      // Check line-circle intersection
-      if (this.checkPowerUpCollision(prevPoint, currentPoint, powerUp)) {
-        // Power-up was hit
-        powerUp.slice();
-        this.powerUpsCollected++;
-        
-        // Activate power-up in manager
-        if (this.powerUpManager) {
-          this.powerUpManager.activatePowerUp(powerUp.getPowerUpType());
-        }
-        
-        // Emit power-up collected event
-        EventBus.emit('powerup-collected', {
-          type: powerUp.getPowerUpType(),
-        });
-        
-        // Create visual feedback
-        this.createPowerUpEffect(powerUp.x, powerUp.y);
-      }
+      this.handlePowerUpHit(powerUp);
     }
+  }
+
+  /**
+   * Check if power-up can be sliced
+   */
+  private canSlicePowerUp(powerUp: PowerUp): boolean {
+    if (!powerUp.active || powerUp.getIsSliced()) return false;
+    if (powerUp.y < -50 || powerUp.y > 800) return false;
+    return true;
+  }
+
+  /**
+   * Handle power-up being hit
+   */
+  private handlePowerUpHit(powerUp: PowerUp): void {
+    powerUp.slice();
+    this.powerUpsCollected++;
+    
+    if (this.powerUpManager) {
+      this.powerUpManager.activatePowerUp(powerUp.getPowerUpType());
+    }
+    
+    EventBus.emit('powerup-collected', {
+      type: powerUp.getPowerUpType(),
+    });
+    
+    this.createPowerUpEffect(powerUp.x, powerUp.y);
   }
 
   /**
@@ -345,7 +372,7 @@ export class SlashSystem {
   private checkCollision(
     lineStart: Phaser.Math.Vector2,
     lineEnd: Phaser.Math.Vector2,
-    monster: Monster
+    monster: Monster,
   ): boolean {
     const monsterType = monster.getMonsterType();
     const radius = MONSTER_HITBOX_RADIUS[monsterType] || 40;
@@ -354,7 +381,7 @@ export class SlashSystem {
       { x: lineStart.x, y: lineStart.y },
       { x: lineEnd.x, y: lineEnd.y },
       { x: monster.x, y: monster.y },
-      radius
+      radius,
     );
   }
 
@@ -364,13 +391,13 @@ export class SlashSystem {
   private checkVillagerCollision(
     lineStart: Phaser.Math.Vector2,
     lineEnd: Phaser.Math.Vector2,
-    villager: Villager
+    villager: Villager,
   ): boolean {
     return lineIntersectsCircle(
       { x: lineStart.x, y: lineStart.y },
       { x: lineEnd.x, y: lineEnd.y },
       { x: villager.x, y: villager.y },
-      35 // Villager hitbox radius
+      VILLAGER_HITBOX_RADIUS,
     );
   }
 
@@ -380,13 +407,13 @@ export class SlashSystem {
   private checkPowerUpCollision(
     lineStart: Phaser.Math.Vector2,
     lineEnd: Phaser.Math.Vector2,
-    powerUp: PowerUp
+    powerUp: PowerUp,
   ): boolean {
     return lineIntersectsCircle(
       { x: lineStart.x, y: lineStart.y },
       { x: lineEnd.x, y: lineEnd.y },
       { x: powerUp.x, y: powerUp.y },
-      30 // Power-up hitbox radius
+      POWERUP_HITBOX_RADIUS,
     );
   }
 
@@ -398,13 +425,13 @@ export class SlashSystem {
     this.hitFlashGraphics.clear();
     const color = isCritical ? 0xff0000 : 0xffffff;
     this.hitFlashGraphics.fillStyle(color, 0.5);
-    this.hitFlashGraphics.fillCircle(x, y, 50);
+    this.hitFlashGraphics.fillCircle(x, y, EFFECT_SIZES.hitFlashRadius);
     
     // Fade out quickly
     this.scene.tweens.add({
       targets: this.hitFlashGraphics,
       alpha: 0,
-      duration: 50,
+      duration: EFFECT_DURATIONS.flashFade,
       onComplete: () => {
         this.hitFlashGraphics.clear();
       },
@@ -412,31 +439,7 @@ export class SlashSystem {
 
     // Show critical hit text
     if (isCritical) {
-      const critText = this.scene.add.text(
-        x,
-        y - 50,
-        'CRITICAL!',
-        {
-          fontSize: '32px',
-          color: '#ff0000',
-          fontStyle: 'bold',
-          stroke: '#000000',
-          strokeThickness: 4,
-        }
-      );
-      critText.setOrigin(0.5);
-
-      // Animate text floating up and fading
-      this.scene.tweens.add({
-        targets: critText,
-        y: y - 150,
-        alpha: 0,
-        duration: 800,
-        ease: 'Quad.easeOut',
-        onComplete: () => {
-          critText.destroy();
-        },
-      });
+      this.createFloatingText(x, y, 'CRITICAL!', '#ff0000', 32);
     }
   }
 
@@ -444,31 +447,7 @@ export class SlashSystem {
    * Create visual effect when shield is consumed
    */
   private createShieldConsumedEffect(x: number, y: number): void {
-    const shieldText = this.scene.add.text(
-      x,
-      y - 50,
-      'SHIELDED!',
-      {
-        fontSize: '32px',
-        color: '#00ff00',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }
-    );
-    shieldText.setOrigin(0.5);
-
-    // Animate text floating up and fading
-    this.scene.tweens.add({
-      targets: shieldText,
-      y: y - 150,
-      alpha: 0,
-      duration: 800,
-      ease: 'Quad.easeOut',
-      onComplete: () => {
-        shieldText.destroy();
-      },
-    });
+    this.createFloatingText(x, y, 'SHIELDED!', '#00ff00', 32);
   }
 
   /**
@@ -478,16 +457,54 @@ export class SlashSystem {
     // Create burst effect
     const burst = this.scene.add.graphics();
     burst.fillStyle(0xffff00, 0.8);
-    burst.fillCircle(x, y, 60);
+    burst.fillCircle(x, y, EFFECT_SIZES.burstRadius);
     
     // Fade out quickly
     this.scene.tweens.add({
       targets: burst,
       alpha: 0,
       scale: 2,
-      duration: 200,
+      duration: EFFECT_DURATIONS.burstFade,
       onComplete: () => {
         burst.destroy();
+      },
+    });
+  }
+
+  /**
+   * Create floating text animation
+   */
+  private createFloatingText(
+    x: number,
+    y: number,
+    text: string,
+    color: string,
+    fontSize: number = 32,
+    duration: number = EFFECT_DURATIONS.textFloat,
+  ): void {
+    const textObj = this.scene.add.text(
+      x,
+      y - EFFECT_SIZES.textOffset,
+      text,
+      {
+        fontSize: `${fontSize}px`,
+        color,
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 4,
+      },
+    );
+    textObj.setOrigin(0.5);
+
+    // Animate text floating up and fading
+    this.scene.tweens.add({
+      targets: textObj,
+      y: y - EFFECT_SIZES.textFloatDistance,
+      alpha: 0,
+      duration,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        textObj.destroy();
       },
     });
   }

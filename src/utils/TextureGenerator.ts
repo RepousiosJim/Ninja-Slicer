@@ -5,7 +5,6 @@
  */
 
 import Phaser from 'phaser';
-import { DARK_GOTHIC_THEME } from '../config/theme';
 
 export class TextureGenerator {
   /**
@@ -19,7 +18,7 @@ export class TextureGenerator {
     startColor: number,
     endColor: number,
     borderColor: number,
-    state: 'normal' | 'hover' | 'pressed' | 'disabled'
+    state: 'normal' | 'hover' | 'pressed' | 'disabled',
   ): Phaser.Textures.CanvasTexture {
     const key = `button_gradient_${state}_${Date.now()}`;
     const texture = scene.textures.createCanvas(key, width, height);
@@ -65,7 +64,7 @@ export class TextureGenerator {
     if (state === 'hover') {
       const glowGradient = ctx.createRadialGradient(
         width / 2, height / 2, 0,
-        width / 2, height / 2, width / 2
+        width / 2, height / 2, width / 2,
       );
       glowGradient.addColorStop(0, 'rgba(255, 215, 0, 0.2)');
       glowGradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
@@ -84,7 +83,7 @@ export class TextureGenerator {
   static createParticleTexture(
     scene: Phaser.Scene,
     type: 'wisp' | 'ember' | 'mist',
-    size: number
+    size: number,
   ): Phaser.Textures.CanvasTexture {
     const key = `particle_${type}_${size}`;
 
@@ -107,25 +106,25 @@ export class TextureGenerator {
     // Create radial gradient based on type
     const gradient = ctx.createRadialGradient(
       centerX, centerY, 0,
-      centerX, centerY, radius
+      centerX, centerY, radius,
     );
 
     switch (type) {
-      case 'wisp':
-        gradient.addColorStop(0, 'rgba(255, 215, 0, 1)');
-        gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.5)');
-        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-        break;
-      case 'ember':
-        gradient.addColorStop(0, 'rgba(255, 69, 0, 1)');
-        gradient.addColorStop(0.4, 'rgba(255, 140, 0, 0.7)');
-        gradient.addColorStop(1, 'rgba(255, 69, 0, 0)');
-        break;
-      case 'mist':
-        gradient.addColorStop(0, 'rgba(74, 0, 128, 0.6)');
-        gradient.addColorStop(0.7, 'rgba(74, 0, 128, 0.3)');
-        gradient.addColorStop(1, 'rgba(74, 0, 128, 0)');
-        break;
+    case 'wisp':
+      gradient.addColorStop(0, 'rgba(255, 215, 0, 1)');
+      gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.5)');
+      gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+      break;
+    case 'ember':
+      gradient.addColorStop(0, 'rgba(255, 69, 0, 1)');
+      gradient.addColorStop(0.4, 'rgba(255, 140, 0, 0.7)');
+      gradient.addColorStop(1, 'rgba(255, 69, 0, 0)');
+      break;
+    case 'mist':
+      gradient.addColorStop(0, 'rgba(74, 0, 128, 0.6)');
+      gradient.addColorStop(0.7, 'rgba(74, 0, 128, 0.3)');
+      gradient.addColorStop(1, 'rgba(74, 0, 128, 0)');
+      break;
     }
 
     ctx.fillStyle = gradient;
@@ -143,7 +142,7 @@ export class TextureGenerator {
     scene: Phaser.Scene,
     width: number,
     height: number,
-    intensity: number = 0.1
+    intensity: number = 0.1,
   ): Phaser.Textures.CanvasTexture {
     const key = `noise_${width}x${height}`;
 
@@ -182,7 +181,7 @@ export class TextureGenerator {
     scene: Phaser.Scene,
     size: number,
     color: number,
-    intensity: number = 1.0
+    intensity: number = 1.0,
   ): Phaser.Textures.CanvasTexture {
     const key = `glow_${size}_${color}_${intensity}`;
 
@@ -211,7 +210,7 @@ export class TextureGenerator {
     // Inner bright glow
     const innerGradient = ctx.createRadialGradient(
       centerX, centerY, 0,
-      centerX, centerY, radius * 0.3
+      centerX, centerY, radius * 0.3,
     );
     innerGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.8 * intensity})`);
     innerGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${0.4 * intensity})`);
@@ -222,7 +221,7 @@ export class TextureGenerator {
     // Outer soft glow
     const outerGradient = ctx.createRadialGradient(
       centerX, centerY, radius * 0.3,
-      centerX, centerY, radius
+      centerX, centerY, radius,
     );
     outerGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.4 * intensity})`);
     outerGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
@@ -244,7 +243,7 @@ export class TextureGenerator {
     height: number,
     color: number = 0x000000,
     intensity: number = 0.5,
-    radius: number = 0.7
+    radius: number = 0.7,
   ): Phaser.Textures.CanvasTexture {
     const key = `vignette_${width}x${height}_${color}`;
 
@@ -292,7 +291,7 @@ export class TextureGenerator {
     y: number,
     width: number,
     height: number,
-    radius: number
+    radius: number,
   ): void {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);

@@ -9,7 +9,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
+import { COLORS, UI_ANIMATION_DURATION } from '../config/constants';
 import { WeaponRarity } from '../config/types';
 
 /**
@@ -83,7 +83,7 @@ export class FilterBar extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: FilterBarConfig = {}
+    config: FilterBarConfig = {},
   ) {
     super(scene, x, y);
 
@@ -146,7 +146,7 @@ export class FilterBar extends Phaser.GameObjects.Container {
     width: number,
     height: number,
     label: string,
-    filterType: FilterType
+    filterType: FilterType,
   ): Phaser.GameObjects.Container {
     const button = this.scene.add.container(x, y);
 
