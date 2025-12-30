@@ -21,7 +21,8 @@ import {
   SLASH_POWER_DAMAGE_MULTIPLIERS,
   SLASH_POWER_SCORE_MULTIPLIERS,
   SLASH_PATTERN,
-  SLASH_PATTERN_BONUSES
+  SLASH_PATTERN_BONUSES,
+  SLASH_PATTERN_VISUAL
 } from '@config/constants';
 import { lineIntersectsCircle, detectSlashPattern, isValidPattern, calculateCentroid } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
@@ -284,6 +285,14 @@ export class SlashSystem {
       // Apply pattern bonus to score
       const bonusScore = bonuses.bonusScore || 0;
       this.score += bonusScore;
+
+      // Create visual confirmation effect for the detected pattern
+      this.createPatternConfirmationEffect(
+        result.pattern,
+        center,
+        result.radius,
+        result.points
+      );
 
       // Emit pattern detected event
       EventBus.emit('slash-pattern-detected', {
@@ -805,7 +814,7 @@ export class SlashSystem {
     const burst = this.scene.add.graphics();
     burst.fillStyle(0xffff00, 0.8);
     burst.fillCircle(x, y, 60);
-    
+
     // Fade out quickly
     this.scene.tweens.add({
       targets: burst,
@@ -814,6 +823,372 @@ export class SlashSystem {
       duration: 200,
       onComplete: () => {
         burst.destroy();
+      },
+    });
+  }
+
+  // =============================================================================
+  // PATTERN VISUAL EFFECTS
+  // =============================================================================
+
+  /**
+   * Create visual confirmation effect for detected patterns
+   * Dispatches to pattern-specific effect methods
+   * @param pattern - The detected pattern type
+   * @param center - Center position for the effect
+   * @param radius - Optional radius for circle patterns
+   * @param points - Pattern points for line-based effects
+   */
+  private createPatternConfirmationEffect(
+    pattern: SlashPatternType,
+    center: { x: number; y: number },
+    radius?: number,
+    points?: SlashPatternPoint[]
+  ): void {
+    switch (pattern) {
+      case SlashPatternType.CIRCLE:
+        this.createCirclePatternEffect(center, radius || 80);
+        break;
+      case SlashPatternType.ZIGZAG:
+        this.createZigzagPatternEffect(center, points || []);
+        break;
+      case SlashPatternType.STRAIGHT:
+        this.createStraightPatternEffect(center, points || []);
+        break;
+    }
+  }
+
+  /**
+   * Create visual effect for circle pattern detection
+   * Shows expanding rings with golden glow effect
+   * @param center - Center position of the circle
+   * @param radius - Radius of the detected circle
+   */
+  private createCirclePatternEffect(
+    center: { x: number; y: number },
+    radius: number
+  ): void {
+    const graphics = this.scene.add.graphics();
+    const duration = SLASH_PATTERN_VISUAL.confirmationDuration * 1000;
+
+    // Create golden circle flash effect
+    const circleColor = 0xffd700; // Gold
+    const flashCount = SLASH_PATTERN_VISUAL.flashCount;
+    const flashInterval = SLASH_PATTERN_VISUAL.flashInterval * 1000;
+
+    // Initial circle fill
+    graphics.fillStyle(circleColor, 0.3);
+    graphics.fillCircle(center.x, center.y, radius);
+    graphics.lineStyle(4, circleColor, 1);
+    graphics.strokeCircle(center.x, center.y, radius);
+
+    // Create flash effect
+    let flashesRemaining = flashCount;
+    const flashTimer = this.scene.time.addEvent({
+      delay: flashInterval,
+      repeat: flashCount - 1,
+      callback: () => {
+        flashesRemaining--;
+        const flashAlpha = 0.3 + (flashesRemaining / flashCount) * 0.4;
+        graphics.clear();
+        graphics.fillStyle(circleColor, flashAlpha);
+        graphics.fillCircle(center.x, center.y, radius);
+        graphics.lineStyle(4, circleColor, 1);
+        graphics.strokeCircle(center.x, center.y, radius);
+      },
+    });
+
+    // Create expanding ring effect
+    const ringGraphics = this.scene.add.graphics();
+    ringGraphics.lineStyle(3, circleColor, 0.8);
+    ringGraphics.strokeCircle(center.x, center.y, radius);
+
+    // Animate ring expanding outward
+    this.scene.tweens.add({
+      targets: { scale: 1 },
+      scale: 1.8,
+      duration: duration,
+      ease: 'Quad.easeOut',
+      onUpdate: (tween) => {
+        const scale = tween.getValue();
+        const alpha = 1 - (scale - 1) / 0.8;
+        ringGraphics.clear();
+        ringGraphics.lineStyle(3, circleColor, Math.max(0, alpha * 0.8));
+        ringGraphics.strokeCircle(center.x, center.y, radius * scale);
+      },
+      onComplete: () => {
+        ringGraphics.destroy();
+      },
+    });
+
+    // Create pattern label
+    this.createPatternLabel(center.x, center.y - radius - 30, 'CIRCLE!', circleColor);
+
+    // Fade out main graphics
+    this.scene.tweens.add({
+      targets: graphics,
+      alpha: 0,
+      duration: duration,
+      onComplete: () => {
+        flashTimer.destroy();
+        graphics.destroy();
+      },
+    });
+  }
+
+  /**
+   * Create visual effect for zigzag pattern detection
+   * Shows lightning bolt style sparks along the path
+   * @param center - Center position of the zigzag
+   * @param points - Points that make up the zigzag pattern
+   */
+  private createZigzagPatternEffect(
+    center: { x: number; y: number },
+    points: SlashPatternPoint[]
+  ): void {
+    const graphics = this.scene.add.graphics();
+    const duration = SLASH_PATTERN_VISUAL.confirmationDuration * 1000;
+
+    // Lightning yellow/electric blue color
+    const zigzagColor = 0x00ffff; // Cyan/electric
+    const accentColor = 0xffff00; // Yellow spark
+
+    // Draw the zigzag path with electric effect
+    if (points.length >= 2) {
+      // Main zigzag path
+      graphics.lineStyle(5, zigzagColor, 0.9);
+      graphics.beginPath();
+      graphics.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        graphics.lineTo(points[i].x, points[i].y);
+      }
+      graphics.strokePath();
+
+      // Accent glow
+      graphics.lineStyle(8, accentColor, 0.4);
+      graphics.beginPath();
+      graphics.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        graphics.lineTo(points[i].x, points[i].y);
+      }
+      graphics.strokePath();
+
+      // Add spark points at direction changes
+      graphics.fillStyle(0xffffff, 1);
+      for (let i = 1; i < points.length - 1; i++) {
+        graphics.fillCircle(points[i].x, points[i].y, 6);
+      }
+    }
+
+    // Create flash effect
+    const flashCount = SLASH_PATTERN_VISUAL.flashCount;
+    const flashInterval = SLASH_PATTERN_VISUAL.flashInterval * 1000;
+
+    let flashesRemaining = flashCount;
+    const flashTimer = this.scene.time.addEvent({
+      delay: flashInterval,
+      repeat: flashCount - 1,
+      callback: () => {
+        flashesRemaining--;
+        const flashAlpha = 0.4 + (flashesRemaining / flashCount) * 0.5;
+        graphics.alpha = flashAlpha + 0.5;
+      },
+    });
+
+    // Create spark particles at points
+    for (const point of points) {
+      if (Math.random() > 0.5) {
+        this.createSparkEffect(point.x, point.y, accentColor);
+      }
+    }
+
+    // Create pattern label
+    this.createPatternLabel(center.x, center.y - 50, 'ZIGZAG!', zigzagColor);
+
+    // Fade out with electric flicker
+    this.scene.tweens.add({
+      targets: graphics,
+      alpha: 0,
+      duration: duration,
+      ease: 'Stepped',
+      onComplete: () => {
+        flashTimer.destroy();
+        graphics.destroy();
+      },
+    });
+  }
+
+  /**
+   * Create visual effect for straight line pattern detection
+   * Shows a powerful piercing beam effect
+   * @param center - Center position of the line
+   * @param points - Points that make up the straight line
+   */
+  private createStraightPatternEffect(
+    center: { x: number; y: number },
+    points: SlashPatternPoint[]
+  ): void {
+    const graphics = this.scene.add.graphics();
+    const duration = SLASH_PATTERN_VISUAL.confirmationDuration * 1000;
+
+    // Red/crimson for piercing strike
+    const lineColor = 0xff4444; // Crimson red
+    const glowColor = 0xff8888; // Light red glow
+
+    if (points.length >= 2) {
+      const startPoint = points[0];
+      const endPoint = points[points.length - 1];
+
+      // Calculate line extension for dramatic effect
+      const dx = endPoint.x - startPoint.x;
+      const dy = endPoint.y - startPoint.y;
+      const extendFactor = 1.3;
+
+      const extendedEndX = startPoint.x + dx * extendFactor;
+      const extendedEndY = startPoint.y + dy * extendFactor;
+      const extendedStartX = startPoint.x - dx * 0.3;
+      const extendedStartY = startPoint.y - dy * 0.3;
+
+      // Outer glow
+      graphics.lineStyle(12, glowColor, 0.3);
+      graphics.lineBetween(extendedStartX, extendedStartY, extendedEndX, extendedEndY);
+
+      // Main line
+      graphics.lineStyle(6, lineColor, 0.9);
+      graphics.lineBetween(extendedStartX, extendedStartY, extendedEndX, extendedEndY);
+
+      // Core bright line
+      graphics.lineStyle(2, 0xffffff, 1);
+      graphics.lineBetween(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+
+      // Arrow head effect at end
+      const arrowSize = 15;
+      const angle = Math.atan2(dy, dx);
+      const arrowAngle = Math.PI / 6;
+
+      graphics.fillStyle(lineColor, 1);
+      graphics.beginPath();
+      graphics.moveTo(extendedEndX, extendedEndY);
+      graphics.lineTo(
+        extendedEndX - arrowSize * Math.cos(angle - arrowAngle),
+        extendedEndY - arrowSize * Math.sin(angle - arrowAngle)
+      );
+      graphics.lineTo(
+        extendedEndX - arrowSize * Math.cos(angle + arrowAngle),
+        extendedEndY - arrowSize * Math.sin(angle + arrowAngle)
+      );
+      graphics.closePath();
+      graphics.fillPath();
+    }
+
+    // Create flash effect
+    const flashCount = SLASH_PATTERN_VISUAL.flashCount;
+    const flashInterval = SLASH_PATTERN_VISUAL.flashInterval * 1000;
+
+    let flashesRemaining = flashCount;
+    const flashTimer = this.scene.time.addEvent({
+      delay: flashInterval,
+      repeat: flashCount - 1,
+      callback: () => {
+        flashesRemaining--;
+        graphics.alpha = 0.5 + (flashesRemaining / flashCount) * 0.5;
+      },
+    });
+
+    // Create pattern label
+    this.createPatternLabel(center.x, center.y - 40, 'PIERCING!', lineColor);
+
+    // Fade out
+    this.scene.tweens.add({
+      targets: graphics,
+      alpha: 0,
+      duration: duration,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        flashTimer.destroy();
+        graphics.destroy();
+      },
+    });
+  }
+
+  /**
+   * Create a pattern label text that floats up and fades
+   * @param x - X position
+   * @param y - Y position
+   * @param text - Label text
+   * @param color - Text color as hex number
+   */
+  private createPatternLabel(x: number, y: number, text: string, color: number): void {
+    const colorString = '#' + color.toString(16).padStart(6, '0');
+
+    const label = this.scene.add.text(x, y, text, {
+      fontSize: '36px',
+      color: colorString,
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    });
+    label.setOrigin(0.5);
+
+    // Scale up entrance
+    label.setScale(0.5);
+    this.scene.tweens.add({
+      targets: label,
+      scale: 1,
+      duration: 150,
+      ease: 'Back.easeOut',
+    });
+
+    // Float up and fade out
+    this.scene.tweens.add({
+      targets: label,
+      y: y - 80,
+      alpha: 0,
+      duration: SLASH_PATTERN_VISUAL.confirmationDuration * 1000,
+      delay: 150,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        label.destroy();
+      },
+    });
+  }
+
+  /**
+   * Create a small spark effect at a position
+   * @param x - X position
+   * @param y - Y position
+   * @param color - Spark color
+   */
+  private createSparkEffect(x: number, y: number, color: number): void {
+    const spark = this.scene.add.graphics();
+
+    // Draw small starburst
+    spark.fillStyle(color, 1);
+    spark.fillCircle(x, y, 4);
+
+    // Draw rays
+    spark.lineStyle(2, 0xffffff, 0.8);
+    const rayCount = 4;
+    const rayLength = 10;
+    for (let i = 0; i < rayCount; i++) {
+      const angle = (i / rayCount) * Math.PI * 2;
+      spark.lineBetween(
+        x + Math.cos(angle) * 4,
+        y + Math.sin(angle) * 4,
+        x + Math.cos(angle) * rayLength,
+        y + Math.sin(angle) * rayLength
+      );
+    }
+
+    // Animate out
+    this.scene.tweens.add({
+      targets: spark,
+      alpha: 0,
+      scale: 1.5,
+      duration: 300,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        spark.destroy();
       },
     });
   }
