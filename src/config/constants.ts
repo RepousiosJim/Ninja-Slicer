@@ -383,6 +383,7 @@ export const EVENTS = {
   scoreUpdated: 'score-updated',
   soulsUpdated: 'souls-updated',
   comboUpdated: 'combo-updated',
+  comboMilestone: 'combo-milestone',
   livesChanged: 'lives-changed',
   levelComplete: 'level-complete',
   gameOver: 'game-over',

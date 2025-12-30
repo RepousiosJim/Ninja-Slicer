@@ -64,9 +64,13 @@ export interface GameEvents {
     souls: number; 
     delta: number; 
   };
-  'combo-updated': { 
-    count: number; 
-    multiplier: number; 
+  'combo-updated': {
+    count: number;
+    multiplier: number;
+  };
+  'combo-milestone': {
+    milestone: number;
+    multiplier: number;
   };
   'lives-changed': { 
     lives: number; 
