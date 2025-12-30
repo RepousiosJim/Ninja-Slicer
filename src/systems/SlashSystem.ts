@@ -33,6 +33,10 @@ export class SlashSystem {
   private weaponManager: WeaponManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
 
+  // Multi-kill tracking for current update cycle
+  private killsThisCycle: number = 0;
+  private lastMultiKillCount: number = 0;
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.hitFlashGraphics = scene.add.graphics();
@@ -98,23 +102,36 @@ export class SlashSystem {
       return;
     }
 
+    // Reset multi-kill counter at the start of each update cycle
+    this.killsThisCycle = 0;
+
     const slashPoints = slashTrail.getSlashPoints();
-    
+
     // Check each line segment in slash trail
     for (let i = 1; i < slashPoints.length; i++) {
       const prevPoint = slashPoints[i - 1];
       const currentPoint = slashPoints[i];
-      
+
       if (!prevPoint || !currentPoint) continue;
-      
+
       // Check collision with monsters
       this.checkMonsterCollisions(prevPoint, currentPoint, monsters);
-      
+
       // Check collision with villagers
       this.checkVillagerCollisions(prevPoint, currentPoint, villagers);
-      
+
       // Check collision with power-ups
       this.checkPowerUpCollisions(prevPoint, currentPoint, powerUps);
+    }
+
+    // Check for multi-kill at end of update cycle
+    if (this.killsThisCycle >= 2) {
+      this.lastMultiKillCount = this.killsThisCycle;
+
+      // Emit multi-kill event for external systems to react to
+      EventBus.emit('multi-kill', {
+        killCount: this.killsThisCycle,
+      });
     }
   }
 
@@ -146,6 +163,7 @@ export class SlashSystem {
         // Monster was hit
         monster.slice();
         this.monstersSliced++;
+        this.killsThisCycle++;
         
         // Apply weapon effects
         if (this.weaponManager) {
@@ -528,6 +546,27 @@ export class SlashSystem {
   }
 
   /**
+   * Get the number of kills in the current update cycle
+   */
+  getKillsThisCycle(): number {
+    return this.killsThisCycle;
+  }
+
+  /**
+   * Get the last multi-kill count (only set when >= 2 kills in one cycle)
+   */
+  getLastMultiKillCount(): number {
+    return this.lastMultiKillCount;
+  }
+
+  /**
+   * Check if the current cycle is a multi-kill (2+ kills)
+   */
+  isMultiKill(): boolean {
+    return this.killsThisCycle >= 2;
+  }
+
+  /**
    * Reset score and stats
    */
   resetScore(): void {
@@ -536,6 +575,8 @@ export class SlashSystem {
     this.monstersSliced = 0;
     this.villagersSliced = 0;
     this.powerUpsCollected = 0;
+    this.killsThisCycle = 0;
+    this.lastMultiKillCount = 0;
   }
 
   /**
