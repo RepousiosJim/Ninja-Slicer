@@ -4,6 +4,9 @@
  * Handles slash collision detection with monsters, villagers, and power-ups.
  * Uses line-circle intersection for accurate hit detection.
  * Includes pattern buffer and timeout logic for slash pattern recognition.
+ *
+ * Performance optimization: Uses spatial partitioning (grid) for collision detection.
+ * This reduces O(n*m) collision checks to O(cells * entities_per_cell).
  */
 
 import Phaser from 'phaser';
@@ -22,7 +25,9 @@ import {
   SLASH_POWER_SCORE_MULTIPLIERS,
   SLASH_PATTERN,
   SLASH_PATTERN_BONUSES,
-  SLASH_PATTERN_VISUAL
+  SLASH_PATTERN_VISUAL,
+  GAME_WIDTH,
+  GAME_HEIGHT
 } from '@config/constants';
 import { lineIntersectsCircle, detectSlashPattern, isValidPattern, calculateCentroid } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
@@ -31,6 +36,210 @@ import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { SlashEnergyManager } from '../managers/SlashEnergyManager';
+
+// =============================================================================
+// SPATIAL PARTITIONING - Grid-based collision optimization
+// =============================================================================
+
+/**
+ * Configuration for spatial grid partitioning
+ * Cell size of 100px provides good balance between grid overhead and collision reduction
+ */
+const SPATIAL_GRID_CONFIG = {
+  cellSize: 100, // Size of each cell in pixels
+  cols: Math.ceil(GAME_WIDTH / 100),
+  rows: Math.ceil((GAME_HEIGHT + 100) / 100), // Extra row for entities spawning above screen
+};
+
+/**
+ * Entity types that can be stored in the spatial grid
+ */
+type SpatialEntity = Monster | Villager | PowerUp;
+
+/**
+ * Spatial grid cell containing references to entities
+ */
+interface SpatialCell<T> {
+  entities: T[];
+}
+
+/**
+ * Lightweight spatial grid for broadphase collision detection
+ * Divides the game area into cells and only checks collisions
+ * with entities in cells that the slash line segment intersects
+ */
+class SpatialGrid<T extends SpatialEntity> {
+  private cells: SpatialCell<T>[][];
+  private readonly cellSize: number;
+  private readonly cols: number;
+  private readonly rows: number;
+
+  constructor(cellSize: number = SPATIAL_GRID_CONFIG.cellSize) {
+    this.cellSize = cellSize;
+    this.cols = SPATIAL_GRID_CONFIG.cols;
+    this.rows = SPATIAL_GRID_CONFIG.rows;
+    this.cells = this.createEmptyGrid();
+  }
+
+  /**
+   * Create an empty grid structure
+   */
+  private createEmptyGrid(): SpatialCell<T>[][] {
+    const grid: SpatialCell<T>[][] = [];
+    for (let row = 0; row < this.rows; row++) {
+      grid[row] = [];
+      for (let col = 0; col < this.cols; col++) {
+        grid[row][col] = { entities: [] };
+      }
+    }
+    return grid;
+  }
+
+  /**
+   * Clear all entities from the grid
+   * Called at the start of each frame before repopulating
+   */
+  clear(): void {
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        this.cells[row][col].entities = [];
+      }
+    }
+  }
+
+  /**
+   * Convert world coordinates to grid cell indices
+   * Accounts for entities above the screen (negative y)
+   */
+  private worldToCell(x: number, y: number): { col: number; row: number } {
+    // Offset y to handle entities above screen (spawning at y < 0)
+    const adjustedY = y + 100;
+    return {
+      col: Math.floor(Math.max(0, Math.min(x, GAME_WIDTH - 1)) / this.cellSize),
+      row: Math.floor(Math.max(0, Math.min(adjustedY, (this.rows * this.cellSize) - 1)) / this.cellSize),
+    };
+  }
+
+  /**
+   * Insert an entity into the grid based on its position
+   * Entities are placed in a single cell based on their center point
+   */
+  insert(entity: T): void {
+    const { col, row } = this.worldToCell(entity.x, entity.y);
+    if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
+      this.cells[row][col].entities.push(entity);
+    }
+  }
+
+  /**
+   * Populate grid from an array of entities
+   */
+  populate(entities: T[]): void {
+    for (const entity of entities) {
+      if (entity.active) {
+        this.insert(entity);
+      }
+    }
+  }
+
+  /**
+   * Get all cells that a line segment passes through using Bresenham-style traversal
+   * Returns unique cell coordinates that the line intersects
+   */
+  getCellsAlongLine(
+    x1: number, y1: number,
+    x2: number, y2: number
+  ): Array<{ col: number; row: number }> {
+    const cells: Array<{ col: number; row: number }> = [];
+    const visited = new Set<string>();
+
+    const start = this.worldToCell(x1, y1);
+    const end = this.worldToCell(x2, y2);
+
+    // Use DDA (Digital Differential Analyzer) algorithm for line traversal
+    const dx = Math.abs(end.col - start.col);
+    const dy = Math.abs(end.row - start.row);
+    const sx = start.col < end.col ? 1 : -1;
+    const sy = start.row < end.row ? 1 : -1;
+
+    let col = start.col;
+    let row = start.row;
+    let err = dx - dy;
+
+    while (true) {
+      // Add current cell if valid and not visited
+      const key = `${col},${row}`;
+      if (!visited.has(key) && row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
+        visited.add(key);
+        cells.push({ col, row });
+      }
+
+      // Check if we've reached the end
+      if (col === end.col && row === end.row) break;
+
+      const e2 = 2 * err;
+
+      if (e2 > -dy) {
+        err -= dy;
+        col += sx;
+      }
+
+      if (e2 < dx) {
+        err += dx;
+        row += sy;
+      }
+    }
+
+    return cells;
+  }
+
+  /**
+   * Query entities that could potentially collide with a line segment
+   * Uses spatial partitioning to return only entities in intersecting cells
+   */
+  queryLine(x1: number, y1: number, x2: number, y2: number): T[] {
+    const cells = this.getCellsAlongLine(x1, y1, x2, y2);
+    const result: T[] = [];
+    const added = new Set<T>();
+
+    for (const { col, row } of cells) {
+      const cell = this.cells[row][col];
+      for (const entity of cell.entities) {
+        if (!added.has(entity)) {
+          added.add(entity);
+          result.push(entity);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get entities in neighboring cells (3x3 area around a point)
+   * Useful for entities that might straddle cell boundaries
+   */
+  queryNeighbors(x: number, y: number): T[] {
+    const { col, row } = this.worldToCell(x, y);
+    const result: T[] = [];
+    const added = new Set<T>();
+
+    for (let r = row - 1; r <= row + 1; r++) {
+      for (let c = col - 1; c <= col + 1; c++) {
+        if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
+          for (const entity of this.cells[r][c].entities) {
+            if (!added.has(entity)) {
+              added.add(entity);
+              result.push(entity);
+            }
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+}
 
 export class SlashSystem {
   private scene: Phaser.Scene;
@@ -65,9 +274,20 @@ export class SlashSystem {
   private slashSessionPoints: number = 0;
   private slashSessionMonsters: { x: number; y: number; type: MonsterType }[] = [];
 
+  // Spatial grids for optimized collision detection
+  // Separate grids for each entity type for better cache locality
+  private monsterGrid: SpatialGrid<Monster>;
+  private villagerGrid: SpatialGrid<Villager>;
+  private powerUpGrid: SpatialGrid<PowerUp>;
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.hitFlashGraphics = scene.add.graphics();
+
+    // Initialize spatial grids for collision optimization
+    this.monsterGrid = new SpatialGrid<Monster>();
+    this.villagerGrid = new SpatialGrid<Villager>();
+    this.powerUpGrid = new SpatialGrid<PowerUp>();
   }
 
   /**
@@ -187,21 +407,27 @@ export class SlashSystem {
     }
     this.lastSlashDistance = currentDistance;
 
-    // Check each line segment in slash trail
+    // Populate spatial grids with active entities
+    // Clear grids and rebuild each frame (entities move)
+    this.monsterGrid.clear();
+    this.villagerGrid.clear();
+    this.powerUpGrid.clear();
+    this.monsterGrid.populate(monsters);
+    this.villagerGrid.populate(villagers);
+    this.powerUpGrid.populate(powerUps);
+
+    // Check each line segment in slash trail using spatial partitioning
     for (let i = 1; i < slashPoints.length; i++) {
       const prevPoint = slashPoints[i - 1];
       const currentPoint = slashPoints[i];
 
       if (!prevPoint || !currentPoint) continue;
 
-      // Check collision with monsters
-      this.checkMonsterCollisions(prevPoint, currentPoint, monsters);
-
-      // Check collision with villagers
-      this.checkVillagerCollisions(prevPoint, currentPoint, villagers);
-
-      // Check collision with power-ups
-      this.checkPowerUpCollisions(prevPoint, currentPoint, powerUps);
+      // Query spatial grids for nearby entities and check collisions
+      // This reduces collision checks from O(all entities) to O(entities in nearby cells)
+      this.checkMonsterCollisionsSpatial(prevPoint, currentPoint);
+      this.checkVillagerCollisionsSpatial(prevPoint, currentPoint);
+      this.checkPowerUpCollisionsSpatial(prevPoint, currentPoint);
     }
   }
 
@@ -777,6 +1003,301 @@ export class SlashSystem {
       { x: powerUp.x, y: powerUp.y },
       30 // Power-up hitbox radius
     );
+  }
+
+  // =============================================================================
+  // SPATIAL COLLISION DETECTION (Optimized methods using grid partitioning)
+  // =============================================================================
+
+  /**
+   * Check monster collisions using spatial partitioning
+   * Only checks monsters in cells that the slash line segment passes through
+   * Performance: O(entities in nearby cells) instead of O(all monsters)
+   */
+  private checkMonsterCollisionsSpatial(
+    prevPoint: Phaser.Math.Vector2,
+    currentPoint: Phaser.Math.Vector2
+  ): void {
+    // Query spatial grid for monsters near the line segment
+    const candidates = this.monsterGrid.queryLine(
+      prevPoint.x, prevPoint.y,
+      currentPoint.x, currentPoint.y
+    );
+
+    for (const monster of candidates) {
+      if (!monster.active || monster.getIsSliced()) {
+        continue;
+      }
+
+      // Check if monster is on screen
+      if (monster.y < -50 || monster.y > 800) {
+        continue;
+      }
+
+      // Special check for ghosts - only sliceable when visible
+      if (monster instanceof Ghost && !monster.isSliceable()) {
+        continue;
+      }
+
+      // Check line-circle intersection (narrowphase)
+      if (this.checkCollision(prevPoint, currentPoint, monster)) {
+        this.handleMonsterHit(monster);
+      }
+    }
+  }
+
+  /**
+   * Check villager collisions using spatial partitioning
+   * Only checks villagers in cells that the slash line segment passes through
+   */
+  private checkVillagerCollisionsSpatial(
+    prevPoint: Phaser.Math.Vector2,
+    currentPoint: Phaser.Math.Vector2
+  ): void {
+    // Query spatial grid for villagers near the line segment
+    const candidates = this.villagerGrid.queryLine(
+      prevPoint.x, prevPoint.y,
+      currentPoint.x, currentPoint.y
+    );
+
+    for (const villager of candidates) {
+      if (!villager.active || villager.getIsSliced()) {
+        continue;
+      }
+
+      // Check if villager is on screen
+      if (villager.y < -50 || villager.y > 800) {
+        continue;
+      }
+
+      // Check line-circle intersection (narrowphase)
+      if (this.checkVillagerCollision(prevPoint, currentPoint, villager)) {
+        this.handleVillagerHit(villager);
+      }
+    }
+  }
+
+  /**
+   * Check power-up collisions using spatial partitioning
+   * Only checks power-ups in cells that the slash line segment passes through
+   */
+  private checkPowerUpCollisionsSpatial(
+    prevPoint: Phaser.Math.Vector2,
+    currentPoint: Phaser.Math.Vector2
+  ): void {
+    // Query spatial grid for power-ups near the line segment
+    const candidates = this.powerUpGrid.queryLine(
+      prevPoint.x, prevPoint.y,
+      currentPoint.x, currentPoint.y
+    );
+
+    for (const powerUp of candidates) {
+      if (!powerUp.active || powerUp.getIsSliced()) {
+        continue;
+      }
+
+      // Check if power-up is on screen
+      if (powerUp.y < -50 || powerUp.y > 800) {
+        continue;
+      }
+
+      // Check line-circle intersection (narrowphase)
+      if (this.checkPowerUpCollision(prevPoint, currentPoint, powerUp)) {
+        this.handlePowerUpHit(powerUp);
+      }
+    }
+  }
+
+  /**
+   * Handle monster hit logic (extracted for reuse)
+   * Applies damage, calculates score, emits events, and creates effects
+   */
+  private handleMonsterHit(monster: Monster): void {
+    monster.slice();
+    this.monstersSliced++;
+
+    // Get power damage multiplier for this slash
+    const powerDamageMultiplier = SLASH_POWER_DAMAGE_MULTIPLIERS[
+      this.currentPowerLevel as keyof typeof SLASH_POWER_DAMAGE_MULTIPLIERS
+    ] || 1.0;
+
+    // Apply weapon effects with power-enhanced damage
+    if (this.weaponManager) {
+      this.weaponManager.applyWeaponEffects(
+        { position: { x: monster.x, y: monster.y } },
+        {
+          type: monster.getMonsterType(),
+          position: { x: monster.x, y: monster.y },
+          health: monster.getHealth(),
+          applyDamage: (damage: number) => monster.applyDamage(damage * powerDamageMultiplier),
+          applyBurn: (damage: number, duration: number) => monster.applyBurn(damage * powerDamageMultiplier, duration),
+          applySlow: (multiplier: number, duration: number) => monster.applySlow(multiplier, duration),
+          applyStun: (duration: number) => monster.applyStun(duration),
+          setAlwaysVisible: (visible: boolean) => {
+            if (monster instanceof Ghost) {
+              monster.setAlwaysVisible(visible);
+            }
+          },
+        }
+      );
+    }
+
+    // Calculate score with combo multiplier
+    const basePoints = monster.getPoints();
+    let multiplier = 1.0;
+
+    if (this.comboSystem) {
+      multiplier = this.comboSystem.getMultiplier();
+      this.comboSystem.increment();
+    }
+
+    // Apply frenzy multiplier if active
+    if (this.powerUpManager && this.powerUpManager.isFrenzyActive()) {
+      multiplier *= 2;
+    }
+
+    // Apply score multiplier from upgrades
+    if (this.upgradeManager) {
+      const stats = this.upgradeManager.getPlayerStats();
+      multiplier *= stats.scoreMultiplier;
+    }
+
+    // Apply energy effectiveness multiplier
+    // Low energy reduces score earned
+    multiplier *= this.currentEnergyEffectiveness;
+
+    // Apply power level score multiplier
+    // Charged slashes earn more score
+    const powerScoreMultiplier = SLASH_POWER_SCORE_MULTIPLIERS[
+      this.currentPowerLevel as keyof typeof SLASH_POWER_SCORE_MULTIPLIERS
+    ] || 1.0;
+    multiplier *= powerScoreMultiplier;
+
+    // Check for critical hit
+    let isCritical = false;
+    if (this.upgradeManager) {
+      const stats = this.upgradeManager.getPlayerStats();
+      const critChance = stats.criticalHitChance;
+
+      if (Math.random() < critChance) {
+        isCritical = true;
+        multiplier *= stats.criticalHitMultiplier;
+      }
+    }
+
+    const finalScore = Math.floor(basePoints * multiplier);
+    this.score += finalScore;
+
+    // Get monster type for souls and session tracking
+    const monsterType = monster.getMonsterType();
+
+    // Track session for pattern bonus calculation
+    this.slashSessionPoints += finalScore;
+    this.slashSessionMonsters.push({
+      x: monster.x,
+      y: monster.y,
+      type: monsterType,
+    });
+
+    // Calculate souls
+    const baseSouls = MONSTER_SOULS[monsterType] || 5;
+    let finalSouls: number = baseSouls;
+
+    // Apply soul magnet if active
+    if (this.powerUpManager && this.powerUpManager.isSoulMagnetActive()) {
+      finalSouls = Math.floor(baseSouls * 1.5) as number;
+    }
+
+    this.souls += finalSouls;
+
+    // Emit monster sliced event
+    EventBus.emit('monster-sliced', {
+      monsterType: monsterType,
+      position: { x: monster.x, y: monster.y },
+      points: finalScore,
+      souls: finalSouls,
+      isCritical: isCritical,
+      comboCount: this.comboSystem ? this.comboSystem.getCombo() : 0,
+      energyEffectiveness: this.currentEnergyEffectiveness,
+      powerLevel: this.currentPowerLevel,
+      powerDamageMultiplier: powerDamageMultiplier,
+      powerScoreMultiplier: powerScoreMultiplier,
+    });
+
+    // Emit score updated event
+    EventBus.emit('score-updated', {
+      score: this.score,
+      delta: finalScore,
+    });
+
+    // Emit souls updated event
+    EventBus.emit('souls-updated', {
+      souls: this.souls,
+      delta: finalSouls,
+    });
+
+    // Create visual feedback with power level
+    this.createHitEffect(monster.x, monster.y, isCritical, this.currentPowerLevel);
+  }
+
+  /**
+   * Handle villager hit logic (extracted for reuse)
+   * Applies penalty or consumes shield
+   */
+  private handleVillagerHit(villager: Villager): void {
+    villager.slice();
+    this.villagersSliced++;
+
+    // Check if shield is active
+    if (this.powerUpManager && this.powerUpManager.isShieldActive()) {
+      // Consume shield, no penalty
+      this.powerUpManager.consumeShield();
+
+      // Show shield consumed feedback
+      this.createShieldConsumedEffect(villager.x, villager.y);
+    } else {
+      // Apply penalty
+      this.score -= VILLAGER_PENALTY;
+
+      // Reset combo
+      if (this.comboSystem) {
+        this.comboSystem.reset();
+      }
+
+      // Emit villager sliced event
+      EventBus.emit('villager-sliced', {
+        position: { x: villager.x, y: villager.y },
+        penalty: VILLAGER_PENALTY,
+      });
+
+      // Emit score updated event
+      EventBus.emit('score-updated', {
+        score: this.score,
+        delta: -VILLAGER_PENALTY,
+      });
+    }
+  }
+
+  /**
+   * Handle power-up hit logic (extracted for reuse)
+   * Activates the power-up and emits event
+   */
+  private handlePowerUpHit(powerUp: PowerUp): void {
+    powerUp.slice();
+    this.powerUpsCollected++;
+
+    // Activate power-up in manager
+    if (this.powerUpManager) {
+      this.powerUpManager.activatePowerUp(powerUp.getPowerUpType());
+    }
+
+    // Emit power-up collected event
+    EventBus.emit('powerup-collected', {
+      type: powerUp.getPowerUpType(),
+    });
+
+    // Create visual feedback
+    this.createPowerUpEffect(powerUp.x, powerUp.y);
   }
 
   /**
