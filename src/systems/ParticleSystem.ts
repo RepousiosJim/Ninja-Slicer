@@ -6,6 +6,7 @@
  */
 
 import Phaser from 'phaser';
+import { COLORS } from '../config/constants';
 
 /**
  * Particle type enum
@@ -279,11 +280,12 @@ export class ParticleSystem {
     case ParticleType.BLOOD_SPLATTER:
       textureKey = 'particle_blood';
       config = {
-        speed: { min: 50, max: 150 },
-        scale: { start: 0.5, end: 0.2 },
+        speed: { min: 150, max: 350 },
+        scale: { start: 0.6, end: 0.1 },
         alpha: { start: 1, end: 0 },
-        lifespan: 800,
+        lifespan: 900,
         quantity: 5,
+        angle: { min: 0, max: 360 },
         blendMode: 'NORMAL',
       };
       break;
@@ -453,16 +455,20 @@ export class ParticleSystem {
 
   /**
    * Create hit effect
+   * Enhanced to spawn 15-30 particles with dramatic spray pattern
    */
   public createHitEffect(x: number, y: number, weaponType: string): void {
-    // Blood splatter
+    // Calculate random particle count between 15-30 for organic feel
+    const particleCount = Math.floor(Math.random() * 16) + 15;
+
+    // Blood splatter with enhanced velocity and spread
     this.emit({
       type: ParticleType.BLOOD_SPLATTER,
       x: x,
       y: y,
-      count: 8,
-      scale: { start: 0.5, end: 0.2 },
-      lifespan: 800,
+      count: particleCount,
+      scale: { start: 0.6, end: 0.1 },
+      lifespan: 900,
     });
 
     // Weapon-specific effect

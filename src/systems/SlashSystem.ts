@@ -1,8 +1,12 @@
 /**
  * SlashSystem
- * 
+ *
  * Handles slash collision detection with monsters, villagers, and power-ups.
  * Uses line-circle intersection for accurate hit detection.
+ * Includes pattern buffer and timeout logic for slash pattern recognition.
+ *
+ * Performance optimization: Uses spatial partitioning (grid) for collision detection.
+ * This reduces O(n*m) collision checks to O(cells * entities_per_cell).
  */
 
 import Phaser from 'phaser';
@@ -11,14 +15,275 @@ import { Monster } from '../entities/Monster';
 import { Villager } from '../entities/Villager';
 import { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
-import { MonsterType } from '@config/types';
-import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS, VILLAGER_HITBOX_RADIUS, POWERUP_HITBOX_RADIUS, ENTITY_BOUNDS, EFFECT_DURATIONS, EFFECT_SIZES } from '@config/constants';
-import { lineIntersectsCircle } from '../utils/helpers';
+import { MonsterType, SlashPowerLevel, SlashPatternType, SlashPatternPoint, SlashPatternResult } from '@config/types';
+import {
+  MONSTER_HITBOX_RADIUS,
+  MONSTER_SOULS,
+  VILLAGER_PENALTY,
+  SLASH_HITBOX_RADIUS,
+  VILLAGER_HITBOX_RADIUS,
+  POWERUP_HITBOX_RADIUS,
+  ENTITY_BOUNDS,
+  EFFECT_DURATIONS,
+  EFFECT_SIZES,
+  SLASH_POWER_DAMAGE_MULTIPLIERS,
+  SLASH_POWER_SCORE_MULTIPLIERS,
+  SLASH_PATTERN,
+  SLASH_PATTERN_BONUSES,
+  SLASH_PATTERN_VISUAL,
+  GAME_WIDTH,
+  GAME_HEIGHT,
+} from '@config/constants';
+import { lineIntersectsCircle, detectSlashPattern, isValidPattern, calculateCentroid } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
+import { SlashEnergyManager } from '../managers/SlashEnergyManager';
+
+// =============================================================================
+// SPATIAL PARTITIONING - Grid-based collision optimization
+// =============================================================================
+
+/**
+ * Configuration for spatial grid partitioning
+ * Cell size of 100px provides good balance between grid overhead and collision reduction
+ */
+const SPATIAL_GRID_CONFIG = {
+  cellSize: 100, // Size of each cell in pixels
+  cols: Math.ceil(GAME_WIDTH / 100),
+  rows: Math.ceil((GAME_HEIGHT + 100) / 100), // Extra row for entities spawning above screen
+};
+
+/**
+ * Screen bounds configuration for early entity filtering
+ * Entities outside these bounds are skipped entirely to avoid unnecessary processing
+ * Margins account for entity hitbox radius and spawn positions
+ */
+const SCREEN_BOUNDS = {
+  minX: -100,                    // Left margin for entities partially off-screen
+  maxX: GAME_WIDTH + 100,        // Right margin for entities partially off-screen
+  minY: -150,                    // Top margin for spawning entities
+  maxY: GAME_HEIGHT + 100,       // Bottom margin for falling entities
+};
+
+/**
+ * Entity types that can be stored in the spatial grid
+ */
+type SpatialEntity = Monster | Villager | PowerUp;
+
+/**
+ * Spatial grid cell containing references to entities
+ */
+interface SpatialCell<T> {
+  entities: T[];
+}
+
+/**
+ * Lightweight spatial grid for broadphase collision detection
+ * Divides the game area into cells and only checks collisions
+ * with entities in cells that the slash line segment intersects
+ */
+class SpatialGrid<T extends SpatialEntity> {
+  private cells: SpatialCell<T>[][];
+  private readonly cellSize: number;
+  private readonly cols: number;
+  private readonly rows: number;
+
+  constructor(cellSize: number = SPATIAL_GRID_CONFIG.cellSize) {
+    this.cellSize = cellSize;
+    this.cols = SPATIAL_GRID_CONFIG.cols;
+    this.rows = SPATIAL_GRID_CONFIG.rows;
+    this.cells = this.createEmptyGrid();
+  }
+
+  /**
+   * Create an empty grid structure
+   */
+  private createEmptyGrid(): SpatialCell<T>[][] {
+    const grid: SpatialCell<T>[][] = [];
+    for (let row = 0; row < this.rows; row++) {
+      grid[row] = [];
+      for (let col = 0; col < this.cols; col++) {
+        grid[row][col] = { entities: [] };
+      }
+    }
+    return grid;
+  }
+
+  /**
+   * Clear all entities from the grid
+   * Called at the start of each frame before repopulating
+   */
+  clear(): void {
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        this.cells[row][col].entities = [];
+      }
+    }
+  }
+
+  /**
+   * Convert world coordinates to grid cell indices
+   * Accounts for entities above the screen (negative y)
+   */
+  private worldToCell(x: number, y: number): { col: number; row: number } {
+    // Offset y to handle entities above screen (spawning at y < 0)
+    const adjustedY = y + 100;
+    return {
+      col: Math.floor(Math.max(0, Math.min(x, GAME_WIDTH - 1)) / this.cellSize),
+      row: Math.floor(Math.max(0, Math.min(adjustedY, (this.rows * this.cellSize) - 1)) / this.cellSize),
+    };
+  }
+
+  /**
+   * Insert an entity into the grid based on its position
+   * Entities are placed in a single cell based on their center point
+   */
+  insert(entity: T): void {
+    const { col, row } = this.worldToCell(entity.x, entity.y);
+    if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
+      this.cells[row][col].entities.push(entity);
+    }
+  }
+
+  /**
+   * Check if an entity is within screen bounds (early rejection)
+   * This is faster than checking cell bounds after coordinate conversion
+   * Entities way off-screen are skipped entirely to avoid grid operations
+   * @param entity - Entity to check
+   * @returns true if entity is within processable bounds
+   */
+  private isEntityInBounds(entity: T): boolean {
+    return (
+      entity.x >= SCREEN_BOUNDS.minX &&
+      entity.x <= SCREEN_BOUNDS.maxX &&
+      entity.y >= SCREEN_BOUNDS.minY &&
+      entity.y <= SCREEN_BOUNDS.maxY
+    );
+  }
+
+  /**
+   * Populate grid from an array of entities
+   * Includes early bounds checking to skip off-screen entities entirely
+   * Performance: O(n) where n is active entities, but skips grid operations for off-screen entities
+   */
+  populate(entities: T[]): void {
+    for (const entity of entities) {
+      // Early rejection: skip inactive entities
+      if (!entity.active) {
+        continue;
+      }
+
+      // Early bounds check: skip entities way off-screen
+      // This prevents unnecessary cell coordinate calculations and grid insertions
+      if (!this.isEntityInBounds(entity)) {
+        continue;
+      }
+
+      this.insert(entity);
+    }
+  }
+
+  /**
+   * Get all cells that a line segment passes through using Bresenham-style traversal
+   * Returns unique cell coordinates that the line intersects
+   */
+  getCellsAlongLine(
+    x1: number, y1: number,
+    x2: number, y2: number
+  ): Array<{ col: number; row: number }> {
+    const cells: Array<{ col: number; row: number }> = [];
+    const visited = new Set<string>();
+
+    const start = this.worldToCell(x1, y1);
+    const end = this.worldToCell(x2, y2);
+
+    // Use DDA (Digital Differential Analyzer) algorithm for line traversal
+    const dx = Math.abs(end.col - start.col);
+    const dy = Math.abs(end.row - start.row);
+    const sx = start.col < end.col ? 1 : -1;
+    const sy = start.row < end.row ? 1 : -1;
+
+    let col = start.col;
+    let row = start.row;
+    let err = dx - dy;
+
+    while (true) {
+      // Add current cell if valid and not visited
+      const key = `${col},${row}`;
+      if (!visited.has(key) && row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
+        visited.add(key);
+        cells.push({ col, row });
+      }
+
+      // Check if we've reached the end
+      if (col === end.col && row === end.row) break;
+
+      const e2 = 2 * err;
+
+      if (e2 > -dy) {
+        err -= dy;
+        col += sx;
+      }
+
+      if (e2 < dx) {
+        err += dx;
+        row += sy;
+      }
+    }
+
+    return cells;
+  }
+
+  /**
+   * Query entities that could potentially collide with a line segment
+   * Uses spatial partitioning to return only entities in intersecting cells
+   */
+  queryLine(x1: number, y1: number, x2: number, y2: number): T[] {
+    const cells = this.getCellsAlongLine(x1, y1, x2, y2);
+    const result: T[] = [];
+    const added = new Set<T>();
+
+    for (const { col, row } of cells) {
+      const cell = this.cells[row][col];
+      for (const entity of cell.entities) {
+        if (!added.has(entity)) {
+          added.add(entity);
+          result.push(entity);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get entities in neighboring cells (3x3 area around a point)
+   * Useful for entities that might straddle cell boundaries
+   */
+  queryNeighbors(x: number, y: number): T[] {
+    const { col, row } = this.worldToCell(x, y);
+    const result: T[] = [];
+    const added = new Set<T>();
+
+    for (let r = row - 1; r <= row + 1; r++) {
+      for (let c = col - 1; c <= col + 1; c++) {
+        if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
+          for (const entity of this.cells[r][c].entities) {
+            if (!added.has(entity)) {
+              added.add(entity);
+              result.push(entity);
+            }
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+}
 
 export class SlashSystem {
   private scene: Phaser.Scene;
@@ -32,10 +297,41 @@ export class SlashSystem {
   private powerUpManager: PowerUpManager | null = null;
   private weaponManager: WeaponManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
+  private energyManager: SlashEnergyManager | null = null;
+
+  // Energy tracking
+  private lastSlashDistance: number = 0;
+  private currentEnergyEffectiveness: number = 1.0;
+
+  // Power level tracking (updated each frame from SlashTrail)
+  private currentPowerLevel: SlashPowerLevel = SlashPowerLevel.NONE;
+
+  // Pattern recognition tracking (similar to ComboSystem timer pattern)
+  private patternBuffer: SlashPatternPoint[] = [];
+  private patternTimer: number = 0;
+  private isPatternBuffering: boolean = false;
+  private lastDetectedPattern: SlashPatternResult | null = null;
+  private wasSlashActive: boolean = false;
+
+  // Slash session tracking for pattern bonuses
+  // Tracks points and monsters during a single slash to apply pattern multipliers retroactively
+  private slashSessionPoints: number = 0;
+  private slashSessionMonsters: { x: number; y: number; type: MonsterType }[] = [];
+
+  // Spatial grids for optimized collision detection
+  // Separate grids for each entity type for better cache locality
+  private monsterGrid: SpatialGrid<Monster>;
+  private villagerGrid: SpatialGrid<Villager>;
+  private powerUpGrid: SpatialGrid<PowerUp>;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.hitFlashGraphics = scene.add.graphics();
+
+    // Initialize spatial grids for collision optimization
+    this.monsterGrid = new SpatialGrid<Monster>();
+    this.villagerGrid = new SpatialGrid<Villager>();
+    this.powerUpGrid = new SpatialGrid<PowerUp>();
   }
 
   /**
@@ -67,6 +363,13 @@ export class SlashSystem {
   }
 
   /**
+   * Set energy manager reference
+   */
+  setEnergyManager(energyManager: SlashEnergyManager): void {
+    this.energyManager = energyManager;
+  }
+
+  /**
    * Get slash width with upgrade bonus
    */
   getSlashWidth(): number {
@@ -86,36 +389,180 @@ export class SlashSystem {
    * @param monsters - Array of active monsters
    * @param villagers - Array of active villagers
    * @param powerUps - Array of active power-ups
+   * @param delta - Time since last update (ms), used for pattern timeout
    */
   update(
     slashTrail: SlashTrail,
     monsters: Monster[],
     villagers: Villager[],
     powerUps: PowerUp[],
+    delta: number = 16.67,
   ): void {
+    const isSlashActive = slashTrail.isActive();
+
+    // Handle slash session tracking (transition from inactive to active)
+    if (!this.wasSlashActive && isSlashActive) {
+      // New slash started - reset session tracking
+      this.slashSessionPoints = 0;
+      this.slashSessionMonsters = [];
+    }
+
+    // Handle pattern detection when slash ends (transition from active to inactive)
+    if (this.wasSlashActive && !isSlashActive) {
+      this.onSlashEnd();
+    }
+    this.wasSlashActive = isSlashActive;
+
+    // Update pattern timer for timeout (similar to ComboSystem.update)
+    if (this.isPatternBuffering) {
+      this.patternTimer -= delta;
+
+      // Reset partial patterns if timeout expires
+      if (this.patternTimer <= 0) {
+        this.resetPatternBuffer();
+        EventBus.emit('slash-pattern-failed', {
+          reason: 'timeout',
+        });
+      }
+    }
+
     // Only check collisions if slash is active
-    if (!slashTrail.isActive()) {
+    if (!isSlashActive) {
+      // Reset slash distance when not slashing
+      this.lastSlashDistance = 0;
+      // Reset power level when not slashing
+      this.currentPowerLevel = SlashPowerLevel.NONE;
       return;
     }
 
+    // Get the current power level from the slash trail
+    this.currentPowerLevel = slashTrail.getPowerLevel();
+
     const slashPoints = slashTrail.getSlashPoints();
-    
-    // Check each line segment in slash trail
+
+    // Buffer points for pattern recognition
+    this.bufferSlashPoints(slashPoints);
+
+    // Calculate slash distance and consume energy
+    const currentDistance = this.calculateSlashDistance(slashPoints);
+    if (currentDistance > this.lastSlashDistance && this.energyManager) {
+      const distanceDelta = currentDistance - this.lastSlashDistance;
+      this.currentEnergyEffectiveness = this.energyManager.consumeEnergy(distanceDelta);
+    }
+    this.lastSlashDistance = currentDistance;
+
+    // Populate spatial grids with active entities
+    // Clear grids and rebuild each frame (entities move)
+    this.monsterGrid.clear();
+    this.villagerGrid.clear();
+    this.powerUpGrid.clear();
+    this.monsterGrid.populate(monsters);
+    this.villagerGrid.populate(villagers);
+    this.powerUpGrid.populate(powerUps);
+
+    // Check each line segment in slash trail using spatial partitioning
     for (let i = 1; i < slashPoints.length; i++) {
       const prevPoint = slashPoints[i - 1];
       const currentPoint = slashPoints[i];
-      
+
       if (!prevPoint || !currentPoint) continue;
-      
-      // Check collision with monsters
-      this.checkMonsterCollisions(prevPoint, currentPoint, monsters);
-      
-      // Check collision with villagers
-      this.checkVillagerCollisions(prevPoint, currentPoint, villagers);
-      
-      // Check collision with power-ups
-      this.checkPowerUpCollisions(prevPoint, currentPoint, powerUps);
+
+      // Query spatial grids for nearby entities and check collisions
+      // This reduces collision checks from O(all entities) to O(entities in nearby cells)
+      this.checkMonsterCollisions(prevPoint, currentPoint);
+      this.checkVillagerCollisions(prevPoint, currentPoint);
+      this.checkPowerUpCollisions(prevPoint, currentPoint);
     }
+  }
+
+  /**
+   * Buffer slash points for pattern recognition
+   */
+  private bufferSlashPoints(slashPoints: Phaser.Math.Vector2[]): void {
+    if (slashPoints.length === 0) return;
+
+    // Sample points based on distance to avoid buffering too many similar points
+    const lastPoint = slashPoints[slashPoints.length - 1];
+    
+    if (this.patternBuffer.length === 0) {
+      this.patternBuffer.push({
+        x: lastPoint.x,
+        y: lastPoint.y,
+        timestamp: this.scene.time.now,
+      });
+      this.isPatternBuffering = true;
+      this.patternTimer = SLASH_PATTERN.patternTimeoutMs;
+    } else {
+      const lastBuffered = this.patternBuffer[this.patternBuffer.length - 1];
+      const distance = Phaser.Math.Distance.Between(lastBuffered.x, lastBuffered.y, lastPoint.x, lastPoint.y);
+      
+      // Only add point if minimum distance threshold is met
+      if (distance >= SLASH_PATTERN.minPointDistance) {
+        this.patternBuffer.push({
+          x: lastPoint.x,
+          y: lastPoint.y,
+          timestamp: this.scene.time.now,
+        });
+      }
+    }
+  }
+
+  /**
+   * Calculate total distance traveled by slash
+   */
+  private calculateSlashDistance(slashPoints: Phaser.Math.Vector2[]): number {
+    let distance = 0;
+    
+    for (let i = 1; i < slashPoints.length; i++) {
+      const prev = slashPoints[i - 1];
+      const current = slashPoints[i];
+      distance += Phaser.Math.Distance.Between(prev.x, prev.y, current.x, current.y);
+    }
+    
+    return distance;
+  }
+
+  /**
+   * Handle slash ending - detect patterns and apply bonuses
+   */
+  private onSlashEnd(): void {
+    if (this.patternBuffer.length >= SLASH_PATTERN.minPointsRequired) {
+      const patternResult = detectSlashPattern(this.patternBuffer);
+      
+      if (patternResult && isValidPattern(patternResult.type)) {
+        this.lastDetectedPattern = patternResult;
+        
+        // Apply pattern bonus to session points retroactively
+        const patternBonus = SLASH_PATTERN_BONUSES[patternResult.type] || {};
+        if (patternBonus.scoreMultiplier) {
+          const bonusPoints = Math.floor(this.slashSessionPoints * (patternBonus.scoreMultiplier - 1));
+          this.score += bonusPoints;
+          
+          EventBus.emit('score-updated', {
+            score: this.score,
+            delta: bonusPoints,
+          });
+        }
+        
+        EventBus.emit('slash-pattern-detected', {
+          type: patternResult.type,
+          difficulty: patternResult.difficulty,
+          bonus: patternBonus,
+          sessionMonsters: this.slashSessionMonsters,
+        });
+      }
+    }
+    
+    this.resetPatternBuffer();
+  }
+
+  /**
+   * Reset pattern buffer and timer
+   */
+  private resetPatternBuffer(): void {
+    this.patternBuffer = [];
+    this.isPatternBuffering = false;
+    this.patternTimer = 0;
   }
 
   /**
@@ -124,9 +571,10 @@ export class SlashSystem {
   private checkMonsterCollisions(
     prevPoint: Phaser.Math.Vector2,
     currentPoint: Phaser.Math.Vector2,
-    monsters: Monster[],
   ): void {
-    for (const monster of monsters) {
+    const candidates = this.monsterGrid.queryLine(prevPoint.x, prevPoint.y, currentPoint.x, currentPoint.y);
+    
+    for (const monster of candidates) {
       if (!this.canSliceMonster(monster)) continue;
       if (!this.checkCollision(prevPoint, currentPoint, monster)) continue;
       
@@ -156,6 +604,14 @@ export class SlashSystem {
     
     this.score += finalScore;
     this.souls += finalSouls;
+    
+    // Track session points and monsters for pattern bonuses
+    this.slashSessionPoints += finalScore;
+    this.slashSessionMonsters.push({
+      x: monster.x,
+      y: monster.y,
+      type: monster.getMonsterType(),
+    });
     
     this.emitMonsterEvents(monster, finalScore, finalSouls, isCritical);
     this.createHitEffect(monster.x, monster.y, isCritical);
@@ -268,9 +724,10 @@ export class SlashSystem {
   private checkVillagerCollisions(
     prevPoint: Phaser.Math.Vector2,
     currentPoint: Phaser.Math.Vector2,
-    villagers: Villager[],
   ): void {
-    for (const villager of villagers) {
+    const candidates = this.villagerGrid.queryLine(prevPoint.x, prevPoint.y, currentPoint.x, currentPoint.y);
+    
+    for (const villager of candidates) {
       if (!this.canSliceVillager(villager)) continue;
       if (!this.checkVillagerCollision(prevPoint, currentPoint, villager)) continue;
       
@@ -329,9 +786,10 @@ export class SlashSystem {
   private checkPowerUpCollisions(
     prevPoint: Phaser.Math.Vector2,
     currentPoint: Phaser.Math.Vector2,
-    powerUps: PowerUp[],
   ): void {
-    for (const powerUp of powerUps) {
+    const candidates = this.powerUpGrid.queryLine(prevPoint.x, prevPoint.y, currentPoint.x, currentPoint.y);
+    
+    for (const powerUp of candidates) {
       if (!this.canSlicePowerUp(powerUp)) continue;
       if (!this.checkPowerUpCollision(prevPoint, currentPoint, powerUp)) continue;
       
@@ -344,7 +802,7 @@ export class SlashSystem {
    */
   private canSlicePowerUp(powerUp: PowerUp): boolean {
     if (!powerUp.active || powerUp.getIsSliced()) return false;
-    if (powerUp.y < -50 || powerUp.y > 800) return false;
+    if (powerUp.y < ENTITY_BOUNDS.top || powerUp.y > ENTITY_BOUNDS.bottom) return false;
     return true;
   }
 

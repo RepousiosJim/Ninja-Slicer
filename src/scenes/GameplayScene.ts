@@ -8,8 +8,6 @@
 
 import Phaser from 'phaser';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
-
-
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, DEFAULT_STARTING_LIVES } from '@config/constants';
 import { LevelConfig } from '@config/types';
 import { SlashTrail } from '../entities/SlashTrail';
@@ -22,6 +20,7 @@ import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { SaveManager } from '../managers/SaveManager';
 import { LevelManager } from '../managers/LevelManager';
+import { SlashEnergyManager } from '../managers/SlashEnergyManager';
 import { EventBus } from '../utils/EventBus';
 import { Boss } from '../entities/Boss';
 import { GraveTitan } from '../entities/GraveTitan';
@@ -41,6 +40,7 @@ export class GameplayScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
   private saveManager!: SaveManager;
   private levelManager!: LevelManager;
+  private slashEnergyManager!: SlashEnergyManager;
 
   // Campaign mode properties
   private isCampaignMode: boolean = false;
@@ -81,6 +81,9 @@ export class GameplayScene extends Phaser.Scene {
     this.upgradeManager = UpgradeManager.getInstance();
     this.saveManager = new SaveManager();
     this.levelManager = LevelManager.getInstance();
+    this.slashEnergyManager = SlashEnergyManager.getInstance();
+    this.slashEnergyManager.initialize(this);
+    this.slashEnergyManager.setUpgradeManager(this.upgradeManager);
 
     // Load data
     this.loadProgressionData();
@@ -100,6 +103,7 @@ export class GameplayScene extends Phaser.Scene {
     this.slashSystem.setPowerUpManager(this.powerUpManager);
     this.slashSystem.setWeaponManager(this.weaponManager);
     this.slashSystem.setUpgradeManager(this.upgradeManager);
+    this.slashSystem.setEnergyManager(this.slashEnergyManager);
 
     // Apply starting lives from upgrade
     const playerStats = this.upgradeManager.getPlayerStats();
@@ -229,24 +233,24 @@ export class GameplayScene extends Phaser.Scene {
 
     // Create boss based on ID
     switch (bossId) {
-    case 'grave_titan':
-      this.boss = new GraveTitan(this);
-      break;
-    case 'headless_horseman':
-      this.boss = new HeadlessHorseman(this);
-      break;
-    case 'vampire_lord':
-      this.boss = new VampireLord(this);
-      break;
-    case 'phantom_king':
-      this.boss = new PhantomKing(this);
-      break;
-    case 'demon_overlord':
-      this.boss = new DemonOverlord(this);
-      break;
-    default:
-      console.error(`[GameplayScene] Unknown boss ID: ${bossId}`);
-      return;
+      case 'grave_titan':
+        this.boss = new GraveTitan(this);
+        break;
+      case 'headless_horseman':
+        this.boss = new HeadlessHorseman(this);
+        break;
+      case 'vampire_lord':
+        this.boss = new VampireLord(this);
+        break;
+      case 'phantom_king':
+        this.boss = new PhantomKing(this);
+        break;
+      case 'demon_overlord':
+        this.boss = new DemonOverlord(this);
+        break;
+      default:
+        console.error(`[GameplayScene] Unknown boss ID: ${bossId}`);
+        return;
     }
 
     // Get boss config
@@ -443,6 +447,9 @@ export class GameplayScene extends Phaser.Scene {
     // Update power-up manager
     this.powerUpManager.update(time, delta);
 
+    // Update slash energy manager (handles regeneration)
+    this.slashEnergyManager.update(time, delta);
+
     // Update slash system (check collisions)
     const activeMonsters = this.spawnSystem.getActiveMonsters();
     const activeVillagers = this.spawnSystem.getActiveVillagers();
@@ -499,47 +506,42 @@ export class GameplayScene extends Phaser.Scene {
       souls: finalStats.souls,
       stars,
       stats: finalStats,
-      isNewHighScore: false,
     });
-
-    // Save game state
-    this.saveManager.save();
 
     // Transition to level complete scene
-    this.scene.start(SCENE_KEYS.levelComplete, {
-      world: this.currentWorld,
-      level: this.currentLevel,
-      score: finalStats.score,
-      stars,
-      souls: finalStats.souls,
-      stats: finalStats,
-    });
+    this.isGameOver = true;
   }
 
   /**
-   * Handle pointer input
+   * Handle input
    * @param delta - Time since last update
    */
   private handleInput(delta: number): void {
-    if (this.isPointerDown) {
-      // Calculate delta time in seconds
-      const deltaTime = delta / 1000;
-
-      // Update slash trail
-      this.slashTrail.update(this.pointerX, this.pointerY, deltaTime);
+    if (!this.isPointerDown) {
+      return;
     }
+
+    // Perform slashing only if we have enough energy
+    if (!this.slashEnergyManager.canSlash()) {
+      return;
+    }
+
+    // Update slash trail
+    this.slashTrail.update(this.pointerX, this.pointerY, delta);
+
+    // Consume energy for the slash
+    this.slashEnergyManager.consumeEnergy();
   }
 
   /**
-   * Check for monsters that fell off screen
+   * Check for missed monsters
    */
-  private checkMissedMonsters(monsters: any[]): void {
-    for (const monster of monsters) {
-      if (monster.y > 800 && !monster.getIsSliced()) {
-        // Monster was missed
-        EventBus.emit('monster-missed', {
-          monsterType: monster.getMonsterType(),
-        });
+  private checkMissedMonsters(activeMonsters: any[]): void {
+    for (const monster of activeMonsters) {
+      if (monster.y > GAME_HEIGHT) {
+        // Monster fell off screen
+        this.spawnSystem.removeMonster(monster);
+        EventBus.emit('monster-missed');
       }
     }
   }
@@ -549,57 +551,20 @@ export class GameplayScene extends Phaser.Scene {
    */
   private loseLife(): void {
     this.lives--;
+    this.hud.updateLives(this.lives);
 
-    // Emit lives changed event
-    EventBus.emit('lives-changed', {
-      lives: this.lives,
-      delta: -1,
-    });
-
-    // Check for game over
     if (this.lives <= 0) {
-      this.triggerGameOver();
+      this.gameOver();
     }
   }
 
   /**
-   * Trigger game over
+   * Game over
    */
-  private triggerGameOver(): void {
+  private gameOver(): void {
     this.isGameOver = true;
-    this.gameOverTimer = 0;
+    this.isPaused = false;
 
-    // Stop spawning
-    this.spawnSystem.stopSpawning();
-
-    // Dramatic pause before showing game over
-    this.time.delayedCall(1000, () => {
-      this.showGameOver();
-    });
-  }
-
-  /**
-   * Handle game over update
-   */
-  private handleGameOverUpdate(delta: number): void {
-    this.gameOverTimer += delta;
-
-    // Let remaining monsters fall
-    const activeMonsters = this.spawnSystem.getActiveMonsters();
-    const activeVillagers = this.spawnSystem.getActiveVillagers();
-    const activePowerUps = this.spawnSystem.getActivePowerUps();
-
-    this.spawnSystem.update(this.time.now, delta);
-
-    // Update slash system (no new slashes)
-    this.slashSystem.update(this.slashTrail, activeMonsters, activeVillagers, activePowerUps);
-  }
-
-  /**
-   * Show game over screen
-   */
-  private showGameOver(): void {
-    // Prepare final stats
     const finalStats = {
       score: this.slashSystem.getScore(),
       souls: this.slashSystem.getSouls(),
@@ -611,117 +576,58 @@ export class GameplayScene extends Phaser.Scene {
     };
 
     // Emit game over event
-    EventBus.emit('game-over', finalStats);
-
-    // Save game state
-    this.saveManager.save();
-
-    // Transition to game over scene
-    this.scene.start('GameOverScene', finalStats);
-  }
-
-  /**
-   * Restart game
-   */
-  private restart(): void {
-    debugLog('Restarting game...');
-
-    // Reset all systems
-    this.slashTrail.clear();
-    this.spawnSystem.reset();
-    this.slashSystem.resetScore();
-    this.comboSystem.reset();
-    this.comboSystem.resetMaxCombo();
-    this.powerUpManager.reset();
-    this.hud.updateScore(0);
-
-    // Reset game state
-    this.lives = DEFAULT_STARTING_LIVES;
-    this.isGameOver = false;
-    this.gameOverTimer = 0;
-
-    // Reset campaign mode state
-    if (this.isCampaignMode) {
-      this.levelTimer = 0;
-      this.currentKills = 0;
-      this.bossSpawned = false;
-      if (this.boss) {
-        this.boss.destroy();
-        this.boss = null;
-      }
-      // this.hud.showTimer(true);
-      // this.hud.showKillQuota(true);
-      // this.hud.showBossHealthBar(false);
-      if (this.currentLevelConfig) {
-        // this.hud.updateTimer(0, this.currentLevelConfig.duration);
-        // this.hud.updateKillQuota(0, this.killQuota);
-      }
-    }
-
-    // Emit lives changed event
-    EventBus.emit('lives-changed', {
-      lives: this.lives,
-      delta: 0,
+    EventBus.emit('game-over', {
+      score: finalStats.score,
+      souls: finalStats.souls,
+      stats: finalStats,
     });
 
-    // Reset input state
-    this.isPointerDown = false;
-
-    // Resume spawning
-    this.spawnSystem.resumeSpawning();
+    // Show game over screen after brief delay
+    this.gameOverTimer = 0;
   }
-  
+
   /**
-   * Toggle pause state
+   * Handle game over update
    */
-  private togglePause(): void {
-    if (this.isGameOver) return;
-    
-    this.isPaused = !this.isPaused;
-    
-    if (this.isPaused) {
-      // Pause physics
-      this.physics.pause();
-      
-      // Open pause scene
-      this.scene.pause();
-      this.scene.launch(SCENE_KEYS.pause, {
-        levelId: this.isCampaignMode ? `${this.currentWorld}-${this.currentLevel}` : null,
-      });
-    } else {
-      // Resume physics
-      this.physics.resume();
+  private handleGameOverUpdate(delta: number): void {
+    this.gameOverTimer += delta / 1000;
+
+    // After 2 seconds, show game over screen
+    if (this.gameOverTimer > 2) {
+      // Show game over scene
+      this.scene.start(SCENE_KEYS.gameOver);
     }
   }
-  
+
   /**
-   * Resume from pause
+   * Restart the game
    */
-  public resume(): void {
-    this.isPaused = false;
-    this.physics.resume();
+  private restart(): void {
+    this.scene.restart();
   }
 
   /**
-   * Clean up when scene is destroyed
+   * Toggle pause
+   */
+  private togglePause(): void {
+    this.isPaused = !this.isPaused;
+    this.hud.updatePauseState(this.isPaused);
+
+    if (this.isPaused) {
+      EventBus.emit('game-paused');
+    } else {
+      EventBus.emit('game-resumed');
+    }
+  }
+
+  /**
+   * Shutdown the scene
    */
   shutdown(): void {
-    // Remove event listeners
+    // Clean up event listeners
     EventBus.off('monster-missed');
     EventBus.off('monster-sliced');
     EventBus.off('boss-hit');
     EventBus.off('boss-defeated');
-
-    // Destroy all systems
-    this.slashTrail.destroy();
-    this.spawnSystem.destroy();
-    this.slashSystem.destroy();
-    this.hud.destroy();
-
-    // Destroy boss if exists
-    if (this.boss) {
-      this.boss.destroy();
-      this.boss = null;
-    }
   }
 }

@@ -315,8 +315,8 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
       this.body.enable = false;
     }
 
-    // Screen shake on kill (light shake)
-    this.scene.cameras.main.shake(100, 0.003);
+    // Screen shake on kill for visceral feedback (100ms duration, 0.007 intensity)
+    this.scene.cameras.main.shake(100, 0.007);
 
     // Death animation: scale up + fade out
     this.scene.tweens.add({
@@ -431,4 +431,3 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
     super.destroy(fromScene);
   }
 }
-

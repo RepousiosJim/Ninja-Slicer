@@ -9,8 +9,6 @@
 
 import Phaser from 'phaser';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
-
-
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, DEFAULT_STARTING_LIVES, ENDLESS_SCALING } from '@config/constants';
 import { SlashTrail } from '../entities/SlashTrail';
 import { SpawnSystem } from '../systems/SpawnSystem';
@@ -21,6 +19,7 @@ import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { SaveManager } from '../managers/SaveManager';
+import { AudioManager } from '../managers/AudioManager';
 import { EventBus } from '../utils/EventBus';
 import { SupabaseService } from '../services/SupabaseService';
 
@@ -34,6 +33,7 @@ export class EndlessGameplayScene extends Phaser.Scene {
   private weaponManager!: WeaponManager;
   private upgradeManager!: UpgradeManager;
   private saveManager!: SaveManager;
+  private audioManager!: AudioManager;
   private supabaseService: SupabaseService;
 
   // Endless mode properties
@@ -89,11 +89,16 @@ export class EndlessGameplayScene extends Phaser.Scene {
     this.powerUpManager.setUpgradeManager(this.upgradeManager);
     this.hud = new HUD(this);
 
+    // Initialize audio manager
+    this.audioManager = new AudioManager(this);
+    this.audioManager.initialize();
+
     // Connect systems
     this.slashSystem.setComboSystem(this.comboSystem);
     this.slashSystem.setPowerUpManager(this.powerUpManager);
     this.slashSystem.setWeaponManager(this.weaponManager);
     this.slashSystem.setUpgradeManager(this.upgradeManager);
+    this.slashSystem.setAudioManager(this.audioManager);
 
     // Apply starting lives from upgrade
     const playerStats = this.upgradeManager.getPlayerStats();

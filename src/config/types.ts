@@ -60,6 +60,20 @@ export enum WeaponRarity {
   LEGENDARY = 'legendary',
 }
 
+export enum SlashPowerLevel {
+  NONE = 0,
+  LOW = 1,
+  MEDIUM = 2,
+  HIGH = 3,
+}
+
+export enum SlashPatternType {
+  NONE = 'none',
+  CIRCLE = 'circle',
+  ZIGZAG = 'zigzag',
+  STRAIGHT = 'straight',
+}
+
 // =============================================================================
 // SAVE DATA
 // =============================================================================
@@ -319,6 +333,89 @@ export interface GameplayState {
 }
 
 // =============================================================================
+// SLASH MECHANICS
+// =============================================================================
+
+export interface SlashEnergyState {
+  current: number;
+  max: number;
+  regenRate: number;
+  isRegenerating: boolean;
+  lastDepletionTime: number;
+}
+
+export interface SlashPowerState {
+  level: SlashPowerLevel;
+  chargeStartTime: number;
+  chargeProgress: number;
+  isCharging: boolean;
+}
+
+export interface SlashPatternPoint {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
+export interface SlashPatternState {
+  points: SlashPatternPoint[];
+  detectedPattern: SlashPatternType;
+  patternStartTime: number;
+  isDetecting: boolean;
+}
+
+export interface SlashPatternResult {
+  pattern: SlashPatternType;
+  confidence: number;
+  points: SlashPatternPoint[];
+  center?: Vector2;
+  radius?: number;
+  directionChanges?: number;
+  straightLineDeviation?: number;
+}
+
+export interface SlashMechanicsState {
+  energy: SlashEnergyState;
+  power: SlashPowerState;
+  pattern: SlashPatternState;
+}
+
+export interface SlashEnergyConfig {
+  maxEnergy: number;
+  baseCostPerDistance: number;
+  minCostPerSlash: number;
+  regenRatePerSecond: number;
+  regenDelay: number;
+  lowEnergyThreshold: number;
+  minEffectiveness: number;
+}
+
+export interface SlashPowerConfig {
+  chargeTimePerLevel: number;
+  maxPowerLevel: SlashPowerLevel;
+  damageMultipliers: Record<SlashPowerLevel, number>;
+  scoreMultipliers: Record<SlashPowerLevel, number>;
+  widthMultipliers: Record<SlashPowerLevel, number>;
+}
+
+export interface SlashPatternConfig {
+  minPointsForDetection: number;
+  patternTimeout: number;
+  circleClosureThreshold: number;
+  circleMinRadius: number;
+  zigzagMinDirectionChanges: number;
+  zigzagAngleThreshold: number;
+  straightLineMaxDeviation: number;
+  straightLineMinLength: number;
+}
+
+export interface SlashMechanicsConfig {
+  energy: SlashEnergyConfig;
+  power: SlashPowerConfig;
+  pattern: SlashPatternConfig;
+}
+
+// =============================================================================
 // EVENTS
 // =============================================================================
 
@@ -370,6 +467,29 @@ export interface GameplayStats {
   ghostsSliced: number;
   villagersSliced: number;
   powerUpsCollected: number;
+}
+
+export interface SlashEnergyChangedEvent {
+  current: number;
+  max: number;
+  percentage: number;
+  isLow: boolean;
+  isDepleted: boolean;
+}
+
+export interface SlashPowerChangedEvent {
+  level: SlashPowerLevel;
+  previousLevel: SlashPowerLevel;
+  chargeProgress: number;
+  isFullyCharged: boolean;
+}
+
+export interface SlashPatternDetectedEvent {
+  pattern: SlashPatternType;
+  confidence: number;
+  position: Vector2;
+  bonusScore: number;
+  bonusMultiplier: number;
 }
 
 // =============================================================================
@@ -632,16 +752,16 @@ export interface ThemeConfig {
 export interface DashboardCardConfig {
   width: number;
   height: number;
-  minWidth?: number; // NEW - minimum card width for scaling
-  maxWidth?: number; // NEW - maximum card width for scaling
-  minHeight?: number; // NEW - minimum card height for scaling
-  maxHeight?: number; // NEW - maximum card height for scaling
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
   columns: number;
   rows: number;
   gap: number;
-  minGap?: number; // NEW - minimum gap for small screens
-  maxGap?: number; // NEW - maximum gap for large screens
-  adaptiveLayout?: boolean; // NEW - enable responsive grid layout
+  minGap?: number;
+  maxGap?: number;
+  adaptiveLayout?: boolean;
   borderRadius: number;
   borderWidth: number;
   innerPadding: number;
