@@ -36,6 +36,13 @@ export interface CloudSaveData {
   updated_at: string;
 }
 
+export interface PlayerProfile {
+  user_id: string;
+  souls: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export class SupabaseService {
   private client: SupabaseClient | null = null;
   private user: User | null = null;
@@ -429,5 +436,100 @@ export class SupabaseService {
       }
     }
     return result;
+  }
+
+  // ===========================================================================
+  // PLAYER PROFILES (SOULS PERSISTENCE)
+  // ===========================================================================
+
+  /**
+   * Get player profile with souls from Supabase
+   */
+  async getPlayerProfile(): Promise<PlayerProfile | null> {
+    if (!this.client || !this.user) {
+      debugWarn('[SupabaseService] Cannot get player profile: not authenticated');
+      return null;
+    }
+
+    try {
+      const { data, error } = await this.client
+        .from('player_profiles')
+        .select('*')
+        .eq('user_id', this.user.id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No profile found - this is normal for new users
+          return null;
+        }
+        throw error;
+      }
+
+      return data as PlayerProfile;
+    } catch (error) {
+      debugError('[SupabaseService] Failed to get player profile:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Update souls in player profile
+   */
+  async updatePlayerSouls(souls: number): Promise<boolean> {
+    if (!this.client || !this.user) {
+      debugWarn('[SupabaseService] Cannot update souls: not authenticated');
+      return false;
+    }
+
+    // Validate souls is non-negative
+    if (souls < 0) {
+      debugError('[SupabaseService] Invalid souls value: cannot be negative');
+      return false;
+    }
+
+    try {
+      const { error } = await this.client
+        .from('player_profiles')
+        .upsert({
+          user_id: this.user.id,
+          souls: souls,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (error) throw error;
+
+      debugLog('[SupabaseService] Souls updated successfully:', souls);
+      return true;
+    } catch (error) {
+      debugError('[SupabaseService] Failed to update souls:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sync souls between local and cloud storage
+   * Returns the merged (highest) soul count
+   */
+  async syncPlayerSouls(localSouls: number): Promise<number> {
+    const profile = await this.getPlayerProfile();
+
+    if (!profile) {
+      // No cloud profile - create one with local souls
+      await this.updatePlayerSouls(localSouls);
+      return localSouls;
+    }
+
+    // Take the higher value to prevent soul loss
+    const mergedSouls = Math.max(localSouls, profile.souls);
+
+    // Update cloud if local is higher
+    if (localSouls > profile.souls) {
+      await this.updatePlayerSouls(mergedSouls);
+    }
+
+    return mergedSouls;
   }
 }
