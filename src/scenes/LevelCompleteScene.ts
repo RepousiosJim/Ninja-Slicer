@@ -6,7 +6,8 @@
  */
 
 import Phaser from 'phaser';
-import { SCENE_KEYS } from '@config/constants';
+import { SCENE_KEYS, LEVEL_COMPLETE_SOULS } from '@config/constants';
+import { SaveManager } from '../managers/SaveManager';
 
 interface LevelCompleteData {
   world: number;
@@ -26,20 +27,40 @@ export class LevelCompleteScene extends Phaser.Scene {
   private starSprites: Phaser.GameObjects.Rectangle[] = [];
   private scoreText: Phaser.GameObjects.Text | null = null;
   private soulsText: Phaser.GameObjects.Text | null = null;
+  private bonusSoulsText: Phaser.GameObjects.Text | null = null;
   private statsText: Phaser.GameObjects.Text | null = null;
+  private saveManager: SaveManager;
 
   constructor() {
     super({ key: SCENE_KEYS.levelComplete });
+    this.saveManager = new SaveManager();
+  }
+
+  /**
+   * Calculate the level completion soul bonus based on world
+   * Formula: LEVEL_COMPLETE_SOULS.base + (world * LEVEL_COMPLETE_SOULS.perWorld)
+   */
+  private calculateLevelCompletionBonus(world: number): number {
+    return LEVEL_COMPLETE_SOULS.base + (world * LEVEL_COMPLETE_SOULS.perWorld);
   }
 
   create(data: LevelCompleteData): void {
     this.levelData = data;
 
+    // Calculate level completion bonus souls
+    const bonusSouls = this.calculateLevelCompletionBonus(data.world);
+
+    // Total souls = souls earned from gameplay + level completion bonus
+    const totalSouls = data.souls + bonusSouls;
+
+    // Add total souls to player's save
+    this.saveManager.addSouls(totalSouls);
+
     // Create background
     this.createBackground();
 
-    // Create UI
-    this.createUI();
+    // Create UI with bonus calculation
+    this.createUI(bonusSouls, totalSouls);
 
     // Animate stars
     this.time.delayedCall(500, () => {
@@ -66,7 +87,7 @@ export class LevelCompleteScene extends Phaser.Scene {
   /**
    * Create UI elements
    */
-  private createUI(): void {
+  private createUI(bonusSouls: number, totalSouls: number): void {
     if (!this.levelData) return;
 
     const centerX = this.scale.width / 2;
@@ -92,23 +113,51 @@ export class LevelCompleteScene extends Phaser.Scene {
     this.scoreText.setOrigin(0.5);
     this.scoreText.setDepth(10);
 
-    // Souls earned display
-    this.soulsText = this.add.text(centerX, centerY - 100, `Souls Earned: ${this.levelData.souls}`, {
-      fontSize: '28px',
+    // Souls earned from gameplay display
+    this.soulsText = this.add.text(centerX, centerY - 105, `Souls from Slicing: ${this.levelData.souls}`, {
+      fontSize: '24px',
       color: '#ffd700',
       fontStyle: 'bold',
     });
     this.soulsText.setOrigin(0.5);
     this.soulsText.setDepth(10);
 
+    // Level completion bonus souls display
+    this.bonusSoulsText = this.add.text(
+      centerX,
+      centerY - 75,
+      `Level Bonus: +${bonusSouls}`,
+      {
+        fontSize: '24px',
+        color: '#00ffaa',
+        fontStyle: 'bold',
+      },
+    );
+    this.bonusSoulsText.setOrigin(0.5);
+    this.bonusSoulsText.setDepth(10);
+
+    // Total souls earned display
+    const totalSoulsText = this.add.text(
+      centerX,
+      centerY - 40,
+      `Total Souls: ${totalSouls}`,
+      {
+        fontSize: '28px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+      },
+    );
+    totalSoulsText.setOrigin(0.5);
+    totalSoulsText.setDepth(10);
+
     // Stats display
     const stats = this.levelData.stats;
     this.statsText = this.add.text(
       centerX,
-      centerY - 40,
+      centerY + 15,
       `Monsters Sliced: ${stats.monstersSliced}\nMax Combo: ${stats.maxCombo}\nTime: ${Math.floor(stats.timeElapsed)}s`,
       {
-        fontSize: '20px',
+        fontSize: '18px',
         color: '#cccccc',
       },
     );
@@ -116,7 +165,7 @@ export class LevelCompleteScene extends Phaser.Scene {
     this.statsText.setDepth(10);
 
     // Star rating container
-    const starContainer = this.add.container(centerX, centerY + 50);
+    const starContainer = this.add.container(centerX, centerY + 80);
 
     // Create 3 star placeholders (empty)
     for (let i = 0; i < 3; i++) {
@@ -131,13 +180,13 @@ export class LevelCompleteScene extends Phaser.Scene {
     starContainer.setDepth(10);
 
     // Next Level button
-    const nextButton = this.createButton(centerX, centerY + 150, 'NEXT LEVEL', () => {
+    const nextButton = this.createButton(centerX, centerY + 170, 'NEXT LEVEL', () => {
       this.onNextLevel();
     });
     nextButton.setDepth(10);
 
     // Replay button
-    const replayButton = this.createButton(centerX, centerY + 220, 'REPLAY', () => {
+    const replayButton = this.createButton(centerX, centerY + 230, 'REPLAY', () => {
       this.onReplay();
     });
     replayButton.setDepth(10);
