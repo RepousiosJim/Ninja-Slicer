@@ -217,9 +217,16 @@ export class EndlessGameplayScene extends Phaser.Scene {
       this.loseLife();
     });
 
-    // Listen for monster sliced events
-    EventBus.on('monster-sliced', () => {
+    // Listen for monster sliced events (award souls and track stats)
+    EventBus.on('monster-sliced', (data: { souls: number }) => {
+      // Track session stats
       this.sessionStats.monstersSliced++;
+
+      // Award souls for the monster kill
+      if (data.souls > 0) {
+        const newTotal = this.saveManager.addSouls(data.souls);
+        EventBus.emit('souls-updated', { souls: newTotal, delta: data.souls });
+      }
     });
 
     // Listen for combo updates
