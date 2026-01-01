@@ -391,8 +391,15 @@ export class GameplayScene extends Phaser.Scene {
       this.loseLife();
     });
 
-    // Listen for monster sliced events (for kill tracking in campaign)
-    EventBus.on('monster-sliced', () => {
+    // Listen for monster sliced events (award souls and track kills)
+    EventBus.on('monster-sliced', (data: { souls: number }) => {
+      // Award souls for the monster kill
+      if (data.souls > 0) {
+        const newTotal = this.saveManager.addSouls(data.souls);
+        EventBus.emit('souls-updated', { souls: newTotal, delta: data.souls });
+      }
+
+      // Track kill quota in campaign mode
       if (this.isCampaignMode) {
         this.currentKills++;
         this.hud.updateKillQuota(this.currentKills, this.killQuota);
