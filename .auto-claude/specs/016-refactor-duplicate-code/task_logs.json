@@ -1,0 +1,369 @@
+{
+  "spec_id": "016-refactor-duplicate-code",
+  "created_at": "2026-01-01T17:55:40.016165+00:00",
+  "updated_at": "2026-01-01T17:58:38.721332+00:00",
+  "phases": {
+    "planning": {
+      "phase": "planning",
+      "status": "active",
+      "started_at": "2026-01-01T17:55:40.016851+00:00",
+      "completed_at": null,
+      "entries": [
+        {
+          "timestamp": "2026-01-01T17:55:40.016876+00:00",
+          "type": "phase_start",
+          "content": "Starting implementation planning...",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-01T17:55:55.277651+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...laude\\specs\\016-refactor-duplicate-code\\spec.md",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...laude\\specs\\016-refactor-duplicate-code\\spec.md",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:55:55.320119+00:00",
+          "type": "tool_start",
+          "content": "[mcp__auto-claude__get_session_context]",
+          "phase": "planning",
+          "tool_name": "mcp__auto-claude__get_session_context",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:55:56.123444+00:00",
+          "type": "tool_end",
+          "content": "[mcp__auto-claude__get_session_context] Done",
+          "phase": "planning",
+          "tool_name": "mcp__auto-claude__get_session_context",
+          "session": 1,
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:56:03.472796+00:00",
+          "type": "text",
+          "content": "The spec is minimal, so I need to explore the codebase to identify duplicate code patterns before creating the implementation plan. Let me analyze the project structure and find areas of duplication.",
+          "phase": "planning",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:03.985943+00:00",
+          "type": "tool_start",
+          "content": "[Glob] pattern: **/*.{ts,tsx,js,jsx}",
+          "phase": "planning",
+          "tool_name": "Glob",
+          "tool_input": "pattern: **/*.{ts,tsx,js,jsx}",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:04.422752+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...ktrees\\016-refactor-duplicate-code\\package.json",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...ktrees\\016-refactor-duplicate-code\\package.json",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:05.694578+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "planning",
+          "tool_name": "Read",
+          "session": 1,
+          "detail": "     1→{\n     2→  \"name\": \"monster-slayer\",\n     3→  \"version\": \"0.1.0\",\n     4→  \"description\": \"A Fruit Ninja-style monster slicing game with RPG progression\",\n     5→  \"type\": \"module\",\n     6→  \"scripts\": {\n     7→    \"dev\": \"vite\",\n     8→    \"build\": \"tsc && vite build\",\n     9→    \"preview\": \"vite preview\",\n    10→    \"lint\": \"eslint .\",\n    11→    \"lint:fix\": \"eslint . --fix\",\n    12→    \"typecheck\": \"tsc --noEmit\",\n    13→    \"format\": \"prettier --write \\\"src/**/*.{ts,tsx,js,jsx,json,css,md}\\\"\",\n    14→    \"prepare\": \"husky\",\n    15→    \"notion:sync-docs\": \"node scripts/notion/sync-docs.cjs\",\n    16→    \"notion:sync-commit\": \"node scripts/notion/sync-commit.cjs\",\n    17→    \"notion:sync-game-data\": \"node scripts/notion/sync-game-data.cjs\",\n    18→    \"notion:sync-todos\": \"node scripts/notion/sync-todos.cjs\",\n    19→    \"notion:create-task\": \"node scripts/notion/create-task.cjs\",\n    20→    \"notion:sync-all\": \"npm run notion:sync-docs && npm run notion:sync-game-data && npm run notion:sync-todos\",\n    21→    \"notion:update\": \"npm run notion:sync-docs && npm run notion:sync-commit\"\n    22→  },\n    23→  \"keywords\": [\n    24→    \"game\",\n    25→    \"phaser\",\n    26→    \"typescript\",\n    27→    \"monster\",\n    28→    \"slasher\",\n    29→    \"arcade\"\n    30→  ],\n    31→  \"author\": \"\",\n    32→  \"license\": \"MIT\",\n    33→  \"dependencies\": {\n    34→    \"@supabase/supabase-js\": \"^2.46.2\",\n    35→    \"phaser\": \"^3.80.1\"\n    36→  },\n    37→  \"devDependencies\": {\n    38→    \"@eslint/js\": \"^9.17.0\",\n    39→    \"@notionhq/client\": \"^5.6.0\",\n    40→    \"@types/node\": \"^22.10.2\",\n    41→    \"@typescript-eslint/eslint-plugin\": \"^8.19.1\",\n    42→    \"@typescript-eslint/parser\": \"^8.19.1\",\n    43→    \"dotenv\": \"^17.2.3\",\n    44→    \"eslint\": \"^9.17.0\",\n    45→    \"husky\": \"^9.1.7\",\n    46→    \"inquirer\": \"^13.1.0\",\n    47→    \"prettier\": \"^3.4.2\",\n    48→    \"terser\": \"^5.44.1\",\n    49→    \"typescript\": \"^5.7.2\",\n    50→    \"vite\": \"^5.4.21\"\n    51→  }\n    52→}\n    53→\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:56:14.085623+00:00",
+          "type": "text",
+          "content": "Let me explore the codebase to identify duplicate patterns. I'll look at entities, power-ups, and UI components which are likely areas of duplication.",
+          "phase": "planning",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:14.700619+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...refactor-duplicate-code\\src\\entities\\Monster.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...refactor-duplicate-code\\src\\entities\\Monster.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:15.527554+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...6-refactor-duplicate-code\\src\\entities\\Ghost.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...6-refactor-duplicate-code\\src\\entities\\Ghost.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:16.432729+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...refactor-duplicate-code\\src\\entities\\Vampire.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...refactor-duplicate-code\\src\\entities\\Vampire.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:17.202147+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...-refactor-duplicate-code\\src\\entities\\Zombie.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...-refactor-duplicate-code\\src\\entities\\Zombie.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:19.938915+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "planning",
+          "tool_name": "Read",
+          "session": 1,
+          "detail": "     1→/**\n     2→ * Monster\n     3→ * \n     4→ * Base class for all monsters in game.\n     5→ * Handles physics, spawning, and basic monster behavior.\n     6→ */\n     7→\n     8→import Phaser from 'phaser';\n     9→import { MonsterType } from '@config/types';\n    10→import { GRAVITY, MONSTER_HITBOX_RADIUS, MONSTER_BASE_SPEED, MONSTER_BASE_POINTS } from '@config/constants';\n    11→\n    12→export abstract class Monster extends Phaser.Physics.Arcade.Sprite {\n    13→  protected health: number;\n    14→  protected speed: number;\n    15→  protected points: number;\n    16→  protected isSliced: boolean;\n    17→  protected monsterType: MonsterType;\n    18→  protected initialVelocityX: number;\n    19→  protected initialVelocityY: number;\n    20→\n    21→  // Effect properties\n    22→  protected burnDamage: number = 0;\n    23→  protected burnTimer: number = 0;\n    24→  protected burnInterval: number = 0;\n    25→  protected slowMultiplier: number = 1.0;\n    26→  protected slowTimer: number = 0;\n    27→  protected stunTimer: number = 0;\n    28→\n    29→  // Event listener reference for cleanup\n    30→  private updateEventHandler: () => void = () => {};\n    31→\n    32→  constructor(scene: Phaser.Scene, x: number, y: number, texture: string, type: MonsterType) {\n    33→    super(scene, x, y, texture);\n    34→\n    35→    this.monsterType = type;\n    36→    this.health = 1;\n    37→    this.speed = MONSTER_BASE_SPEED[type] || 1.0;\n    38→    this.points = MONSTER_BASE_POINTS[type] || 10;\n    39→    this.isSliced = false;\n    40→    this.initialVelocityX = 0;\n    41→    this.initialVelocityY = 0;\n    42→\n    43→    // Add to scene\n    44→    scene.add.existing(this);\n    45→\n    46→    // Enable physics\n    47→    scene.physics.add.existing(this);\n    48→    this.setCollideWorldBounds(false);\n    49→\n    50→    // Set hitbox size\n    51→    const hitboxRadius = MONSTER_HITBOX_RADIUS[type] || 40;\n    52→    const body = this.body as Phaser.Physics.Arcade.Body;\n    53→    if (body) {\n    54→      body.setSize(hitboxRadius * 2, hitboxRadius * 2);\n    55→      body.setCircle(hitboxRadius);\n    56→    }\n    57→\n    58→    // Add visual enhancements for better visibility\n    59→    this.enhanceVisibility();\n    60→\n    61→    // Play idle animation if sheets exist\n    62→    this.createAnimations();\n    63→    this.playIdleAnimation();\n    64→  }\n    65→\n    66→  /**\n    67→   * Enhance monster visibility with colored backgrounds\n    68→   */\n    69→  private enhanceVisibility(): void {\n    70→    // Create a colored circle background based on monster type\n    71→    let backgroundColor = 0x00ff00;\n    72→    let borderColor = 0xffffff;\n    73→\n    74→    switch (this.monsterType) {\n    75→    case MonsterType.ZOMBIE:\n    76→      backgroundColor = 0x00ff00; // Bright green\n    77→      borderColor = 0x00aa00;\n    78→      break;\n    79→    case MonsterType.VAMPIRE:\n    80→      backgroundColor = 0xff0000; // Bright red\n    81→      borderColor = 0xaa0000;\n    82→      break;\n    83→    case MonsterType.GHOST:\n    84→      backgroundColor = 0x00ffff; // Bright cyan\n    85→      borderColor = 0x0088ff;\n    86→      break;\n    87→    }\n    88→\n    89→    // Create background circle\n    90→    const background = this.scene.add.graphics();\n    91→    background.fillStyle(backgroundColor, 0.6);\n    92→    background.fillCircle(0, 0, 45);\n    93→\n    94→    // Add border\n    95→    background.lineStyle(4, borderColor, 1);\n    96→    background.strokeCircle(0, 0, 45);\n    97→\n    98→    // Convert to texture and add as sprite behind monster\n    99→    background.generateTexture(`monster_bg_${this.monsterType}`, 100, 100);\n   100→    background.destroy();\n   101→\n   102→    // Create the background sprite\n   103→    const bgSprite = this.scene.add.sprite(this.x, this.y, `monster_bg_${this.monsterType}`);\n   104→    bgSprite.setDepth(49); // Just behind monster\n   105→\n   106→    // Make background follow monster\n   107→    this.updateEventHandler = () => {\n   108→      if (this.active && bgSprite.active) {\n   109→        bgSprite.setPosition(this.x, this.y);\n   110→        bgSprite.setRotation(this.rotation);\n   111→      } else if (bgSprite.active) {\n   112→        bgSprite.destroy();\n   113→      }\n   114→    };\n   115→    this.scene.events.on('update', this.updateEventHandler);\n   116→\n   117→    // Scale up monster for better visibility\n   118→    this.setScale(2.0); // Much larger!\n   119→\n   120→    // Make sprite bright\n   121→    this.setTint(0xffffff);\n   122→\n   123→    // Ensure sprite is on correct depth layer\n   124→    this.setDepth(50);\n   125→  }\n   126→\n   127→  /**\n   128→   * Create monster animations\n   129→   */\n   130→  private createAnimations(): void {\n   131→    const animKey = `${this.monsterType}_idle`;\n   132→    if (!this.scene.anims.exists(animKey)) {\n   133→      let textureSheet = '';\n   134→      switch (this.monsterType) {\n   135→      case MonsterType.ZOMBIE: textureSheet = 'monster_zombie_sheet'; break;\n   136→      case MonsterType.VAMPIRE: textureSheet = 'monster_vampire_sheet'; break;\n   137→      case MonsterType.GHOST: textureSheet = 'monster_ghost_sheet'; break;\n   138→      }\n   139→\n   140→      if (textureSheet && this.scene.textures.exists(textureSheet)) {\n   141→        this.scene.anims.create({\n   142→          key: animKey,\n   143→          frames: this.scene.anims.generateFrameNumbers(textureSheet, { start: 0, end: 3 }),\n   144→          frameRate: 8,\n   145→          repeat: -1,\n   146→        });\n   147→      }\n   148→    }\n   149→  }\n   150→\n   151→  /**\n   152→   * Play idle animation\n   153→   */\n   154→  private playIdleAnimation(): void {\n   155→    const animKey = `${this.monsterType}_idle`;\n   156→    if (this.scene.anims.exists(animKey)) {\n   157→      this.play(animKey);\n   158→    }\n   159→  }\n   160→\n   161→  /**\n   162→   * Spawn monster with initial velocity\n   163→   * @param x - Starting x position\n   164→   * @param y - Starting y position\n   165→   * @param velocityX - Horizontal velocity\n   166→   * @param velocityY - Vertical velocity\n   167→   */\n   168→  spawn(x: number, y: number, velocityX: number, velocityY: number): void {\n   169→    this.setPosition(x, y);\n   170→    this.initialVelocityX = velocityX;\n   171→    this.initialVelocityY = velocityY;\n   172→    this.setVelocity(velocityX, velocityY);\n   173→    this.isSliced = false;\n   174→    this.health = this.getBaseHealth();\n   175→    this.setActive(true);\n   176→    this.setVisible(true);\n   177→    \n   178→    // Reset effects\n   179→    this.burnDamage = 0;\n   180→    this.burnTimer = 0;\n   181→    this.burnInterval = 0;\n   182→    this.slowMultiplier = 1.0;\n   183→    this.slowTimer = 0;\n   184→    this.stunTimer = 0;\n   185→  }\n   186→\n   187→  /**\n   188→   * Update monster physics and check bounds\n   189→   * @param time - Current time\n   190→   * @param delta - Time since last update\n   191→   */\n   192→  update(time: number, delta: number): void {\n   193→    const body = this.body as Phaser.Physics.Arcade.Body;\n   194→    if (!body) return;\n   195→\n   196→    // Skip movement if stunned\n   197→    if (this.stunTimer > 0) {\n   198→      this.stunTimer -= delta;\n   199→      if (this.stunTimer <= 0) {\n   200→        this.stunTimer = 0;\n   201→      }\n   202→\n   203→      // Still apply gravity when stunned\n   204→      this.setVelocityY(body.velocity.y + GRAVITY * (delta / 1000));\n   205→\n   206→      // Check if monster fell below screen\n   207→      if (this.y > 800) {\n   208→        this.destroy();\n   209→      }\n   210→      return;\n   211→    }\n   212→\n   213→    // Apply burn damage\n   214→    if (this.burnTimer > 0) {\n   215→      this.burnTimer -= delta;\n   216→      this.burnInterval += delta;\n   217→      \n   218→      // Apply burn damage every 0.5 seconds\n   219→      if (this.burnInterval >= 500) {\n   220→        this.applyDamage(this.burnDamage);\n   221→        this.burnInterval = 0;\n   222→      }\n   223→      \n   224→      if (this.burnTimer <= 0) {\n   225→        this.burnTimer = 0;\n   226→        this.burnDamage = 0;\n   227→      }\n   228→    }\n   229→\n   230→    // Apply slow effect\n   231→    if (this.slowTimer > 0) {\n   232→      this.slowTimer -= delta;\n   233→      \n   234→      if (this.slowTimer <= 0) {\n   235→        this.slowTimer = 0;\n   236→        this.slowMultiplier = 1.0;\n   237→      }\n   238→    }\n   239→\n   240→    // Apply gravity\n   241→    this.setVelocityY(body.velocity.y + GRAVITY * (delta / 1000));\n   242→\n   243→    // Apply slow multiplier to horizontal velocity\n   244→    const currentVelocityX = body.velocity.x;\n   245→    if (currentVelocityX !== 0) {\n   246→      this.setVelocityX(currentVelocityX * this.slowMultiplier);\n   247→    }\n   248→\n   249→    // Check if monster fell below screen\n   250→    if (this.y > 800) {\n   251→      this.destroy();\n   252→    }\n   253→  }\n   254→\n   255→  /**\n   256→   * Called when monster is hit by a slash\n   257→   */\n   258→  slice(): void {\n   259→    if (this.isSliced) return;\n   260→    \n   261→    this.isSliced = true;\n   262→    this.health--;\n   263→    \n   264→    if (this.health <= 0) {\n   265→      this.onSliced();\n   266→    }\n   267→  }\n   268→\n   269→  /**\n   270→   * Apply damage to monster\n   271→   */\n   272→  applyDamage(damage: number): void {\n   273→    this.health -= damage;\n   274→    \n   275→    if (this.health <= 0) {\n   276→      this.onSliced();\n   277→    }\n   278→  }\n   279→\n   280→  /**\n   281→   * Apply burn effect\n   282→   */\n   283→  applyBurn(damage: number, duration: number): void {\n   284→    this.burnDamage = damage;\n   285→    this.burnTimer = duration * 1000;\n   286→    this.burnInterval = 0;\n   287→  }\n   288→\n   289→  /**\n   290→   * Apply slow effect\n   291→   */\n   292→  applySlow(multiplier: number, duration: number): void {\n   293→    this.slowMultiplier = multiplier;\n   294→    this.slowTimer = duration * 1000;\n   295→  }\n   296→\n   297→  /**\n   298→   * Apply stun effect\n   299→   */\n   300→  applyStun(duration: number): void {\n   301→    this.stunTimer = duration * 1000;\n   302→  }\n   303→\n   304→  /**\n   305→   * Called when monster is destroyed by slicing\n   306→   * Override in subclasses for specific behavior\n   \n\n... [truncated - full output was 14303 chars]",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:56:24.948679+00:00",
+          "type": "text",
+          "content": "Let me continue exploring for more duplicate patterns in the power-ups and UI components:",
+          "phase": "planning",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:26.898528+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...refactor-duplicate-code\\src\\entities\\PowerUp.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...refactor-duplicate-code\\src\\entities\\PowerUp.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:27.726382+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...or-duplicate-code\\src\\entities\\FrenzyPowerUp.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...or-duplicate-code\\src\\entities\\FrenzyPowerUp.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:28.767523+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...or-duplicate-code\\src\\entities\\ShieldPowerUp.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...or-duplicate-code\\src\\entities\\ShieldPowerUp.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:29.529076+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...uplicate-code\\src\\entities\\SlowMotionPowerUp.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...uplicate-code\\src\\entities\\SlowMotionPowerUp.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:32.257030+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "planning",
+          "tool_name": "Read",
+          "session": 1,
+          "detail": "     1→/**\n     2→ * PowerUp\n     3→ * \n     4→ * Base class for all power-ups in the game.\n     5→ * Power-ups spawn like monsters and activate when sliced.\n     6→ */\n     7→\n     8→import Phaser from 'phaser';\n     9→import { PowerUpType } from '@config/types';\n    10→import { GRAVITY } from '@config/constants';\n    11→\n    12→export abstract class PowerUp extends Phaser.Physics.Arcade.Sprite {\n    13→  protected powerUpType: PowerUpType;\n    14→  protected isSliced: boolean = false;\n    15→  protected glowEffect: Phaser.GameObjects.Graphics | null = null;\n    16→\n    17→  constructor(scene: Phaser.Scene, x: number, y: number, texture: string, type: PowerUpType) {\n    18→    super(scene, x, y, texture);\n    19→    \n    20→    this.powerUpType = type;\n    21→    this.isSliced = false;\n    22→    \n    23→    // Enable physics\n    24→    scene.physics.add.existing(this);\n    25→    this.setCollideWorldBounds(false);\n    26→    \n    27→    // Set hitbox size\n    28→    if (this.body) {\n    29→      this.body.setSize(60, 60);\n    30→      this.body.setCircle(30);\n    31→    }\n    32→    \n    33→    // Create glow effect\n    34→    this.createGlowEffect();\n    35→  }\n    36→\n    37→  /**\n    38→   * Spawn the power-up with initial velocity\n    39→   * @param x - Starting x position\n    40→   * @param y - Starting y position\n    41→   * @param velocityX - Horizontal velocity\n    42→   * @param velocityY - Vertical velocity\n    43→   */\n    44→  spawn(x: number, y: number, velocityX: number, velocityY: number): void {\n    45→    this.setPosition(x, y);\n    46→    this.setVelocity(velocityX, velocityY);\n    47→    this.isSliced = false;\n    48→    this.setActive(true);\n    49→    this.setVisible(true);\n    50→    this.setAlpha(1.0);\n    51→    \n    52→    // Update glow effect position\n    53→    if (this.glowEffect) {\n    54→      this.glowEffect.setPosition(x, y);\n    55→    }\n    56→  }\n    57→\n    58→  /**\n    59→   * Update power-up physics and check bounds\n    60→   * @param time - Current time\n    61→   * @param delta - Time since last update\n    62→   */\n    63→  update(time: number, delta: number): void {\n    64→    // Apply gravity\n    65→    if (this.body) {\n    66→      this.setVelocityY(this.body.velocity.y + GRAVITY * (delta / 1000));\n    67→    }\n    68→    \n    69→    // Update glow effect position\n    70→    if (this.glowEffect) {\n    71→      this.glowEffect.setPosition(this.x, this.y);\n    72→    }\n    73→    \n    74→    // Check if power-up fell below screen\n    75→    if (this.y > 800) {\n    76→      this.destroy();\n    77→    }\n    78→  }\n    79→\n    80→  /**\n    81→   * Called when power-up is sliced\n    82→   * Activates the power-up effect\n    83→   */\n    84→  slice(): void {\n    85→    if (this.isSliced) return;\n    86→    \n    87→    this.isSliced = true;\n    88→    \n    89→    // Create activation effect\n    90→    this.createActivationEffect();\n    91→    \n    92→    // Activate the power-up\n    93→    this.activate();\n    94→    \n    95→    // Destroy the power-up\n    96→    this.destroy();\n    97→  }\n    98→\n    99→  /**\n   100→   * Create glow effect around power-up\n   101→   */\n   102→  private createGlowEffect(): void {\n   103→    this.glowEffect = this.scene.add.graphics();\n   104→    const glowColor = this.getGlowColor();\n   105→    this.glowEffect.fillStyle(glowColor, 0.3);\n   106→    this.glowEffect.fillCircle(0, 0, 40);\n   107→    this.glowEffect.setPosition(this.x, this.y);\n   108→    \n   109→    // Animate glow pulsing\n   110→    this.scene.tweens.add({\n   111→      targets: this.glowEffect,\n   112→      scale: 1.2,\n   113→      duration: 500,\n   114→      yoyo: true,\n   115→      repeat: -1,\n   116→      ease: 'Sine.easeInOut',\n   117→    });\n   118→  }\n   119→\n   120→  /**\n   121→   * Create activation effect when power-up is sliced\n   122→   */\n   123→  private createActivationEffect(): void {\n   124→    const activationColor = this.getGlowColor();\n   125→    \n   126→    // Create burst effect\n   127→    const burst = this.scene.add.graphics();\n   128→    burst.fillStyle(activationColor, 0.8);\n   129→    burst.fillCircle(0, 0, 50);\n   130→    burst.setPosition(this.x, this.y);\n   131→    \n   132→    // Animate burst expanding and fading\n   133→    this.scene.tweens.add({\n   134→      targets: burst,\n   135→      scale: 3,\n   136→      alpha: 0,\n   137→      duration: 300,\n   138→      ease: 'Quad.easeOut',\n   139→      onComplete: () => {\n   140→        burst.destroy();\n   141→      },\n   142→    });\n   143→  }\n   144→\n   145→  /**\n   146→   * Activate the power-up effect\n   147→   * Override in subclasses\n   148→   */\n   149→  protected abstract activate(): void;\n   150→\n   151→  /**\n   152→   * Get the glow color for this power-up\n   153→   * Override in subclasses\n   154→   */\n   155→  protected abstract getGlowColor(): number;\n   156→\n   157→  /**\n   158→   * Get power-up type\n   159→   */\n   160→  getPowerUpType(): PowerUpType {\n   161→    return this.powerUpType;\n   162→  }\n   163→\n   164→  /**\n   165→   * Check if power-up has been sliced\n   166→   */\n   167→  getIsSliced(): boolean {\n   168→    return this.isSliced;\n   169→  }\n   170→\n   171→  /**\n   172→   * Override destroy to clean up properly\n   173→   */\n   174→  destroy(fromScene?: boolean): void {\n   175→    if (this.glowEffect) {\n   176→      this.glowEffect.destroy();\n   177→      this.glowEffect = null;\n   178→    }\n   179→    super.destroy(fromScene);\n   180→  }\n   181→}\n   182→\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:56:38.792931+00:00",
+          "type": "text",
+          "content": "Let me check UI components and scene files for more duplication patterns:",
+          "phase": "planning",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:40.112874+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...es\\016-refactor-duplicate-code\\src\\ui\\Button.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...es\\016-refactor-duplicate-code\\src\\ui\\Button.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:40.716934+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...16-refactor-duplicate-code\\src\\ui\\Button_new.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...16-refactor-duplicate-code\\src\\ui\\Button_new.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:41.224586+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...ctor-duplicate-code\\src\\scenes\\MainMenuScene.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...ctor-duplicate-code\\src\\scenes\\MainMenuScene.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:41.705131+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...ctor-duplicate-code\\src\\scenes\\SettingsScene.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...ctor-duplicate-code\\src\\scenes\\SettingsScene.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:44.504332+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "planning",
+          "tool_name": "Read",
+          "session": 1,
+          "detail": "     1→/**\n     2→ * Button Component\n     3→ * \n     4→ * A reusable button class with states (normal, hover, pressed, disabled).\n     5→ * Supports different button styles, text, and icons.\n     6→ */\n     7→\n     8→import Phaser from 'phaser';\n     9→import { FONT_SIZES } from '../config/constants';\n    10→import { DARK_GOTHIC_THEME } from '../config/theme';\n    11→import { getButtonStyle } from '../utils/ThemeUtils';\n    12→\n    13→/**\n    14→ * Button style configuration\n    15→ */\n    16→export enum ButtonStyle {\n    17→  PRIMARY = 'primary',\n    18→  SECONDARY = 'secondary',\n    19→  DANGER = 'danger',\n    20→  DISABLED = 'disabled',\n    21→}\n    22→\n    23→/**\n    24→ * Button configuration interface\n    25→ */\n    26→export interface ButtonConfig {\n    27→  x: number;\n    28→  y: number;\n    29→  width?: number;\n    30→  height?: number;\n    31→  text: string;\n    32→  fontSize?: number;\n    33→  style?: ButtonStyle;\n    34→  icon?: string;\n    35→  onClick?: () => void;\n    36→  disabled?: boolean;\n    37→}\n    38→\n    39→/**\n    40→ * Button component with multiple states and styles\n    41→ */\n    42→export class Button extends Phaser.GameObjects.Container {\n    43→  // UI elements\n    44→  private background: Phaser.GameObjects.Image;\n    45→  private text: Phaser.GameObjects.Text;\n    46→  private icon: Phaser.GameObjects.Image | null = null;\n    47→\n    48→  // Button state\n    49→  private style: ButtonStyle;\n    50→  private isEnabled: boolean;\n    51→  private isHovered: boolean;\n    52→  private isPressed: boolean;\n    53→  private callback: (() => void) | null = null;\n    54→\n    55→  // Texture keys\n    56→  private textureKeys: {\n    57→    normal: string;\n    58→    hover: string;\n    59→    pressed: string;\n    60→    disabled: string;\n    61→  };\n    62→\n    63→  /**\n    64→   * Create a new button\n    65→   * @param scene - The scene this button belongs to\n    66→   * @param x - X position\n    67→   * @param y - Y position\n    68→   * @param width - Button width (default: 200)\n    69→   * @param height - Button height (default: 50)\n    70→   * @param text - Button text\n    71→   * @param config - Button configuration\n    72→   */\n    73→  constructor(\n    74→    scene: Phaser.Scene,\n    75→    x: number,\n    76→    y: number,\n    77→    width: number = 200,\n    78→    height: number = 50,\n    79→    text: string,\n    80→    config: Partial<ButtonConfig> = {},\n    81→  ) {\n    82→    super(scene, x, y);\n    83→\n    84→    // Set dimensions\n    85→    const buttonWidth = config.width || width;\n    86→    const buttonHeight = config.height || height;\n    87→\n    88→    // Use uniform texture keys for all buttons\n    89→    this.textureKeys = {\n    90→      normal: 'ui_button_normal',\n    91→      hover: 'ui_button_hover',\n    92→      pressed: 'ui_button_pressed',\n    93→      disabled: 'ui_button_disabled',\n    94→    };\n    95→\n    96→    // Create background with scaling to match requested dimensions\n    97→    this.background = scene.add.image(0, 0, this.textureKeys.normal);\n    98→    this.background.setDisplaySize(buttonWidth, buttonHeight); // Actually use the width/height params!\n    99→    this.background.setInteractive({ useHandCursor: true });\n   100→    this.add(this.background);\n   101→\n   102→    // Create text\n   103→    const fontSize = config.fontSize || FONT_SIZES.medium;\n   104→    this.text = scene.add.text(0, 0, text, {\n   105→      fontFamily: DARK_GOTHIC_THEME.fonts.primary,\n   106→      fontSize: `${fontSize}px`,\n   107→      color: '#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'),\n   108→      fontStyle: 'bold',\n   109→      stroke: '#000000',\n   110→      strokeThickness: 3,\n   111→    });\n   112→    this.text.setOrigin(0.5);\n   113→    this.text.setDepth(1);\n   114→    this.add(this.text);\n   115→\n   116→    // Create icon if provided\n   117→    if (config.icon) {\n   118→      this.icon = scene.add.image(-buttonWidth / 2 + 30, 0, config.icon);\n   119→      this.icon.setScale(0.5);\n   120→      this.icon.setDepth(1);\n   121→      this.add(this.icon);\n   122→      this.text.setX(20); // Offset text to make room for icon\n   123→    }\n   124→\n   125→    // Set initial state\n   126→    this.style = config.style || ButtonStyle.PRIMARY;\n   127→    this.isEnabled = config.disabled !== true;\n   128→    this.isHovered = false;\n   129→    this.isPressed = false;\n   130→    this.callback = config.onClick || null;\n   131→\n   132→    // Setup event listeners\n   133→    this.setupEvents();\n   134→\n   135→    // Initial appearance update\n   136→    this.updateAppearance();\n   137→\n   138→    // Add to scene\n   139→    scene.add.existing(this);\n   140→  }\n   141→\n   142→  /**\n   143→   * Setup button event listeners\n   144→   */\n   145→  private setupEvents(): void {\n   146→    this.background.on('pointerover', this.onHover.bind(this));\n   147→    this.background.on('pointerout', this.onHoverEnd.bind(this));\n   148→    this.background.on('pointerdown', this.onPress.bind(this));\n   149→    this.background.on('pointerup', this.onRelease.bind(this));\n   150→  }\n   151→\n   152→  /**\n   153→   * Handle hover event\n   154→   */\n   155→  private onHover(): void {\n   156→    if (!this.isEnabled) return;\n   157→    this.isHovered = true;\n   158→    this.updateAppearance();\n   159→  }\n   160→\n   161→  /**\n   162→   * Handle hover end event\n   163→   */\n   164→  private onHoverEnd(): void {\n   165→    if (!this.isEnabled) return;\n   166→    this.isHovered = false;\n   167→    this.isPressed = false;\n   168→    this.updateAppearance();\n   169→  }\n   170→\n   171→  /**\n   172→   * Handle press event\n   173→   */\n   174→  private onPress(): void {\n   175→    if (!this.isEnabled) return;\n   176→    this.isPressed = true;\n   177→    this.updateAppearance();\n   178→  }\n   179→\n   180→  /**\n   181→   * Handle release event\n   182→   */\n   183→  private onRelease(): void {\n   184→    if (!this.isEnabled) return;\n   185→    this.isPressed = false;\n   186→    this.updateAppearance();\n   187→\n   188→    // Trigger callback\n   189→    if (this.callback) {\n   190→      this.callback();\n   191→    }\n   192→  }\n   193→\n   194→  /**\n   195→   * Update button appearance based on state\n   196→   */\n   197→  private updateAppearance(): void {\n   198→    // Store current dimensions\n   199→    const currentWidth = this.background.displayWidth;\n   200→    const currentHeight = this.background.displayHeight;\n   201→\n   202→    if (!this.isEnabled) {\n   203→      this.background.setTexture(this.textureKeys.disabled);\n   204→      this.background.setDisplaySize(currentWidth, currentHeight);\n   205→      this.text.setAlpha(0.5);\n   206→      return;\n   207→    }\n   208→\n   209→    this.text.setAlpha(1.0);\n   210→\n   211→    if (this.isPressed) {\n   212→      this.background.setTexture(this.textureKeys.pressed);\n   213→      this.background.setDisplaySize(currentWidth * 0.98, currentHeight * 0.98);\n   214→    } else if (this.isHovered) {\n   215→      this.background.setTexture(this.textureKeys.hover);\n   216→      this.background.setDisplaySize(currentWidth * 1.02, currentHeight * 1.02);\n   217→    } else {\n   218→      this.background.setTexture(this.textureKeys.normal);\n   219→      this.background.setDisplaySize(currentWidth, currentHeight);\n   220→    }\n   221→  }\n   222→\n   223→  /**\n   224→   * Change button style (legacy, can be extended for more visual variety)\n   225→   * @param style - New button style\n   226→   */\n   227→  public setStyle(style: ButtonStyle): void {\n   228→    this.style = style;\n   229→    this.setEnabled(style !== ButtonStyle.DISABLED);\n   230→  }\n   231→\n   232→  /**\n   233→   * Enable or disable button\n   234→   * @param enabled - Whether button should be enabled\n   235→   */\n   236→  public setEnabled(enabled: boolean): void {\n   237→    this.isEnabled = enabled;\n   238→    if (this.background.input) {\n   239→      this.background.input.enabled = enabled;\n   240→    }\n   241→    this.updateAppearance();\n   242→  }\n   243→\n   244→  /**\n   245→   * Set click callback\n   246→   * @param callback - Function to call on click\n   247→   */\n   248→  public setCallback(callback: () => void): void {\n   249→    this.callback = callback;\n   250→  }\n   251→\n   252→  /**\n   253→   * Set button text\n   254→   * @param text - New button text\n   255→   */\n   256→  public setText(text: string): void {\n   257→    this.text.setText(text);\n   258→  }\n   259→\n   260→  /**\n   261→   * Get current enabled state\n   262→   */\n   263→  public getEnabled(): boolean {\n   264→    return this.isEnabled;\n   265→  }\n   266→\n   267→  /**\n   268→   * Get current style\n   269→   */\n   270→  public getStyle(): ButtonStyle {\n   271→    return this.style;\n   272→  }\n   273→\n   274→  /**\n   275→   * Clean up button resources\n   276→   */\n   277→  public destroy(): void {\n   278→    if (this.background) {\n   279→      this.background.off('pointerover', this.onHover.bind(this));\n   280→      this.background.off('pointerout', this.onHoverEnd.bind(this));\n   281→      this.background.off('pointerdown', this.onPress.bind(this));\n   282→      this.background.off('pointerup', this.onRelease.bind(this));\n   283→    }\n   284→    super.destroy();\n   285→  }\n   286→}\n   287→\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:56:53.539374+00:00",
+          "type": "text",
+          "content": "Let me check more files for additional duplication patterns:",
+          "phase": "planning",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:55.749799+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...ctor-duplicate-code\\src\\scenes\\GameplayScene.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...ctor-duplicate-code\\src\\scenes\\GameplayScene.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:56.678029+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...plicate-code\\src\\scenes\\EndlessGameplayScene.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...plicate-code\\src\\scenes\\EndlessGameplayScene.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:57.324689+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...16-refactor-duplicate-code\\src\\entities\\Boss.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...16-refactor-duplicate-code\\src\\entities\\Boss.ts",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:56:59.488586+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "planning",
+          "tool_name": "Read",
+          "session": 1,
+          "detail": "     1→/**\n     2→ * GameplayScene\n     3→ *\n     4→ * Main gameplay scene for Ninja Slicer game.\n     5→ * Handles all game systems and main game loop.\n     6→ * Supports both endless mode and campaign mode.\n     7→ */\n     8→\n     9→import Phaser from 'phaser';\n    10→import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';\n    11→import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, DEFAULT_STARTING_LIVES } from '@config/constants';\n    12→import { LevelConfig } from '@config/types';\n    13→import { SlashTrail } from '../entities/SlashTrail';\n    14→import { SpawnSystem } from '../systems/SpawnSystem';\n    15→import { SlashSystem } from '../systems/SlashSystem';\n    16→import { HUD } from '../ui/HUD';\n    17→import { ComboSystem } from '../systems/ComboSystem';\n    18→import { PowerUpManager } from '../managers/PowerUpManager';\n    19→import { WeaponManager } from '../managers/WeaponManager';\n    20→import { UpgradeManager } from '../managers/UpgradeManager';\n    21→import { SaveManager } from '../managers/SaveManager';\n    22→import { LevelManager } from '../managers/LevelManager';\n    23→import { SlashEnergyManager } from '../managers/SlashEnergyManager';\n    24→import { EventBus } from '../utils/EventBus';\n    25→import { Boss } from '../entities/Boss';\n    26→import { GraveTitan } from '../entities/GraveTitan';\n    27→import { HeadlessHorseman } from '../entities/HeadlessHorseman';\n    28→import { VampireLord } from '../entities/VampireLord';\n    29→import { PhantomKing } from '../entities/PhantomKing';\n    30→import { DemonOverlord } from '../entities/DemonOverlord';\n    31→\n    32→export class GameplayScene extends Phaser.Scene {\n    33→  private slashTrail!: SlashTrail;\n    34→  private spawnSystem!: SpawnSystem;\n    35→  private slashSystem!: SlashSystem;\n    36→  private hud!: HUD;\n    37→  private comboSystem!: ComboSystem;\n    38→  private powerUpManager!: PowerUpManager;\n    39→  private weaponManager!: WeaponManager;\n    40→  private upgradeManager!: UpgradeManager;\n    41→  private saveManager!: SaveManager;\n    42→  private levelManager!: LevelManager;\n    43→  private slashEnergyManager!: SlashEnergyManager;\n    44→\n    45→  // Campaign mode properties\n    46→  private isCampaignMode: boolean = false;\n    47→  private currentWorld: number = 1;\n    48→  private currentLevel: number = 1;\n    49→  private currentLevelConfig: LevelConfig | null = null;\n    50→  private levelTimer: number = 0;\n    51→  private killQuota: number = 0;\n    52→  private currentKills: number = 0;\n    53→  private boss: Boss | null = null;\n    54→  private bossSpawned: boolean = false;\n    55→\n    56→  private pointerX: number = 0;\n    57→  private pointerY: number = 0;\n    58→  private isPointerDown: boolean = false;\n    59→  private lastPointerTime: number = 0;\n    60→\n    61→  private lives: number = DEFAULT_STARTING_LIVES;\n    62→  private isGameOver: boolean = false;\n    63→  private gameOverTimer: number = 0;\n    64→  private isPaused: boolean = false;\n    65→\n    66→  constructor() {\n    67→    super({ key: SCENE_KEYS.gameplay });\n    68→  }\n    69→\n    70→  create(data: { world?: number; level?: number } = {}): void {\n    71→    // Check if campaign mode\n    72→    this.isCampaignMode = data.world !== undefined && data.level !== undefined;\n    73→    this.currentWorld = data.world || 1;\n    74→    this.currentLevel = data.level || 1;\n    75→\n    76→    // Create background\n    77→    this.createBackground();\n    78→\n    79→    // Initialize all managers\n    80→    this.weaponManager = WeaponManager.getInstance();\n    81→    this.upgradeManager = UpgradeManager.getInstance();\n    82→    this.saveManager = new SaveManager();\n    83→    this.levelManager = LevelManager.getInstance();\n    84→    this.slashEnergyManager = SlashEnergyManager.getInstance();\n    85→    this.slashEnergyManager.initialize(this);\n    86→    this.slashEnergyManager.setUpgradeManager(this.upgradeManager);\n    87→\n    88→    // Load data\n    89→    this.loadProgressionData();\n    90→\n    91→    // Initialize all systems\n    92→    this.slashTrail = new SlashTrail(this);\n    93→    this.spawnSystem = new SpawnSystem(this);\n    94→    this.slashSystem = new SlashSystem(this);\n    95→    this.comboSystem = new ComboSystem();\n    96→    this.powerUpManager = PowerUpManager.getInstance();\n    97→    this.powerUpManager.initialize(this);\n    98→    this.powerUpManager.setUpgradeManager(this.upgradeManager);\n    99→    this.hud = new HUD(this);\n   100→\n   101→    // Connect systems\n   102→    this.slashSystem.setComboSystem(this.comboSystem);\n   103→    this.slashSystem.setPowerUpManager(this.powerUpManager);\n   104→    this.slashSystem.setWeaponManager(this.weaponManager);\n   105→    this.slashSystem.setUpgradeManager(this.upgradeManager);\n   106→    this.slashSystem.setEnergyManager(this.slashEnergyManager);\n   107→\n   108→    // Apply starting lives from upgrade\n   109→    const playerStats = this.upgradeManager.getPlayerStats();\n   110→    this.lives = Math.floor(playerStats.startingLives);\n   111→\n   112→    // Update slash trail style from weapon\n   113→    this.updateSlashTrailStyle();\n   114→\n   115→    // Setup campaign mode if applicable\n   116→    if (this.isCampaignMode) {\n   117→      this.setupCampaignMode();\n   118→    }\n   119→\n   120→    // Create HUD\n   121→    this.hud.create();\n   122→    \n   123→    // Add pause button to HUD\n   124→    this.hud.addPauseButton(this.togglePause.bind(this));\n   125→\n   126→    // Set up input handlers\n   127→    this.setupInput();\n   128→\n   129→    // Set up keyboard for restart\n   130→    this.setupKeyboard();\n   131→\n   132→    // Set up event listeners\n   133→    this.setupEventListeners();\n   134→\n   135→    debugLog('GameplayScene created - Phase 4 Campaign ready!');\n   136→  }\n   137→\n   138→  /**\n   139→   * Setup campaign mode\n   140→   */\n   141→  private async setupCampaignMode(): Promise<void> {\n   142→    try {\n   143→      // Load level data\n   144→      await this.levelManager.loadLevels();\n   145→\n   146→      // Get level config\n   147→      const levelConfig = this.levelManager.getLevelConfig(this.currentWorld, this.currentLevel);\n   148→      this.currentLevelConfig = levelConfig || null;\n   149→\n   150→      if (!this.currentLevelConfig) {\n   151→        console.error(`[GameplayScene] Level ${this.currentWorld}-${this.currentLevel} not found`);\n   152→        return;\n   153→      }\n   154→\n   155→      // Set level timer and kill quota\n   156→      this.levelTimer = 0;\n   157→      this.killQuota = this.currentLevelConfig.minKills;\n   158→      this.currentKills = 0;\n   159→\n   160→      // Configure spawn system with level config\n   161→      // this.spawnSystem.setLevelConfig(this.currentLevelConfig);\n   162→\n   163→      // Show timer and kill quota in HUD\n   164→      // this.hud.showTimer(true);\n   165→      // this.hud.showKillQuota(true);\n   166→      // this.hud.updateTimer(0, this.currentLevelConfig.duration);\n   167→      // this.hud.updateKillQuota(0, this.killQuota);\n   168→\n   169→      // Load world background\n   170→      this.loadWorldBackground();\n   171→\n   172→      // Check if boss level\n   173→      if (this.currentLevelConfig.isBoss) {\n   174→        this.prepareBossSpawn();\n   175→      }\n   176→\n   177→      console.log(`[GameplayScene] Campaign mode: World ${this.currentWorld}, Level ${this.currentLevel}`);\n   178→    } catch (error) {\n   179→      debugError('[GameplayScene] Failed to setup campaign mode:', error);\n   180→    }\n   181→  }\n   182→\n   183→  /**\n   184→   * Load world background\n   185→   */\n   186→  private loadWorldBackground(): void {\n   187→    const worldConfig = this.levelManager.getWorldConfig(this.currentWorld);\n   188→    const backgroundKey = worldConfig?.backgroundKey;\n   189→\n   190→    if (backgroundKey && this.textures.exists(backgroundKey)) {\n   191→      // Use world background texture\n   192→      const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, backgroundKey);\n   193→      bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);\n   194→      bg.setDepth(0);\n   195→\n   196→      // Add foreground parallax layer if it exists\n   197→      const fgKey = `${backgroundKey}_fg`;\n   198→      if (this.textures.exists(fgKey)) {\n   199→        const fg = this.add.tileSprite(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, fgKey);\n   200→        fg.setDepth(100); // Above monsters but below HUD\n   201→        fg.setScrollFactor(0);\n   202→        fg.setAlpha(0.8);\n   203→        \n   204→        // Simple parallax movement simulation\n   205→        this.events.on('update', () => {\n   206→          fg.tilePositionX += 0.5;\n   207→        });\n   208→      }\n   209→    } else {\n   210→      // Use default background\n   211→      this.createBackground();\n   212→    }\n   213→  }\n   214→\n   215→  /**\n   216→   * Prepare boss spawn\n   217→   */\n   218→  private prepareBossSpawn(): void {\n   219→    const bossId = this.currentLevelConfig?.bossId;\n   220→    if (!bossId) return;\n   221→\n   222→    console.log(`[GameplayScene] Preparing boss: ${bossId}`);\n   223→  }\n   224→\n   225→  /**\n   226→   * Spawn boss for level 5\n   227→   */\n   228→  private spawnBoss(): void {\n   229→    if (this.bossSpawned || !this.currentLevelConfig) return;\n   230→\n   231→    const bossId = this.currentLevelConfig?.bossId;\n   232→    if (!bossId) return;\n   233→\n   234→    // Create boss based on ID\n   235→    switch (bossId) {\n   236→      case 'grave_titan':\n   237→        this.boss = new GraveTitan(this);\n   238→        break;\n   239→      case 'headless_horseman':\n   240→        this.boss = new HeadlessHorseman(this);\n   241→        break;\n   242→      case 'vampire_lord':\n   243→        this.boss = new VampireLord(this);\n   244→        break;\n   245→      case 'phantom_king':\n   246→        this.boss = new PhantomKing(this);\n   247→        break;\n   248→      case 'demon_overlord':\n   249→        this.boss = new DemonOverlord(this);\n   250→        break;\n   251→      default:\n   252→        console.error(`[GameplayScene] Unknown boss ID: ${bossId}`);\n   253→        return;\n   254→    }\n   255→\n   256→    // Get boss config\n   257→    const bossConfig = this.levelManager.getBossCo\n\n... [truncated - full output was 22977 chars]",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:57:15.075873+00:00",
+          "type": "text",
+          "content": "Now I have a comprehensive understanding of the codebase. Let me create the implementation plan based on the duplicate patterns I've identified:",
+          "phase": "planning",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:58:27.407212+00:00",
+          "type": "tool_start",
+          "content": "[Write] ...efactor-duplicate-code\\implementation_plan.json",
+          "phase": "planning",
+          "tool_name": "Write",
+          "tool_input": "...efactor-duplicate-code\\implementation_plan.json",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:58:27.524875+00:00",
+          "type": "tool_end",
+          "content": "[Write] Error: <tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>",
+          "phase": "planning",
+          "tool_name": "Write",
+          "session": 1,
+          "detail": "<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:58:31.634014+00:00",
+          "type": "text",
+          "content": "Let me check if the directory exists and create the file properly:",
+          "phase": "planning",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:58:33.657179+00:00",
+          "type": "tool_start",
+          "content": "[Bash] ls -la \"F:\\Desktop\\Ninja Slicer\\.worktrees\\016-...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "ls -la \"F:\\Desktop\\Ninja Slicer\\.worktrees\\016-...",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:58:33.715132+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Error: Could not parse command for security validation: ls -la \"F:\\Desktop\\Ninja Slicer\\.worktrees\\016-refa",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "session": 1,
+          "detail": "Could not parse command for security validation: ls -la \"F:\\Desktop\\Ninja Slicer\\.worktrees\\016-refactor-duplicate-code\\.auto-claude\\specs\\016-refactor-duplicate-code\\\"",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-01T17:58:37.385216+00:00",
+          "type": "tool_start",
+          "content": "[Glob] pattern: .auto-claude/specs/016-refactor-duplicate-code/*",
+          "phase": "planning",
+          "tool_name": "Glob",
+          "tool_input": "pattern: .auto-claude/specs/016-refactor-duplicate-code/*",
+          "session": 1
+        },
+        {
+          "timestamp": "2026-01-01T17:58:38.721300+00:00",
+          "type": "tool_end",
+          "content": "[Glob] Done",
+          "phase": "planning",
+          "tool_name": "Glob",
+          "session": 1,
+          "collapsed": true
+        }
+      ]
+    },
+    "coding": {
+      "phase": "coding",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "entries": []
+    },
+    "validation": {
+      "phase": "validation",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "entries": []
+    }
+  }
+}

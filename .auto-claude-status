@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "016-refactor-duplicate-code",
+  "state": "planning",
+  "subtasks": {
+    "completed": 0,
+    "total": 0,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "",
+    "id": 0,
+    "total": 0
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 1,
+    "started_at": "2026-01-01T19:55:40.015635"
+  },
+  "last_update": "2026-01-01T19:55:40.017730"
+}

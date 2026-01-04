@@ -1,0 +1,80 @@
+# Refactor Duplicate Code - Build Progress
+
+## Status: Planning Complete
+
+**Last Updated:** 2026-01-01
+
+---
+
+## Summary
+
+Created comprehensive implementation plan with 9 phases and 16 subtasks to refactor duplicate code patterns into reusable utilities and components.
+
+## Key Duplication Areas Identified
+
+### 1. Gameplay Scenes (HIGH PRIORITY)
+- `GameplayScene.ts` and `EndlessGameplayScene.ts` share ~70% duplicate code
+- Shared: setupInput(), setupKeyboard(), createBackground(), handleInput(), loseLife(), togglePause()
+- **Solution:** Create `BaseGameplayScene` abstract class
+
+### 2. Monster Split Effects (MEDIUM PRIORITY)
+- `Zombie.createHalves()` and `Vampire.createHalves()` have identical physics logic
+- **Solution:** Create `MonsterSplitEffect` utility
+
+### 3. PowerUp Indicators (MEDIUM PRIORITY)
+- `FrenzyPowerUp`, `ShieldPowerUp`, `SlowMotionPowerUp` all create similar UI indicators
+- Similar activate/deactivate patterns with EventBus emissions
+- **Solution:** Create `PowerUpIndicator` utility and refactor base class
+
+### 4. Collision Detection (LOW PRIORITY)
+- Vampire has duplicate distance-based collision checks
+- **Solution:** Create `CollisionUtils` utility
+
+### 5. UI Components (LOW PRIORITY)
+- `Button_new.ts` is empty and should be removed
+- Volume slider in SettingsScene duplicates VolumeSlider component
+- **Solution:** Cleanup and integrate existing components
+
+### 6. Scene Patterns (LOW PRIORITY)
+- Background creation duplicated across scenes
+- Header/title creation patterns duplicated
+- **Solution:** Create `SceneBackground` and `SceneHeader` utilities
+
+### 7. Death Effects (LOW PRIORITY)
+- Monster death particles and Ghost mist effect have similar patterns
+- **Solution:** Create `DeathEffects` utility
+
+### 8. Debug Code (CLEANUP)
+- Vampire.ts contains fetch() calls to localhost for debugging
+- **Solution:** Remove all agent debug log regions
+
+---
+
+## Phase Overview
+
+| Phase | Description | Subtasks | Status |
+|-------|-------------|----------|--------|
+| 1 | Gameplay Scene Refactoring | 2 | Pending |
+| 2 | Monster Split Effect | 1 | Pending |
+| 3 | PowerUp Pattern Refactoring | 2 | Pending |
+| 4 | Collision Detection Utility | 1 | Pending |
+| 5 | UI Component Cleanup | 2 | Pending |
+| 6 | Scene Background/Header | 2 | Pending |
+| 7 | Death Effect Consolidation | 1 | Pending |
+| 8 | Debug Logging Cleanup | 1 | Pending |
+| 9 | Testing and Verification | 3 | Pending |
+
+---
+
+## Estimated Effort: 8-12 hours
+
+## Risk Assessment
+- **Medium Risk:** Gameplay scene refactoring, PowerUp timing
+- **Low Risk:** UI cleanup, utility extractions
+
+---
+
+## Next Steps
+1. Start with Phase 1: Create BaseGameplayScene
+2. Proceed through phases in order (some can be parallelized)
+3. Complete with Phase 9 verification
