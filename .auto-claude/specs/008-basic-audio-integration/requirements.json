@@ -1,0 +1,4 @@
+{
+  "task_description": "# Basic Audio Integration\n\nAdd essential sound effects for slashing, monster deaths, combos, and UI interactions to bring the game to life.\n\n## Rationale\nAudio is critical for game feel - the IMPROVEMENT_ROADMAP identifies this as the #1 priority for polish. Silent games feel dead and unengaging.\n\n## User Stories\n- As a player, I want to hear satisfying sounds when I slice monsters so that the action feels impactful\n\n## Acceptance Criteria\n- [ ] Slash swoosh sound plays on each swipe\n- [ ] Monster death sounds play (unique per type)\n- [ ] Combo milestone sounds escalate in intensity\n- [ ] UI button clicks have audio feedback\n- [ ] Audio can be toggled on/off in settings\n",
+  "workflow_type": "feature"
+}

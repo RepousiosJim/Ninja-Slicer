@@ -1,0 +1,71 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "Cross-cutting feature touching multiple game systems (combat, UI, settings, combo). Standard web audio implementation with no external integrations or infrastructure changes. Requires coordination across 5-8 files but uses familiar browser APIs.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 7,
+      "estimated_services": 1,
+      "is_cross_cutting": true,
+      "notes": "Affects combat system (slash/death sounds), combo system (milestone sounds), UI components (click sounds), and settings (toggle). Likely needs: audio manager/service, settings state update, event handlers in combat/combo/UI modules."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Uses browser Web Audio API (standard) or potentially a lightweight library like Howler.js. Both are well-documented and commonly used in web games. No external service integrations required."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "Audio toggle state likely stored in localStorage or React state. No infrastructure or deployment changes needed. Audio assets will be static files served alongside game."
+    },
+    "knowledge": {
+      "patterns_exist": false,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Standard web game audio implementation. Web Audio API is well-documented. May need to review existing game event system to hook audio triggers correctly."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Audio loading performance impact on game startup",
+        "Sound synchronization with visual events (slash/death timing)",
+        "Browser compatibility for Web Audio API",
+        "Audio asset file size and loading strategy",
+        "Preventing audio spam during rapid player actions"
+      ],
+      "notes": "Relatively safe additive feature. Main risks are performance (loading/playing sounds) and user experience (timing, volume). No data or security risks."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Core gameplay feature affecting user experience. Requires unit tests for audio manager logic (toggle, volume, event handling) and integration tests to verify sounds trigger correctly on game events. No security concerns."
+  },
+
+  "created_at": "2025-12-31T00:00:00Z"
+}

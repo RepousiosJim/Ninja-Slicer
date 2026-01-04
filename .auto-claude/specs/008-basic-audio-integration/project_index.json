@@ -1,0 +1,149 @@
+{
+  "project_root": "F:\\Desktop\\Ninja Slicer",
+  "project_type": "single",
+  "services": {
+    "main": {
+      "name": "main",
+      "path": "F:\\Desktop\\Ninja Slicer",
+      "language": "TypeScript",
+      "framework": null,
+      "type": "unknown",
+      "package_manager": "npm",
+      "build_tool": "Vite",
+      "default_port": 5173,
+      "dev_command": "npm run dev",
+      "key_directories": {
+        "src": {
+          "path": "src",
+          "purpose": "Source code"
+        }
+      },
+      "entry_point": "src/main.ts",
+      "dependencies": [
+        "@linear/sdk",
+        "@modelcontextprotocol/sdk",
+        "@sentry/browser",
+        "@supabase/supabase-js",
+        "phaser",
+        "zod"
+      ],
+      "dev_dependencies": [
+        "@eslint/js",
+        "@notionhq/client",
+        "@types/node",
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "dotenv",
+        "eslint",
+        "eslint-config-prettier",
+        "husky",
+        "inquirer"
+      ],
+      "environment": {
+        "variables": {
+          "VITE_SUPABASE_URL": {
+            "value": "https://your-project-id.supabase.co",
+            "source": ".env",
+            "type": "url",
+            "sensitive": false,
+            "required": false
+          },
+          "VITE_SUPABASE_ANON_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "NOTION_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "NOTION_DB_TASKS": {
+            "value": "3dfe2310-b01b-49cf-a718-086e70607652",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_DOCS": {
+            "value": "6ff9b840-5151-4213-aa16-4329b5f6c3ba",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_ASSETS": {
+            "value": "4aa18ad7-8600-4b3c-9896-63d242d2aac9",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_COMMITS": {
+            "value": "6b735642-e500-4f9f-887d-4b1802bbb93a",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_LEVELS": {
+            "value": "50b489a8-be0f-4f57-8068-d30f3581af38",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_WEAPONS": {
+            "value": "b6aca889-5747-447e-b090-564942becbb4",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_SYSTEMS": {
+            "value": "de2e8687-1eeb-4fec-871a-38b741bfb030",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_SCENES": {
+            "value": "45f36260-858e-47b8-95c9-2c1ea3e67680",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NOTION_DB_MILESTONES": {
+            "value": "2a953aa5-9056-4ce9-96fd-fb407eb79a68",
+            "source": ".env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "VITE_SENTRY_DSN": {
+            "value": "https://3dd560fc560055e503b1cfbde1f1a694@o4510625805172736.ingest.de.sentry.io/4510625839186000",
+            "source": ".env",
+            "type": "url",
+            "sensitive": false,
+            "required": false
+          }
+        },
+        "required_count": 0,
+        "optional_count": 0,
+        "detected_count": 13
+      }
+    }
+  },
+  "infrastructure": {},
+  "conventions": {
+    "js_linting": "ESLint",
+    "formatting": "Prettier",
+    "typescript": true,
+    "git_hooks": "Husky"
+  }
+}
