@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "description": "A Fruit Ninja-style monster slicing game with RPG progression",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "prepare": "husky",
     "notion:sync-docs": "node scripts/notion/sync-docs.cjs",
@@ -18,7 +22,9 @@
     "notion:sync-todos": "node scripts/notion/sync-todos.cjs",
     "notion:create-task": "node scripts/notion/create-task.cjs",
     "notion:sync-all": "npm run notion:sync-docs && npm run notion:sync-game-data && npm run notion:sync-todos",
-    "notion:update": "npm run notion:sync-docs && npm run notion:sync-commit"
+    "notion:update": "npm run notion:sync-docs && npm run notion:sync-commit",
+    "linear:start": "node scripts/linear/mcp-server.cjs",
+    "linear:test": "node scripts/linear/mcp-server.cjs --test"
   },
   "keywords": [
     "game",
@@ -31,22 +37,27 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.46.2",
-    "phaser": "^3.80.1"
+    "@linear/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "@sentry/browser": "^8.49.0",
+    "@supabase/supabase-js": "^2.47.3",
+    "phaser": "^3.85.2",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
+    "@eslint/js": "^9.20.0",
     "@notionhq/client": "^5.6.0",
-    "@types/node": "^22.10.2",
-    "@typescript-eslint/eslint-plugin": "^8.19.1",
-    "@typescript-eslint/parser": "^8.19.1",
-    "dotenv": "^17.2.3",
-    "eslint": "^9.17.0",
+    "@types/node": "^22.13.0",
+    "@typescript-eslint/eslint-plugin": "^8.24.0",
+    "@typescript-eslint/parser": "^8.24.0",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^9.1.0",
     "husky": "^9.1.7",
-    "inquirer": "^13.1.0",
-    "prettier": "^3.4.2",
-    "terser": "^5.44.1",
-    "typescript": "^5.7.2",
+    "inquirer": "^9.2.0",
+    "prettier": "^3.5.0",
+    "terser": "^5.38.2",
+    "typescript": "^5.7.3",
     "vite": "^5.4.21"
   }
 }

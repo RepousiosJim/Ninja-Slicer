@@ -1,11 +1,11 @@
-/* eslint-disable no-console */
+ 
 /**
  * Helper Utilities
  *
  * Common utility functions used throughout the game.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 
 // Pattern recognition imports
 import type { SlashPatternPoint, SlashPatternResult, Vector2 } from '../config/types';
@@ -380,16 +380,6 @@ export function createFPSCounter(scene: Phaser.Scene): () => void {
   };
 }
 
-/**
- * Log with timestamp (useful for debugging)
- */
-export function debugLog(message: string, ...args: unknown[]): void {
-  if (import.meta.env.DEV) {
-    const timestamp = new Date().toISOString().split('T')[1]?.slice(0, -1) || '00.000';
-    console.log(`[${timestamp}] ${message}`, ...args);
-  }
-}
-
 // =============================================================================
 // PATTERN RECOGNITION HELPERS
 // =============================================================================
@@ -545,7 +535,9 @@ export function detectCirclePattern(
 ): SlashPatternResult {
   const result: SlashPatternResult = {
     pattern: SlashPatternType.NONE,
+    type: SlashPatternType.NONE,
     confidence: 0,
+    difficulty: 0,
     points: points,
   };
 
@@ -604,6 +596,8 @@ export function detectCirclePattern(
 
   if (radiusDevPercent < SLASH_PATTERN.circleVarianceThreshold) {
     result.pattern = SlashPatternType.CIRCLE;
+    result.type = SlashPatternType.CIRCLE;
+    result.difficulty = 3;
     result.confidence = Math.max(0, 1 - radiusDevPercent / SLASH_PATTERN.circleVarianceThreshold);
   }
 
@@ -621,7 +615,9 @@ export function detectHorizontalLinePattern(
 ): SlashPatternResult {
   const result: SlashPatternResult = {
     pattern: SlashPatternType.NONE,
+    type: SlashPatternType.NONE,
     confidence: 0,
+    difficulty: 0,
     points: points,
   };
 
@@ -676,6 +672,8 @@ export function detectHorizontalLinePattern(
   const deviationThreshold = SLASH_PATTERN.horizontalVarianceThreshold * length;
   if (maxDeviation <= deviationThreshold) {
     result.pattern = SlashPatternType.HORIZONTAL;
+    result.type = SlashPatternType.HORIZONTAL;
+    result.difficulty = 1;
     result.confidence = Math.max(
       0,
       1 - (avgDeviation / deviationThreshold) * 0.5,
@@ -696,7 +694,9 @@ export function detectVerticalLinePattern(
 ): SlashPatternResult {
   const result: SlashPatternResult = {
     pattern: SlashPatternType.NONE,
+    type: SlashPatternType.NONE,
     confidence: 0,
+    difficulty: 0,
     points: points,
   };
 
@@ -751,6 +751,8 @@ export function detectVerticalLinePattern(
   const deviationThreshold = SLASH_PATTERN.verticalVarianceThreshold * length;
   if (maxDeviation <= deviationThreshold) {
     result.pattern = SlashPatternType.VERTICAL;
+    result.type = SlashPatternType.VERTICAL;
+    result.difficulty = 1;
     result.confidence = Math.max(
       0,
       1 - (avgDeviation / deviationThreshold) * 0.5,
@@ -768,7 +770,9 @@ export function detectSlashDownPattern(
 ): SlashPatternResult {
   const result: SlashPatternResult = {
     pattern: SlashPatternType.NONE,
+    type: SlashPatternType.NONE,
     confidence: 0,
+    difficulty: 0,
     points: points,
   };
 
@@ -808,6 +812,8 @@ export function detectSlashDownPattern(
 
     if (length >= SLASH_PATTERN.slashMinLength) {
       result.pattern = SlashPatternType.SLASH_DOWN;
+      result.type = SlashPatternType.SLASH_DOWN;
+      result.difficulty = 2;
       result.confidence = 0.8;
     }
   }
@@ -823,7 +829,9 @@ export function detectSlashUpPattern(
 ): SlashPatternResult {
   const result: SlashPatternResult = {
     pattern: SlashPatternType.NONE,
+    type: SlashPatternType.NONE,
     confidence: 0,
+    difficulty: 0,
     points: points,
   };
 
@@ -861,6 +869,8 @@ export function detectSlashUpPattern(
 
     if (length >= SLASH_PATTERN.slashMinLength) {
       result.pattern = SlashPatternType.SLASH_UP;
+      result.type = SlashPatternType.SLASH_UP;
+      result.difficulty = 2;
       result.confidence = 0.8;
     }
   }
@@ -881,7 +891,9 @@ export function recognizeSlashPattern(
   if (simplifiedPoints.length < SLASH_PATTERN.minPointsForDetection) {
     return {
       pattern: SlashPatternType.NONE,
+      type: SlashPatternType.NONE,
       confidence: 0,
+      difficulty: 0,
       points: points,
     };
   }
@@ -900,7 +912,9 @@ export function recognizeSlashPattern(
   if (!bestPattern) {
     return {
       pattern: SlashPatternType.NONE,
+      type: SlashPatternType.NONE,
       confidence: 0,
+      difficulty: 0,
       points: points,
     };
   }
@@ -912,4 +926,21 @@ export function recognizeSlashPattern(
   }
 
   return bestPattern;
+}
+
+/**
+ * Detect slash pattern (wrapper for recognizeSlashPattern)
+ * Used by SlashSystem
+ */
+export function detectSlashPattern(
+  points: SlashPatternPoint[],
+): SlashPatternResult {
+  return recognizeSlashPattern(points);
+}
+
+/**
+ * Check if a pattern type is valid (not NONE)
+ */
+export function isValidPattern(pattern: SlashPatternType): boolean {
+  return pattern !== SlashPatternType.NONE;
 }

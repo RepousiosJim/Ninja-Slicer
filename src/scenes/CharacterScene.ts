@@ -23,7 +23,8 @@ import { SaveManager } from '../managers/SaveManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { AudioManager } from '../managers/AudioManager';
-import { WeaponConfig, MonsterType } from '../config/types';
+import type { WeaponConfig} from '../config/types';
+import { MonsterType } from '../config/types';
 import { WeaponPreview } from '../ui/WeaponPreview';
 import { StatBar } from '../ui/StatBar';
 import { EffectivenessChart, EffectivenessData } from '../ui/EffectivenessChart';
@@ -546,7 +547,7 @@ export class CharacterScene extends Phaser.Scene {
     if (!this.currentWeapon) return;
 
     const tierData = this.currentWeapon.tiers[this.currentTier - 1];
-    if (!tierData || !tierData.effects || tierData.effects.length === 0) {
+    if (!tierData?.effects || tierData.effects.length === 0) {
       return;
     }
 

@@ -106,10 +106,6 @@ export class Vampire extends Monster {
       const angle = Phaser.Math.Between(0, 360);
       const speed = Phaser.Math.Between(100, 200);
 
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/8ea8323a-27ad-4ad1-b78f-c78ad315149e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Vampire.ts:108',message:'Creating bat and timer',data:{batId, i, batCount, currentTimer: this.batCleanupTimer ? 'exists' : 'null'},timestamp:Date.now(),sessionId:'vampire-leak-debug', hypothesisId: 'A'})}).catch(()=>{});
-      // #endregion
-
       bat.setVelocity(
         Math.cos(angle * Math.PI / 180) * speed,
         Math.sin(angle * Math.PI / 180) * speed - 100,
@@ -117,15 +113,8 @@ export class Vampire extends Monster {
 
       // Cleanup bats after they fly off screen
       this.batCleanupTimer = this.scene.time.delayedCall(3000, () => {
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/8ea8323a-27ad-4ad1-b78f-c78ad315149e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Vampire.ts:117',message:'Bat cleanup callback firing',data:{batId},timestamp:Date.now(),sessionId:'vampire-leak-debug', hypothesisId: 'B'})}).catch(()=>{});
-        // #endregion
         bat.destroy();
       });
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/8ea8323a-27ad-4ad1-b78f-c78ad315149e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Vampire.ts:123',message:'Timer reassigned',data:{batId, newTimerId: (this.batCleanupTimer as any)?.id || 'unknown'},timestamp:Date.now(),sessionId:'vampire-leak-debug', hypothesisId: 'A'})}).catch(()=>{});
-      // #endregion
     }
   }
 
@@ -153,16 +142,10 @@ export class Vampire extends Monster {
    * Clean up timers when destroyed
    */
   destroy(fromScene?: boolean): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/8ea8323a-27ad-4ad1-b78f-c78ad315149e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Vampire.ts:153',message:'Vampire destroy called',data:{hasHalfTimer: !!this.halfCleanupTimer, hasBatTimer: !!this.batCleanupTimer},timestamp:Date.now(),sessionId:'vampire-leak-debug', hypothesisId: 'C'})}).catch(()=>{});
-    // #endregion
     if (this.halfCleanupTimer) {
       this.halfCleanupTimer.destroy();
     }
     if (this.batCleanupTimer) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/8ea8323a-27ad-4ad1-b78f-c78ad315149e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Vampire.ts:161',message:'Cleaning up batCleanupTimer',data:{timerId: (this.batCleanupTimer as any)?.id || 'unknown'},timestamp:Date.now(),sessionId:'vampire-leak-debug', hypothesisId: 'C'})}).catch(()=>{});
-      // #endregion
       this.batCleanupTimer.destroy();
     }
     super.destroy(fromScene);

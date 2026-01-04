@@ -6,7 +6,7 @@
  */
 
 import Phaser from 'phaser';
-import { PowerUpType } from '@config/types';
+import type { PowerUpType } from '@config/types';
 import { GRAVITY } from '@config/constants';
 
 export abstract class PowerUp extends Phaser.Physics.Arcade.Sprite {

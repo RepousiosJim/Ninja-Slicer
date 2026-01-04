@@ -11,7 +11,7 @@ import { Button, ButtonStyle } from '../ui/Button';
 import { SaveManager } from '../managers/SaveManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { AudioManager } from '../managers/AudioManager';
-import { WeaponConfig } from '../config/types';
+import type { WeaponConfig } from '../config/types';
 
 /**
  * Test results interface

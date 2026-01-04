@@ -13,23 +13,29 @@
 
 import Phaser from 'phaser';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
+import { ErrorHandler, ErrorCategory, ErrorSeverity } from '@utils/ErrorHandler';
+import { LoadingManager } from './LoadingManager';
+import { AssetBundle } from './AssetRegistry';
 
 
-import { GameSettings } from '@config/types';
+import type { GameSettings } from '@config/types';
+import type { IManager } from './IManager';
 
-export class AudioManager {
+export class AudioManager implements IManager {
   private scene: Phaser.Scene;
   private currentMusic: Phaser.Sound.BaseSound | null = null;
   private currentMusicKey: string | null = null;
-  
+
   // Volume settings (0-1)
   private musicVolume: number = 0.7;
   private sfxVolume: number = 1.0;
   private musicEnabled: boolean = true;
   private sfxEnabled: boolean = true;
-  
+
   // Audio state
   private pendingMusic: string | null = null;
+  private audioInitialized: boolean = false;
+  private audioDisabled: boolean = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -43,7 +49,22 @@ export class AudioManager {
    * Initialize the audio manager (call after scene is fully created)
    */
   public initialize(): void {
-    this.setupUnlockListener();
+    try {
+      this.setupUnlockListener();
+      this.audioInitialized = true;
+      debugLog('[AudioManager] Audio initialized successfully');
+    } catch (error) {
+      const err = error as Error;
+      debugError('[AudioManager] Failed to initialize audio:', err);
+      
+      ErrorHandler.handle(err, {
+        scene: this.scene.scene.key,
+        component: 'AudioManager',
+        action: 'initialize'
+      });
+      
+      this.audioDisabled = true;
+    }
   }
 
   /**
@@ -89,6 +110,10 @@ export class AudioManager {
    * Play background music (loops by default)
    */
   playMusic(key: string, config?: Phaser.Types.Sound.SoundConfig): void {
+    if (this.audioDisabled) {
+      return;
+    }
+
     // If audio is locked, queue it for later
     if (this.scene.sound.locked) {
       this.pendingMusic = key;
@@ -105,19 +130,28 @@ export class AudioManager {
 
     // Check if sound exists
     if (!this.scene.cache.audio.exists(key)) {
-      console.warn(`[AudioManager] Music not found: ${key}`);
+      debugWarn(`[AudioManager] Music not found: ${key}`);
       return;
     }
 
-    // Create and play new music
-    const defaultConfig: Phaser.Types.Sound.SoundConfig = {
-      loop: true,
-      volume: this.musicEnabled ? this.musicVolume : 0,
-    };
+    try {
+      // Create and play new music
+      const defaultConfig: Phaser.Types.Sound.SoundConfig = {
+        loop: true,
+        volume: this.musicEnabled ? this.musicVolume : 0,
+      };
 
-    this.currentMusic = this.scene.sound.add(key, { ...defaultConfig, ...config });
-    this.currentMusic.play();
-    this.currentMusicKey = key;
+      this.currentMusic = this.scene.sound.add(key, { ...defaultConfig, ...config });
+      this.currentMusic.play();
+      this.currentMusicKey = key;
+    } catch (error) {
+      debugError('[AudioManager] Failed to play music:', error as Error);
+      ErrorHandler.handle(error as Error, {
+        scene: this.scene.scene.key,
+        component: 'AudioManager',
+        action: 'play_music'
+      });
+    }
   }
 
   /**
@@ -169,7 +203,7 @@ export class AudioManager {
    */
   crossfadeMusic(newKey: string, duration: number = 1000): void {
     if (!this.scene.cache.audio.exists(newKey)) {
-      console.warn(`[AudioManager] Music not found: ${newKey}`);
+      debugWarn(`[AudioManager] Music not found: ${newKey}`);
       return;
     }
 
@@ -212,19 +246,30 @@ export class AudioManager {
    */
   playSFX(key: string, config?: Phaser.Types.Sound.SoundConfig): Phaser.Sound.BaseSound | null {
     if (!this.sfxEnabled) return null;
+    if (this.audioDisabled) return null;
 
     // Check if sound exists
     if (!this.scene.cache.audio.exists(key)) {
-      console.warn(`[AudioManager] SFX not found: ${key}`);
+      debugWarn(`[AudioManager] SFX not found: ${key}`);
       return null;
     }
 
-    const defaultConfig: Phaser.Types.Sound.SoundConfig = {
-      volume: this.sfxVolume,
-    };
+    try {
+      const defaultConfig: Phaser.Types.Sound.SoundConfig = {
+        volume: this.sfxVolume,
+      };
 
-    // Use play() for one-shot sounds (auto-destroys when done)
-    return this.scene.sound.play(key, { ...defaultConfig, ...config }) as unknown as Phaser.Sound.BaseSound;
+      // Use play() for one-shot sounds (auto-destroys when done)
+      return this.scene.sound.play(key, { ...defaultConfig, ...config }) as unknown as Phaser.Sound.BaseSound;
+    } catch (error) {
+      debugError('[AudioManager] Failed to play SFX:', error as Error);
+      ErrorHandler.handle(error as Error, {
+        scene: this.scene.scene.key,
+        component: 'AudioManager',
+        action: 'play_sfx'
+      });
+      return null;
+    }
   }
 
   /**
@@ -344,33 +389,54 @@ export class AudioManager {
    */
   async loadAndPlaySFX(key: string, path: string): Promise<void> {
     if (!this.scene.cache.audio.exists(key)) {
-      await this.loadAudio(key, path);
+      await this.loadAudioAsset(key);
     }
     this.playSFX(key);
   }
 
   /**
-   * Load audio file dynamically
+   * Load audio asset via LoadingManager
    */
-  private loadAudio(key: string, path: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.scene.cache.audio.exists(key)) {
-        resolve();
-        return;
-      }
-
-      this.scene.load.audio(key, path);
+  private async loadAudioAsset(key: string): Promise<void> {
+    try {
+      const loadingManager = LoadingManager.getInstance();
+      await loadingManager.lazyLoadAsset(key);
+      debugLog(`[AudioManager] Loaded audio: ${key}`);
+    } catch (error) {
+      const err = error as Error;
+      debugError(`[AudioManager] Failed to load audio ${key}:`, err);
       
-      this.scene.load.once(`filecomplete-audio-${key}`, () => {
-        resolve();
-      });
-      
-      this.scene.load.once('loaderror', () => {
-        reject(new Error(`Failed to load audio: ${key}`));
-      });
+      // Audio is non-critical, continue gracefully
+      debugWarn(`[AudioManager] Audio ${key} failed to load, continuing without it`);
+    }
+  }
 
-      this.scene.load.start();
-    });
+  /**
+   * Load music bundle on-demand
+   */
+  async loadMusicBundle(): Promise<void> {
+    try {
+      const loadingManager = LoadingManager.getInstance();
+      debugLog('[AudioManager] Loading music bundle...');
+      await loadingManager.lazyLoadBundle(AssetBundle.AUDIO_MUSIC);
+    } catch (error) {
+      const err = error as Error;
+      debugError('[AudioManager] Failed to load music bundle:', err);
+    }
+  }
+
+  /**
+   * Load SFX bundle on-demand
+   */
+  async loadSFXBundle(): Promise<void> {
+    try {
+      const loadingManager = LoadingManager.getInstance();
+      debugLog('[AudioManager] Loading SFX bundle...');
+      await loadingManager.lazyLoadBundle(AssetBundle.AUDIO_SFX);
+    } catch (error) {
+      const err = error as Error;
+      debugError('[AudioManager] Failed to load SFX bundle:', err);
+    }
   }
 
   // ===========================================================================
@@ -383,6 +449,20 @@ export class AudioManager {
   destroy(): void {
     this.stopMusic();
     // Note: Phaser's sound manager handles cleanup of one-shot sounds
+  }
+
+  /**
+   * Reset audio manager (for restarting game)
+   */
+  reset(): void {
+    this.stopMusic();
+  }
+
+  /**
+   * Shutdown and cleanup
+   */
+  shutdown(): void {
+    this.stopMusic();
   }
 
   /**

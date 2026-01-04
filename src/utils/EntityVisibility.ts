@@ -5,7 +5,7 @@
  * Used by Monster and Villager classes to create consistent visual styling.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 
 export interface EntityVisibilityConfig {
   backgroundColor: number;

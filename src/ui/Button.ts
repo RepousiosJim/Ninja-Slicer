@@ -8,17 +8,18 @@
 import Phaser from 'phaser';
 import { FONT_SIZES } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
-import { getButtonStyle } from '../utils/ThemeUtils';
 
 /**
  * Button style configuration
  */
+ 
 export enum ButtonStyle {
   PRIMARY = 'primary',
   SECONDARY = 'secondary',
   DANGER = 'danger',
   DISABLED = 'disabled',
 }
+ 
 
 /**
  * Button configuration interface

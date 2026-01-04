@@ -5,7 +5,7 @@
  * Follows the Open/Closed principle - easy to extend with new monster types.
  */
 
-import { Monster } from './Monster';
+import type { Monster } from './Monster';
 import { Zombie } from './Zombie';
 import { Vampire } from './Vampire';
 import { Ghost } from './Ghost';

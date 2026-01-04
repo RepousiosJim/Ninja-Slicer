@@ -14,6 +14,7 @@ import { SaveManager } from '../managers/SaveManager';
 import { AudioManager } from '../managers/AudioManager';
 import { SupabaseService } from '../services/SupabaseService';
 import { DARK_GOTHIC_THEME } from '../config/theme';
+import { debugError } from '../utils/DebugLogger';
 
 /**
  * Settings Scene
@@ -60,7 +61,7 @@ export class SettingsScene extends Phaser.Scene {
     super({ key: SCENE_KEYS.settings });
     this.saveManager = new SaveManager();
     this.audioManager = new AudioManager(this);
-    this.supabaseService = new SupabaseService();
+    this.supabaseService = SupabaseService.getInstance();
   }
 
   /**
@@ -223,6 +224,23 @@ export class SettingsScene extends Phaser.Scene {
     this.cloudSaveToggle = this.settingsListContainer.list[this.settingsListContainer.list.length - 1] as Toggle;
 
     currentY += 20;
+
+    currentY = this.createDivider(centerX, currentY);
+
+    // System Section
+    this.createSectionHeader('SYSTEM', centerX, currentY);
+    currentY += 40;
+
+    // Test Sentry
+    this.createActionItem('Verify Sentry Integration', 'TEST ERROR', currentY, () => {
+      this.audioManager.playSFX('uiClick');
+      try {
+        throw new Error('Manual Sentry Verification Test');
+      } catch (e) {
+        debugError('Sentry Verification Test', e);
+        this.cameras.main.flash(200, 255, 0, 0);
+      }
+    });
   }
 
   /**
@@ -361,6 +379,42 @@ export class SettingsScene extends Phaser.Scene {
     });
 
     return container;
+  }
+
+  /**
+   * Create action button item
+   */
+  private createActionItem(
+    label: string,
+    buttonText: string,
+    y: number,
+    onClick: () => void,
+  ): number {
+    if (!this.settingsListContainer) return y;
+
+    const centerX = this.cameras.main.width / 2;
+    const container = this.add.container(0, 0);
+
+    // Create label
+    const labelText = this.add.text(centerX - 300, y, label, {
+      fontFamily: DARK_GOTHIC_THEME.fonts.primary,
+      fontSize: '20px',
+      color: '#ffffff',
+    });
+    labelText.setOrigin(0, 0.5);
+    container.add(labelText);
+
+    // Create button
+    const btn = new Button(this, centerX + 200, y, 140, 35, buttonText, {
+      style: ButtonStyle.DANGER,
+      fontSize: 14,
+      onClick: onClick,
+    });
+    container.add(btn);
+
+    this.settingsListContainer.add(container);
+
+    return y + this.ITEM_HEIGHT;
   }
 
   /**
@@ -630,7 +684,7 @@ export class SettingsScene extends Phaser.Scene {
       // Update UI
       this.updateCloudSaveUI(this.LIST_START_Y + 400);
     } catch (error) {
-      console.error('[SettingsScene] Sync failed:', error);
+      debugError('[SettingsScene] Sync failed:', error);
       this.showSyncStatus('Sync failed', DARK_GOTHIC_THEME.colors.danger.toString(16));
     }
   }

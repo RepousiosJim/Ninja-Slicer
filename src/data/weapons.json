@@ -156,12 +156,84 @@
       ]
     },
     {
+      "id": "shadow_blade",
+      "name": "Shadow Blade",
+      "description": "Strikes from darkness with deadly precision",
+      "rarity": "rare",
+      "unlockCost": 0,
+      "isStarter": true,
+      "trailColor": "#4a0080",
+      "trailGlow": "#7b68ee",
+      "effectiveAgainst": "ghost",
+      "tiers": [
+        {
+          "tier": 1,
+          "upgradeCost": 0,
+          "effects": [
+            {
+              "type": "bonus_damage",
+              "target": "ghost",
+              "value": 1.2,
+              "description": "+20% damage to ghosts"
+            },
+            {
+              "type": "critical_hit_chance",
+              "value": 0.1,
+              "description": "10% critical hit chance"
+            }
+          ],
+          "description": "Critical strikes against ghosts"
+        },
+        {
+          "tier": 2,
+          "upgradeCost": 400,
+          "effects": [
+            {
+              "type": "bonus_damage",
+              "target": "ghost",
+              "value": 1.4,
+              "description": "+40% damage to ghosts"
+            },
+            {
+              "type": "critical_hit_chance",
+              "value": 0.15,
+              "description": "15% critical hit chance"
+            }
+          ],
+          "description": "Deadlier shadow strikes"
+        },
+        {
+          "tier": 3,
+          "upgradeCost": 800,
+          "effects": [
+            {
+              "type": "bonus_damage",
+              "target": "ghost",
+              "value": 1.6,
+              "description": "+60% damage to ghosts"
+            },
+            {
+              "type": "critical_hit_chance",
+              "value": 0.2,
+              "description": "20% critical hit chance"
+            },
+            {
+              "type": "ghost_visibility",
+              "value": 1.5,
+              "description": "Ghosts visible 50% longer"
+            }
+          ],
+          "description": "Shadow reveals all"
+        }
+      ]
+    },
+    {
       "id": "fire_sword",
       "name": "Fire Sword",
       "description": "Flames that cleanse the rotting dead",
       "rarity": "rare",
-      "unlockCost": 500,
-      "isStarter": false,
+      "unlockCost": 0,
+      "isStarter": true,
       "trailColor": "#ff4500",
       "trailGlow": "#ff6347",
       "effectiveAgainst": "zombie",

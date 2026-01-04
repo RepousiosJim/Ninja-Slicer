@@ -48,7 +48,9 @@ export class WorldSelectScene extends Phaser.Scene {
    * Create title
    */
   private createTitle(): void {
-    const title = this.add.text(this.scale.width / 2, 60, 'SELECT WORLD', {
+    const centerX = this.scale.width / 2;
+
+    const title = this.add.text(centerX, 50, 'SELECT WORLD', {
       fontSize: '48px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -57,6 +59,29 @@ export class WorldSelectScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
     title.setDepth(10);
+
+    // Total stars counter
+    const totalStars = levelManager.getTotalStars();
+    const maxStars = levelManager.getMaxStars();
+
+    const starsBg = this.add.rectangle(centerX, 105, 200, 40, 0x1a1a1a);
+    starsBg.setStrokeStyle(2, 0xffd700);
+    starsBg.setDepth(10);
+
+    const starsIcon = this.add.text(centerX - 80, 105, '★', {
+      fontSize: '32px',
+      color: '#ffd700',
+    });
+    starsIcon.setOrigin(0.5);
+    starsIcon.setDepth(11);
+
+    const starsText = this.add.text(centerX, 105, `${totalStars} / ${maxStars}`, {
+      fontSize: '24px',
+      color: '#ffd700',
+      fontStyle: 'bold',
+    });
+    starsText.setOrigin(0.5);
+    starsText.setDepth(11);
   }
 
   /**
@@ -270,7 +295,7 @@ export class WorldSelectScene extends Phaser.Scene {
    * Handle back button
    */
   private onBack(): void {
-    // Go to main menu (or boot scene)
-    this.scene.start(SCENE_KEYS.boot);
+    // Go to main menu
+    this.scene.start(SCENE_KEYS.mainMenu);
   }
 }

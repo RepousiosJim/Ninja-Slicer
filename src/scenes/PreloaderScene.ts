@@ -1,32 +1,72 @@
 /**
  * PreloaderScene
- * 
+ *
  * Loads all game assets and displays a progress bar.
- * Uses lazy loading strategy - only loads essential assets here,
- * additional assets can be loaded on-demand in other scenes.
+ * Uses bundle-based loading with priority ordering.
+ * Shows detailed progress including categories and current asset.
  */
 
 import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT } from '@config/constants';
+import { ErrorHandler, ErrorCategory, ErrorSeverity } from '@utils/ErrorHandler';
+import { ErrorToastManager } from '@ui/ErrorToast';
+import { debugError, debugWarn, debugLog } from '@utils/DebugLogger';
+import type { LoadProgress } from '@managers/LoadingManager';
+import { LoadingManager } from '@managers/LoadingManager';
+import { AssetBundle, AssetPriority } from '@managers/AssetRegistry';
 
 export class PreloaderScene extends Phaser.Scene {
-  private progressBar!: Phaser.GameObjects.Graphics;
+  private loadingManager: LoadingManager;
+  private errorToastManager: ErrorToastManager | null = null;
+  
+  // UI Elements
   private progressBox!: Phaser.GameObjects.Graphics;
+  private progressBar!: Phaser.GameObjects.Graphics;
   private loadingText!: Phaser.GameObjects.Text;
   private percentText!: Phaser.GameObjects.Text;
   private assetText!: Phaser.GameObjects.Text;
+  private categoryProgressContainer!: Phaser.GameObjects.Container;
+  private failedAssetsText!: Phaser.GameObjects.Text;
+  
+  // Progress tracking
+  private categoryProgress: Map<string, Phaser.GameObjects.Graphics> = new Map();
+  private categoryText: Map<string, Phaser.GameObjects.Text> = new Map();
 
   constructor() {
     super({ key: SCENE_KEYS.preloader });
   }
 
   preload(): void {
+    debugLog('[PreloaderScene] Starting preload...');
+    
+    // Initialize error toast manager
+    this.errorToastManager = new ErrorToastManager(this);
+    
+    // Initialize loading manager
+    this.loadingManager = LoadingManager.getInstance();
+    this.loadingManager.initialize(this);
+    
+    // Create loading UI
     this.createLoadingUI();
-    this.setupLoadEvents();
-    this.loadAssets();
+    
+    // Set up progress tracking
+    this.setupProgressTracking();
+    
+    // Load auto-load bundles
+    this.loadAutoLoadBundles();
   }
 
   create(): void {
+    const progress = this.loadingManager.getProgress();
+    
+    // Show summary of failed assets if any
+    if (progress.failed > 0) {
+      this.errorToastManager?.showWarning(
+        `${progress.failed} assets failed to load. Game will continue with reduced visuals.`,
+        8000
+      );
+    }
+    
     // Small delay before transitioning to let the player see 100%
     this.time.delayedCall(500, () => {
       this.scene.start(SCENE_KEYS.mainMenu);
@@ -34,7 +74,7 @@ export class PreloaderScene extends Phaser.Scene {
   }
 
   /**
-   * Create the loading bar UI
+   * Create the modern loading UI
    */
   private createLoadingUI(): void {
     const centerX = GAME_WIDTH / 2;
@@ -42,177 +82,219 @@ export class PreloaderScene extends Phaser.Scene {
 
     // Progress box (background)
     this.progressBox = this.add.graphics();
-    this.progressBox.fillStyle(0x2a2a4e, 0.8);
-    this.progressBox.fillRoundedRect(centerX - 160, centerY - 25, 320, 50, 10);
+    this.progressBox.fillStyle(0x2a2a4e, 0.9);
+    this.progressBox.fillRoundedRect(centerX - 200, centerY - 100, 400, 200, 10);
+    this.progressBox.lineStyle(2, 0x8b0000, 1);
+    this.progressBox.strokeRoundedRect(centerX - 200, centerY - 100, 400, 200, 10);
 
     // Progress bar (fill)
     this.progressBar = this.add.graphics();
 
     // Loading text
-    this.loadingText = this.add.text(centerX, centerY - 60, 'Loading...', {
+    this.loadingText = this.add.text(centerX, centerY - 80, 'Loading Game Assets', {
       fontFamily: 'Arial',
-      fontSize: '24px',
+      fontSize: '28px',
+      fontStyle: 'bold',
       color: '#ffffff',
     }).setOrigin(0.5);
 
     // Percentage text
     this.percentText = this.add.text(centerX, centerY, '0%', {
       fontFamily: 'Arial',
-      fontSize: '20px',
-      color: '#ffffff',
+      fontSize: '48px',
+      fontStyle: 'bold',
+      color: '#ff6666',
     }).setOrigin(0.5);
 
     // Asset being loaded text
-    this.assetText = this.add.text(centerX, centerY + 60, '', {
+    this.assetText = this.add.text(centerX, centerY + 60, 'Initializing...', {
+      fontFamily: 'Arial',
+      fontSize: '16px',
+      color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    // Failed assets text
+    this.failedAssetsText = this.add.text(centerX, centerY + 90, 'Failed: 0', {
       fontFamily: 'Arial',
       fontSize: '14px',
-      color: '#888888',
+      color: '#ff6666',
     }).setOrigin(0.5);
+
+    // Category progress container
+    this.categoryProgressContainer = this.add.container(centerX - 180, centerY + 25);
+    this.createCategoryProgressBars();
   }
 
   /**
-   * Set up loading event listeners
+   * Create category progress bars
    */
-  private setupLoadEvents(): void {
+  private createCategoryProgressBars(): void {
+    const categories = [
+      { name: 'UI', y: 0, color: 0x4CAF50 },
+      { name: 'Core', y: 20, color: 0x2196F3 },
+      { name: 'Effects', y: 40, color: 0xFF9800 },
+      { name: 'Audio', y: 60, color: 0x9C27B0 },
+    ];
+
+    categories.forEach(cat => {
+      // Label
+      const label = this.add.text(0, cat.y, cat.name, {
+        fontFamily: 'Arial',
+        fontSize: '12px',
+        color: '#888888',
+      }).setOrigin(0, 0.5);
+
+      // Progress bar background
+      const bg = this.add.graphics();
+      bg.fillStyle(0x1a1a2e, 0.8);
+      bg.fillRect(50, cat.y - 8, 330, 16);
+
+      // Progress bar fill
+      const bar = this.add.graphics();
+      bar.fillStyle(cat.color, 1);
+      bar.fillRect(50, cat.y - 8, 0, 16);
+
+      // Percentage text
+      const pctText = this.add.text(390, cat.y, '0%', {
+        fontFamily: 'Arial',
+        fontSize: '12px',
+        color: cat.color.toString(16),
+      }).setOrigin(1, 0.5);
+
+      this.categoryProgress.set(cat.name, bar);
+      this.categoryText.set(cat.name, pctText);
+      this.categoryProgressContainer.add([label, bg, bar, pctText]);
+    });
+  }
+
+  /**
+   * Set up progress tracking with LoadingManager
+   */
+  private setupProgressTracking(): void {
+    this.loadingManager.onProgress((progress: LoadProgress) => {
+      this.updateProgressUI(progress);
+    });
+  }
+
+  /**
+   * Update progress UI
+   */
+  private updateProgressUI(progress: LoadProgress): void {
     const centerX = GAME_WIDTH / 2;
     const centerY = GAME_HEIGHT / 2;
 
-    this.load.on('progress', (value: number) => {
-      this.progressBar.clear();
-      this.progressBar.fillStyle(0x8b0000, 1);
-      this.progressBar.fillRoundedRect(
-        centerX - 150, 
-        centerY - 15, 
-        300 * value, 
-        30, 
-        5,
-      );
-      this.percentText.setText(`${Math.floor(value * 100)}%`);
-    });
+    // Update overall progress bar
+    this.progressBar.clear();
+    this.progressBar.fillStyle(0x8b0000, 1);
+    this.progressBar.fillRoundedRect(
+      centerX - 190,
+      centerY - 15,
+      380 * (progress.percentage / 100),
+      30,
+      5,
+    );
+    this.percentText.setText(`${Math.floor(progress.percentage)}%`);
 
-    this.load.on('fileprogress', (file: Phaser.Loader.File) => {
-      this.assetText.setText(`Loading: ${file.key}`);
-    });
+    // Update current asset text
+    if (progress.currentAsset) {
+      const assetName = progress.currentAsset.replace(/_/g, ' ').toUpperCase();
+      this.assetText.setText(`Loading: ${assetName}`);
+    }
 
-    this.load.on('complete', () => {
-      this.progressBar.destroy();
-      this.progressBox.destroy();
-      this.loadingText.setText('Complete!');
-      this.percentText.destroy();
-      this.assetText.destroy();
-    });
+    // Update failed assets text
+    if (progress.failed > 0) {
+      this.failedAssetsText.setText(`Failed: ${progress.failed} assets`);
+      this.failedAssetsText.setColor('#ff0000');
+    }
+
+    // Update category progress (estimated based on bundle completion)
+    this.updateCategoryProgress(progress);
   }
 
   /**
-   * Load all game assets
-   * 
-   * Organization:
-   * - Essential assets loaded here
-   * - Large/optional assets loaded lazily in their respective scenes
+   * Update category progress bars
    */
-  private loadAssets(): void {
-    // Set the base path for assets
-    this.load.setPath('assets/');
+  private updateCategoryProgress(progress: LoadProgress): void {
+    // Get bundle progress from loaded assets
+    const loadedAssets = this.loadingManager.getLoadedAssets();
+    const totalAssets = progress.total;
 
-    // =========================================================================
-    // SPRITES - Monsters & Bosses
-    // =========================================================================
-    // Static sprites
-    this.load.image('monster_zombie', 'enemies/zombie.png');
-    this.load.image('monster_vampire', 'enemies/vampire.png');
-    this.load.image('monster_ghost', 'enemies/ghost.png');
-    
-    // Animation sheets
-    this.load.spritesheet('monster_zombie_sheet', 'enemies/zombie_sheet.png', { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('monster_vampire_sheet', 'enemies/vampire_sheet.png', { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('monster_ghost_sheet', 'enemies/ghost_sheet.png', { frameWidth: 64, frameHeight: 64 });
-    
-    // Boss sprites & sheets
-    this.load.image('boss_gravetitan', 'enemies/grave_titan.png');
-    this.load.image('boss_horseman', 'enemies/headless_horseman.png');
-    this.load.image('boss_vampirelord', 'enemies/vampire_lord.png');
-    this.load.image('boss_phantomking', 'enemies/phantom_king.png');
-    this.load.image('boss_demonoverlord', 'enemies/demon_overlord.png');
-    
-    this.load.spritesheet('boss_gravetitan_sheet', 'enemies/gravetitan_sheet.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.spritesheet('boss_horseman_sheet', 'enemies/horseman_sheet.png', { frameWidth: 128, frameHeight: 96 });
-    this.load.spritesheet('boss_vampirelord_sheet', 'enemies/vampirelord_sheet.png', { frameWidth: 96, frameHeight: 96 });
-    this.load.spritesheet('boss_phantomking_sheet', 'enemies/phantomking_sheet.png', { frameWidth: 96, frameHeight: 96 });
-    this.load.spritesheet('boss_demonoverlord_sheet', 'enemies/demonoverlord_sheet.png', { frameWidth: 160, frameHeight: 160 });
-    
-    // Slicing effects & projectiles
-    this.load.image('zombie_left_half', 'enemies/zombie_left_half.png');
-    this.load.image('zombie_right_half', 'enemies/zombie_right_half.png');
-    this.load.image('vampire_left_half', 'enemies/vampire_left_half.png');
-    this.load.image('vampire_right_half', 'enemies/vampire_right_half.png');
-    this.load.image('vampire_bat', 'enemies/vampire_bat.png');
-    this.load.image('horseman_head', 'enemies/horseman_head.png');
+    // Update UI bundle (mostly buttons)
+    const uiAssets = ['ui_button', 'ui_heart', 'ui_star', 'ui_soul', 'ui_pause', 'ui_lock', 'ui_settings', 'ui_panel', 'ui_card_frame', 'ui_arrow', 'ui_sound_', 'ui_music_'];
+    const uiLoaded = loadedAssets.filter(a => uiAssets.some(prefix => a.startsWith(prefix))).length;
+    const uiTotal = totalAssets * 0.25; // Approximate
+    this.updateCategoryBar('UI', uiLoaded, uiTotal);
 
-    // =========================================================================
-    // SPRITES - Villagers
-    // =========================================================================
-    this.load.image('villager_1', 'enemies/villager_male.png');
-    this.load.image('villager_female', 'enemies/villager_female.png');
-    this.load.image('villager_elder', 'enemies/elder_villager.png');
-    
-    this.load.spritesheet('villager_male_sheet', 'enemies/villager_male_sheet.png', { frameWidth: 48, frameHeight: 48 });
-    this.load.spritesheet('villager_female_sheet', 'enemies/villager_female_sheet.png', { frameWidth: 48, frameHeight: 48 });
-    this.load.spritesheet('villager_elder_sheet', 'enemies/villager_elder_sheet.png', { frameWidth: 48, frameHeight: 48 });
+    // Core bundle (enemies, weapons, villagers)
+    const coreAssets = ['monster_', 'villager_', 'boss_', 'basic_sword', 'silver_blade', 'shadow_blade', 'holy_cross_blade', 'fire_sword', 'ice_blade', 'lightning_katana'];
+    const coreLoaded = loadedAssets.filter(a => coreAssets.some(prefix => a.startsWith(prefix))).length;
+    const coreTotal = totalAssets * 0.35;
+    this.updateCategoryBar('Core', coreLoaded, coreTotal);
 
-    // =========================================================================
-    // UI Elements
-    // =========================================================================
-    this.load.image('ui_heart_full', 'ui/heart.png');
-    this.load.image('ui_heart_empty', 'ui/heart_empty.png');
-    this.load.image('ui_star_full', 'ui/star.png');
-    this.load.image('ui_star_empty', 'ui/star_empty.png');
-    this.load.image('ui_soul_icon', 'ui/soul.png');
-    this.load.image('ui_pause', 'ui/pause.png');
-    this.load.image('ui_lock', 'ui/lock.png');
-    this.load.image('ui_settings_gear', 'ui/settings_gear.png');
-    
-    // Buttons
-    this.load.image('ui_button_large', 'ui/button_large.png');
-    this.load.image('ui_button_large_hover', 'ui/button_large_hover.png');
-    this.load.image('ui_button_large_pressed', 'ui/button_large_pressed.png');
-    this.load.image('ui_button_large_disabled', 'ui/button_large_disabled.png');
-    this.load.image('ui_button_small', 'ui/button_small.png');
-    this.load.image('ui_button_small_hover', 'ui/button_small_hover.png');
-    this.load.image('ui_button_small_pressed', 'ui/button_small_pressed.png');
-    this.load.image('ui_button_small_disabled', 'ui/button_small_disabled.png');
-    
-    this.load.image('ui_panel', 'ui/panel.png');
-    this.load.image('ui_card_frame', 'ui/card_frame.png');
-    this.load.image('ui_arrow_left', 'ui/arrow_left.png');
-    this.load.image('ui_arrow_right', 'ui/arrow_right.png');
-    this.load.image('ui_sound_on', 'ui/sound_on.png');
-    this.load.image('ui_sound_off', 'ui/sound_off.png');
-    this.load.image('ui_music_on', 'ui/music_on.png');
-    this.load.image('ui_music_off', 'ui/music_off.png');
+    // Effects bundle
+    const effectsAssets = ['effect_', 'zombie_left_half', 'zombie_right_half', 'vampire_left_half', 'vampire_right_half', 'vampire_bat', 'horseman_head'];
+    const effectsLoaded = loadedAssets.filter(a => effectsAssets.some(prefix => a.startsWith(prefix))).length;
+    const effectsTotal = totalAssets * 0.20;
+    this.updateCategoryBar('Effects', effectsLoaded, effectsTotal);
 
-    // =========================================================================
-    // Backgrounds & Parallax
-    // =========================================================================
-    this.load.image('bg_menu', 'backgrounds/menu.png');
-    this.load.image('bg_graveyard', 'backgrounds/graveyard.png');
-    this.load.image('bg_graveyard_fg', 'backgrounds/graveyard_fg.png');
-    this.load.image('bg_haunted_village', 'backgrounds/haunted_village.png');
-    this.load.image('bg_haunted_village_fg', 'backgrounds/haunted_village_fg.png');
-    this.load.image('bg_vampire_castle', 'backgrounds/vampire_castle.png');
-    this.load.image('bg_vampire_castle_fg', 'backgrounds/vampire_castle_fg.png');
-    this.load.image('bg_ghost_realm', 'backgrounds/ghost_realm.png');
-    this.load.image('bg_hell_dimension', 'backgrounds/hell_dimension.png');
+    // Audio bundle
+    const audioAssets = ['music_', 'slash_', 'hit_', 'zombie_moan', 'vampire_hiss', 'ghost_wail', 'button_', 'pause_', 'menu_', 'powerup_', 'boss_', 'death_'];
+    const audioLoaded = loadedAssets.filter(a => audioAssets.some(prefix => a.startsWith(prefix))).length;
+    const audioTotal = totalAssets * 0.20;
+    this.updateCategoryBar('Audio', audioLoaded, audioTotal);
+  }
 
-    // =========================================================================
-    // Effects
-    // =========================================================================
-    this.load.image('effect_blood', 'effects/blood_splatter.png');
-    this.load.image('effect_bat', 'effects/bat_scatter.png');
-    this.load.image('effect_soul', 'effects/soul_wisp.png');
-    this.load.image('effect_fire_breath', 'effects/fire_breath.png');
-    this.load.image('effect_ghost_mist', 'effects/ghost_mist.png');
-    this.load.image('effect_fire_spark', 'effects/fire_spark.png');
-    this.load.image('effect_ice_crystal', 'effects/ice_crystal.png');
-    this.load.image('effect_lightning_arc', 'effects/lightning_arc.png');
+  /**
+   * Update a single category bar
+   */
+  private updateCategoryBar(categoryName: string, loaded: number, total: number): void {
+    const percentage = total > 0 ? (loaded / total) * 100 : 0;
+    const bar = this.categoryProgress.get(categoryName);
+    const text = this.categoryText.get(categoryName);
+
+    if (bar && text) {
+      bar.clear();
+      const color = categoryName === 'UI' ? 0x4CAF50 
+                  : categoryName === 'Core' ? 0x2196F3
+                  : categoryName === 'Effects' ? 0xFF9800
+                  : 0x9C27B0;
+      bar.fillStyle(color, 1);
+      bar.fillRect(50, 0, 330 * (percentage / 100), 16);
+      text.setText(`${Math.floor(percentage)}%`);
+    }
+  }
+
+  /**
+   * Load auto-load bundles
+   */
+  private async loadAutoLoadBundles(): Promise<void> {
+    try {
+      const autoLoadBundles = this.loadingManager.getRegistry()
+        .getAutoLoadBundles()
+        .map((b: { name: string }) => b.name);
+
+      debugLog('[PreloaderScene] Loading bundles:', autoLoadBundles);
+
+      await this.loadingManager.loadBundles(autoLoadBundles);
+      
+      // Loading complete, create() will be called
+    } catch (error) {
+      const err = error as Error;
+      debugError('[PreloaderScene] Failed to load bundles:', err);
+      
+      ErrorHandler.handle(err, {
+        scene: this.scene.key,
+        component: 'PreloaderScene',
+        action: 'load_bundles'
+      });
+
+      // Show error and continue anyway
+      if (this.errorToastManager) {
+        this.errorToastManager.showError(
+          'Some assets failed to load. Game will continue with reduced features.',
+          10000
+        );
+      }
+    }
   }
 }

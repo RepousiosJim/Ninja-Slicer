@@ -5,15 +5,36 @@
  */
 
 import Phaser from 'phaser';
+import * as Sentry from "@sentry/browser";
 import { GAME_WIDTH, GAME_HEIGHT, GAME_TITLE } from '@config/constants';
-import { debugLog } from '@utils/DebugLogger';
+import { debugLog, debugError } from '@utils/DebugLogger';
+import { ErrorHandler, ErrorCategory, ErrorSeverity } from '@utils/ErrorHandler';
+
+// Initialize Sentry
+Sentry.init({
+  dsn: "https://3dd560fc560055e503b1cfbde1f1a694@o4510625805172736.ingest.de.sentry.io/4510625839186000",
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  // Tracing
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+  // Session Replay
+  replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+  replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true
+});
 
 // Import scenes
 import { BootScene } from '@scenes/BootScene';
 import { PreloaderScene } from '@scenes/PreloaderScene';
 import { MainMenuScene } from '@scenes/MainMenuScene';
+import { WorldSelectScene } from '@scenes/WorldSelectScene';
 import { LevelSelectScene } from '@scenes/LevelSelectScene';
 import { LevelCompleteScene } from '@scenes/LevelCompleteScene';
+import { CampaignCompleteScene } from '@scenes/CampaignCompleteScene';
 import { GameplayScene } from '@scenes/GameplayScene';
 import { EndlessGameplayScene } from '@scenes/EndlessGameplayScene';
 import { GameOverScene } from '@scenes/GameOverScene';
@@ -23,6 +44,7 @@ import { ShopScene } from '@scenes/ShopScene';
 import { LeaderboardScene } from '@scenes/LeaderboardScene';
 import { SettingsScene } from '@scenes/SettingsScene';
 import { PauseScene } from '@scenes/PauseScene';
+import { ErrorScene } from '@scenes/ErrorScene';
 
 /**
  * Phaser Game Configuration
@@ -101,10 +123,12 @@ const config: Phaser.Types.Core.GameConfig = {
     BootScene,
     PreloaderScene,
     MainMenuScene,
+    WorldSelectScene,
     LevelSelectScene,
     GameplayScene,
     EndlessGameplayScene,
     LevelCompleteScene,
+    CampaignCompleteScene,
     GameOverScene,
     CharacterScene,
     InventoryScene,
@@ -112,6 +136,7 @@ const config: Phaser.Types.Core.GameConfig = {
     LeaderboardScene,
     SettingsScene,
     PauseScene,
+    ErrorScene,
   ],
   
   // Callbacks
@@ -128,9 +153,110 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 /**
- * Initialize the game
+ * Initialize the game with error handling
  */
-const game = new Phaser.Game(config);
+function initializeGame(): Phaser.Game | null {
+  try {
+    debugLog(`${GAME_TITLE} - Initializing game...`);
+    const game = new Phaser.Game(config);
+    debugLog(`${GAME_TITLE} - Game initialized successfully`);
+    return game;
+  } catch (error) {
+    const err = error as Error;
+    debugError(`${GAME_TITLE} - Failed to initialize game:`, err);
+    
+    ErrorHandler.handle(err, {
+      component: 'main.ts',
+      action: 'initialize_game'
+    });
+    
+    showInitializationError(err);
+    return null;
+  }
+}
+
+/**
+ * Show initialization error screen
+ */
+function showInitializationError(error: Error): void {
+  const container = document.getElementById('game-container');
+  if (!container) {
+    debugError('Cannot show error - game container not found');
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      z-index: 10000;
+    ">
+      <div style="
+        max-width: 600px;
+        padding: 40px;
+        background: #2a2a4e;
+        border-radius: 10px;
+        text-align: center;
+        border: 2px solid #8b0000;
+      ">
+        <h1 style="color: #ff6666; margin-bottom: 20px;">⚠️ Game Initialization Failed</h1>
+        <p style="margin-bottom: 20px; line-height: 1.6;">
+          We encountered an error while starting the game. This might be due to:
+        </p>
+        <ul style="text-align: left; margin-bottom: 20px;">
+          <li>Browser incompatibility</li>
+          <li>JavaScript disabled</li>
+          <li>Corrupted cache</li>
+          <li>Insufficient memory</li>
+        </ul>
+        <div style="
+          background: #1a1a2e;
+          padding: 15px;
+          border-radius: 5px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          color: #ff9999;
+        ">
+          <strong>Error:</strong> ${error.message}
+        </div>
+        <button onclick="location.reload()" style="
+          background: #8b0000;
+          color: white;
+          border: none;
+          padding: 15px 30px;
+          font-size: 16px;
+          border-radius: 5px;
+          cursor: pointer;
+          margin: 10px;
+        ">
+          Retry
+        </button>
+        <p style="font-size: 12px; color: #888888;">
+          If this error persists, try clearing your browser cache or using a different browser.
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+// Try to initialize the game
+const game: Phaser.Game | null = initializeGame();
+
+// Store game instance for debugging and error recovery
+if (game) {
+  if (import.meta.env.DEV) {
+    (window as any).game = game;
+  }
+}
 
 /**
  * Handle window resize and orientation changes

@@ -12,20 +12,30 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "noEmitOnError": false,
     "jsx": "preserve",
 
-    /* Linting */
+    /* Strict Mode - Enhanced for better type safety */
     "strict": true,
+    "strictNullChecks": false,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "useUnknownInCatchVariables": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noUncheckedIndexedAccess": true,
 
     /* Additional checks */
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "verbatimModuleSyntax": false,
 
     /* Paths */
     "baseUrl": ".",

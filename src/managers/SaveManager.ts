@@ -10,18 +10,19 @@
  *   const data = saveManager.load();
  */
 
-import { GameSave, GameSettings } from '@config/types';
+import type { GameSave, GameSettings } from '@config/types';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
 import { SAVE_KEY, SETTINGS_KEY, SAVE_VERSION } from '@config/constants';
+import type { IManager } from './IManager';
 
 // Default save data
 const DEFAULT_SAVE: GameSave = {
   version: SAVE_VERSION,
   souls: 0,
-  unlockedWeapons: ['basic_sword'],
-  weaponTiers: { basic_sword: 1 },
+  unlockedWeapons: ['basic_sword', 'shadow_blade', 'fire_sword'],
+  weaponTiers: { basic_sword: 1, shadow_blade: 1, fire_sword: 1 },
   equippedWeapon: 'basic_sword',
   upgrades: {
     slash_width: 0,
@@ -33,6 +34,7 @@ const DEFAULT_SAVE: GameSave = {
   completedLevels: [],
   levelStars: {},
   highScores: {},
+  levelAttempts: {},
   settings: {
     soundEnabled: true,
     musicEnabled: true,
@@ -42,11 +44,15 @@ const DEFAULT_SAVE: GameSave = {
     sfxEnabled: true,
     cloudSaveEnabled: false,
     uiScale: 'medium' as 'small' | 'medium' | 'large',
+    highContrastMode: false,
+    reducedMotionMode: false,
+    quality: 'medium' as 'low' | 'medium' | 'high',
   },
   personalBests: [],
   playerName: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+  weaponUnlockTimes: {},
 };
 
 // Default settings
@@ -59,16 +65,44 @@ const DEFAULT_SETTINGS: GameSettings = {
   sfxEnabled: true,
   cloudSaveEnabled: false,
   uiScale: 'medium',
+  highContrastMode: false,
+  reducedMotionMode: false,
+  quality: 'medium',
 };
 
-export class SaveManager {
+export class SaveManager implements IManager {
   private saveData: GameSave;
   private settings: GameSettings;
   private autoSaveInterval: number | null = null;
 
+  /**
+   * Initialize save manager and load existing save data and settings from localStorage
+   * 
+   * @example
+   * ```typescript
+   * const saveManager = new SaveManager();
+   * const souls = saveManager.getSouls();
+   * ```
+   */
   constructor() {
     this.saveData = this.load();
     this.settings = this.loadSettings();
+  }
+
+  /**
+   * Initialize manager and reload save data
+   * 
+   * @param scene - Optional Phaser scene (not currently used)
+   * 
+   * @example
+   * ```typescript
+   * const saveManager = new SaveManager();
+   * saveManager.initialize();
+   * ```
+   */
+  initialize(scene?: Phaser.Scene): void {
+    this.load();
+    this.loadSettings();
   }
 
   // ===========================================================================
@@ -309,7 +343,7 @@ export class SaveManager {
     
     for (const field of allowedFields) {
       if (field in data && data[field] !== undefined) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (sanitized as any)[field] = data[field as keyof GameSave];
       }
     }
@@ -322,7 +356,16 @@ export class SaveManager {
   // ===========================================================================
 
   /**
-   * Load settings from localStorage
+   * Load game settings from localStorage
+   * Merges with defaults if settings are incomplete
+   * 
+   * @returns Current game settings
+   * 
+   * @example
+   * ```typescript
+   * const settings = saveManager.loadSettings();
+   * console.log('Music volume:', settings.musicVolume);
+   * ```
    */
   loadSettings(): GameSettings {
     try {
@@ -338,7 +381,17 @@ export class SaveManager {
   }
 
   /**
-   * Save settings to localStorage
+   * Save current game settings to localStorage
+   * 
+   * @returns true if save successful, false otherwise
+   * 
+   * @example
+   * ```typescript
+   * const success = saveManager.saveSettings();
+   * if (success) {
+   *   console.log('Settings saved successfully');
+   * }
+   * ```
    */
   saveSettings(): boolean {
     try {
@@ -503,6 +556,8 @@ export class SaveManager {
     if (!this.saveData.unlockedWeapons.includes(weaponId)) {
       this.saveData.unlockedWeapons.push(weaponId);
       this.saveData.weaponTiers[weaponId] = 1;
+      // Track weapon unlock time for new items badge
+      this.saveData.weaponUnlockTimes[weaponId] = new Date().toISOString();
       this.save();
       return true;
     }
@@ -577,6 +632,15 @@ export class SaveManager {
     }
   }
 
+  /**
+   * Update last shop visit timestamp
+   * Call this when user visits the shop
+   */
+  updateLastShopVisit(): void {
+    this.saveData.lastShopVisit = new Date().toISOString();
+    this.save();
+  }
+
   // ===========================================================================
   // MIGRATION
   // ===========================================================================
@@ -628,5 +692,44 @@ export class SaveManager {
       used: used * 2, // UTF-16 encoding = 2 bytes per character
       available: 5 * 1024 * 1024,
     };
+  }
+
+  /**
+   * Record level attempt
+   */
+  recordAttempt(levelId: string): void {
+    this.saveData.levelAttempts[levelId] = (this.saveData.levelAttempts[levelId] || 0) + 1;
+    this.save();
+  }
+
+  /**
+   * Get attempt count for level
+   */
+  getLevelAttempts(levelId: string): number {
+    const save = this.load();
+    return save.levelAttempts[levelId] || 0;
+  }
+
+  /**
+   * Get total attempts across all levels
+   */
+  getTotalAttempts(): number {
+    const save = this.load();
+    return Object.values(save.levelAttempts).reduce((sum, count) => sum + count, 0);
+  }
+
+  /**
+   * Reset save data and settings
+   */
+  reset(): void {
+    this.resetSave();
+    this.resetSettings();
+  }
+
+  /**
+   * Shutdown and cleanup
+   */
+  shutdown(): void {
+    this.stopAutoSave();
   }
 }

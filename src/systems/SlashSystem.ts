@@ -10,12 +10,13 @@
  */
 
 import Phaser from 'phaser';
-import { SlashTrail } from '../entities/SlashTrail';
-import { Monster } from '../entities/Monster';
-import { Villager } from '../entities/Villager';
-import { PowerUp } from '../entities/PowerUp';
+import type { SlashTrail } from '../entities/SlashTrail';
+import type { Monster } from '../entities/Monster';
+import type { Villager } from '../entities/Villager';
+import type { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
-import { MonsterType, SlashPowerLevel, SlashPatternType, SlashPatternPoint, SlashPatternResult } from '@config/types';
+import type { MonsterType, SlashPatternPoint, SlashPatternResult } from '@config/types';
+import { SlashPowerLevel, SlashPatternType } from '@config/types';
 import {
   MONSTER_HITBOX_RADIUS,
   MONSTER_SOULS,
@@ -36,11 +37,12 @@ import {
 } from '@config/constants';
 import { lineIntersectsCircle, detectSlashPattern, isValidPattern, calculateCentroid } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
-import { ComboSystem } from './ComboSystem';
-import { PowerUpManager } from '../managers/PowerUpManager';
-import { WeaponManager } from '../managers/WeaponManager';
-import { UpgradeManager } from '../managers/UpgradeManager';
-import { SlashEnergyManager } from '../managers/SlashEnergyManager';
+import type { ComboSystem } from './ComboSystem';
+import type { PowerUpManager } from '../managers/PowerUpManager';
+import type { WeaponManager } from '../managers/WeaponManager';
+import type { UpgradeManager } from '../managers/UpgradeManager';
+import type { SlashEnergyManager } from '../managers/SlashEnergyManager';
+import type { AudioManager } from '../managers/AudioManager';
 
 // =============================================================================
 // SPATIAL PARTITIONING - Grid-based collision optimization
@@ -115,11 +117,12 @@ class SpatialGrid<T extends SpatialEntity> {
   /**
    * Clear all entities from the grid
    * Called at the start of each frame before repopulating
+   * Uses array.length = 0 to reuse arrays and avoid GC pressure
    */
   clear(): void {
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
-        this.cells[row][col].entities = [];
+        this.cells[row][col].entities.length = 0; // Reuse array instead of creating new one
       }
     }
   }
@@ -298,6 +301,7 @@ export class SlashSystem {
   private weaponManager: WeaponManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
   private energyManager: SlashEnergyManager | null = null;
+  private audioManager: AudioManager | null = null;
 
   // Energy tracking
   private lastSlashDistance: number = 0;
@@ -367,6 +371,13 @@ export class SlashSystem {
    */
   setEnergyManager(energyManager: SlashEnergyManager): void {
     this.energyManager = energyManager;
+  }
+
+  /**
+   * Set audio manager reference
+   */
+  setAudioManager(audioManager: AudioManager): void {
+    this.audioManager = audioManager;
   }
 
   /**
@@ -531,13 +542,13 @@ export class SlashSystem {
       
       if (patternResult && isValidPattern(patternResult.type)) {
         this.lastDetectedPattern = patternResult;
-        
+
         // Apply pattern bonus to session points retroactively
-        const patternBonus = SLASH_PATTERN_BONUSES[patternResult.type] || {};
-        if (patternBonus.scoreMultiplier) {
+        const patternBonus = SLASH_PATTERN_BONUSES[patternResult.type as keyof typeof SLASH_PATTERN_BONUSES];
+        if (patternBonus && patternBonus.scoreMultiplier) {
           const bonusPoints = Math.floor(this.slashSessionPoints * (patternBonus.scoreMultiplier - 1));
           this.score += bonusPoints;
-          
+
           EventBus.emit('score-updated', {
             score: this.score,
             delta: bonusPoints,

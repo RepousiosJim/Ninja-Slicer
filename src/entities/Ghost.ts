@@ -6,7 +6,7 @@
  * Dissolves into mist when sliced.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { Monster } from './Monster';
 import { MonsterType } from '@config/types';
 import { GHOST_VISIBLE_DURATION, GHOST_INVISIBLE_DURATION } from '@config/constants';

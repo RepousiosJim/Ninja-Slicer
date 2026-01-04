@@ -4,7 +4,7 @@
  * Displays game information such as score, lives, combo, souls, and power-up indicators.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT, SLASH_ENERGY } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { EventBus } from '../utils/EventBus';
@@ -36,6 +36,7 @@ export class HUD {
   private bossHealthBarBackground!: Phaser.GameObjects.Rectangle | null;
   private bossHealthBarFill!: Phaser.GameObjects.Rectangle | null;
   private bossHealthBarText!: Phaser.GameObjects.Text | null;
+  private timeWarningTriggered: boolean = false;
 
   // Energy bar elements
   private energyBarContainer!: Phaser.GameObjects.Container;
@@ -44,12 +45,34 @@ export class HUD {
   private energyBarLabel!: Phaser.GameObjects.Text;
   private currentEnergy: number = SLASH_ENERGY.maxEnergy;
 
+  /**
+   * Initialize HUD with scene reference
+   * Call create() after constructor to build UI elements
+   * 
+   * @param scene - The Phaser scene this HUD belongs to
+   * 
+   * @example
+   * ```typescript
+   * const hud = new HUD(this);
+   * hud.create();
+   * hud.showTimer(true);
+   * ```
+   */
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
   }
 
   /**
-   * Create HUD elements with theme
+   * Create all HUD elements with dark gothic theme styling
+   * Creates score, lives, souls, combo, timer, kill quota, boss health, and energy bar
+   * Also sets up EventBus listeners for real-time updates
+   * 
+   * @example
+   * ```typescript
+   * const hud = new HUD(this);
+   * hud.create();
+   * // HUD automatically updates via EventBus events
+   * ```
    */
   create(): void {
     const padding = ResponsiveUtils.getPadding('medium');
@@ -208,7 +231,18 @@ export class HUD {
   }
 
   /**
-   * Add pause button to HUD
+   * Add a pause button to the HUD
+   * Button is positioned at top-right of screen
+   * 
+   * @param callback - Function to call when pause button is clicked
+   * 
+   * @example
+   * ```typescript
+   * hud.addPauseButton(() => {
+   *   this.scene.pause();
+   *   this.scene.launch('pauseScene');
+   * });
+   * ```
    */
   addPauseButton(callback: () => void): void {
     this.pauseButton = new Button(
@@ -344,11 +378,39 @@ export class HUD {
    */
   updateTimer(time: number, duration: number): void {
     if (!this.timerText) return;
-    
+
     const remaining = Math.max(0, duration - time);
     const minutes = Math.floor(remaining / 60);
     const seconds = Math.floor(remaining % 60);
     this.timerText.setText(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+
+    // Warning effects
+    if (remaining <= 10) {
+      this.timerText.setColor('#ff4444');
+
+      if (remaining <= 5 && !this.timeWarningTriggered) {
+        this.timeWarningTriggered = true;
+
+        // Pulsing animation
+        this.scene.tweens.add({
+          targets: this.timerText,
+          scale: 1.2,
+          duration: 200,
+          yoyo: true,
+          repeat: -1,
+        });
+
+        // Play warning sound
+        const audioManager = (this.scene as any).audioManager;
+        if (audioManager) {
+          audioManager.playSFX('uiClick');
+        }
+      }
+    } else {
+      this.timerText.setColor('#' + DARK_GOTHIC_THEME.colors.text.toString(16).padStart(6, '0'));
+      this.timeWarningTriggered = false;
+      this.timerText.setScale(1);
+    }
   }
 
   /**
@@ -440,21 +502,48 @@ export class HUD {
   }
 
   /**
-   * Update score display
+   * Update the score display with formatted number
+   * 
+   * @param score - The new score value to display
+   * 
+   * @example
+   * ```typescript
+   * hud.updateScore(1000);
+   * // Display shows: 1000
+   * ```
    */
   updateScore(score: number): void {
     this.scoreText.setText(score.toString());
   }
 
   /**
-   * Update souls display
+   * Update the souls display with formatted number
+   * 
+   * @param souls - The new souls value to display
+   * 
+   * @example
+   * ```typescript
+   * hud.updateSouls(500);
+   * // Display shows: 💀 500
+   * ```
    */
   updateSouls(souls: number): void {
     this.soulsText.setText(souls.toString());
   }
 
   /**
-   * Update combo display
+   * Update the combo display with count and multiplier
+   * Shows/hides combo elements based on count (hidden when count is 0)
+   * Includes pulse animation when combo is active
+   * 
+   * @param count - Current combo count
+   * @param multiplier - Current score multiplier
+   * 
+   * @example
+   * ```typescript
+   * hud.updateCombo(10, 2.5);
+   * // Display shows: COMBO (2.5x) with 10x below it
+   * ```
    */
   updateCombo(count: number, multiplier: number): void {
     if (count > 0) {
@@ -481,8 +570,54 @@ export class HUD {
    * Update lives display
    */
   updateLives(lives: number): void {
-    // Clear existing hearts
-    this.hearts.forEach(heart => heart.destroy());
+    const previousLives = this.hearts.length;
+    
+    // Animate removed heart if lives decreased
+    if (lives < previousLives && this.hearts.length > 0) {
+      const removedHeart = this.hearts[previousLives - 1];
+      
+      // Flash red tint and scale animation
+      removedHeart.setTint(0xff0000);
+      
+      this.scene.tweens.add({
+        targets: removedHeart,
+        scaleX: 1.5,
+        scaleY: 1.5,
+        angle: Math.random() * 40 - 20,
+        alpha: 0.5,
+        duration: 150,
+        yoyo: true,
+        onYoyo: () => {
+          removedHeart.destroy();
+        },
+        onComplete: () => {
+          removedHeart.destroy();
+        },
+      });
+      
+      // Flash red on remaining hearts
+      this.hearts.slice(0, lives).forEach(heart => {
+        heart.setTint(0xff0000);
+        this.scene.tweens.add({
+          targets: heart,
+          alpha: 0.5,
+          duration: 100,
+          yoyo: true,
+          onYoyo: () => {
+            heart.clearTint();
+          },
+          onComplete: () => {
+            heart.clearTint();
+            heart.alpha = 1;
+          },
+        });
+      });
+    }
+
+    // Clear remaining hearts and recreate
+    this.hearts.forEach(heart => {
+      if (heart.active) heart.destroy();
+    });
     this.hearts = [];
 
     // Create new hearts
@@ -492,9 +627,6 @@ export class HUD {
       this.livesContainer.add(heart);
       this.hearts.push(heart);
     }
-
-    // Screen shake with theme animation
-    this.scene.cameras.main.shake(100, 0.01);
   }
 
   /**
@@ -560,21 +692,66 @@ export class HUD {
   }
 
   /**
-   * Get current score text
+   * Get the score text game object for direct manipulation
+   * 
+   * @returns The Phaser text object displaying the score
+   * 
+   * @example
+   * ```typescript
+   * const scoreText = hud.getScoreText();
+   * scoreText.setColor('#ff0000'); // Change color temporarily
+   * ```
    */
   getScoreText(): Phaser.GameObjects.Text {
     return this.scoreText;
   }
 
   /**
-   * Get current combo text
+   * Get the combo text game object for direct manipulation
+   * 
+   * @returns The Phaser text object displaying the combo count
+   * 
+   * @example
+   * ```typescript
+   * const comboText = hud.getComboText();
+   * comboText.setScale(1.5); // Make combo text larger temporarily
+   * ```
    */
   getComboText(): Phaser.GameObjects.Text {
     return this.comboText;
   }
 
   /**
-   * Cleanup event listeners
+   * Update pause button visibility and interactivity based on game state
+   * 
+   * @param isPaused - Whether the game is currently paused
+   * 
+   * @example
+   * ```typescript
+   * // When pausing the game
+   * hud.updatePauseState(true);
+   * 
+   * // When resuming the game
+   * hud.updatePauseState(false);
+   * ```
+   */
+  updatePauseState(isPaused: boolean): void {
+    if (this.pauseButton) {
+      this.pauseButton.setActive(!isPaused);
+      this.pauseButton.setVisible(!isPaused);
+    }
+  }
+
+  /**
+   * Cleanup HUD resources and remove all EventBus listeners
+   * Call this when scene is being destroyed
+   * 
+   * @example
+   * ```typescript
+   * // Automatically called when scene shuts down
+   * // Also manually if needed:
+   * hud.destroy();
+   * ```
    */
   destroy(): void {
     this.eventListeners.forEach(({ event, handler }) => {

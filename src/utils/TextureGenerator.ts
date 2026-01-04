@@ -4,7 +4,7 @@
  * without requiring external image assets
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 
 export class TextureGenerator {
   /**

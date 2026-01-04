@@ -8,7 +8,7 @@ import Phaser from 'phaser';
 import { DARK_GOTHIC_THEME, DASHBOARD_CARD_CONFIG } from '../config/theme';
 import { GlowEffect } from './GlowEffect';
 import { TextureGenerator } from '../utils/TextureGenerator';
-import { ScaledCardConfig } from '../utils/ResponsiveCardScaler';
+import type { ScaledCardConfig } from '../utils/ResponsiveCardScaler';
 
 export interface DashboardCardStats {
   label: string;
@@ -39,9 +39,11 @@ export interface DashboardCardConfig {
 
 export class DashboardCard extends Phaser.GameObjects.Container {
   private config: DashboardCardConfig;
-  private scaledConfig: ScaledCardConfig; // NEW - stores scaled dimensions
+  private scaledConfig: ScaledCardConfig;
   private background!: Phaser.GameObjects.Graphics;
   private borderGraphics!: Phaser.GameObjects.Graphics;
+  private glassOverlay!: Phaser.GameObjects.Graphics;
+  private spotlightOverlay!: Phaser.GameObjects.Graphics;
   private iconText!: Phaser.GameObjects.Text;
   private titleText!: Phaser.GameObjects.Text;
   private descriptionText!: Phaser.GameObjects.Text;
@@ -55,6 +57,9 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   private hoverTween?: Phaser.Tweens.Tween;
   private debugHitBox?: Phaser.GameObjects.Graphics;
   private debugLabel?: Phaser.GameObjects.Text;
+  private magneticVelocity: { x: number; y: number } = { x: 0, y: 0 };
+  private lastPointerX: number = 0;
+  private lastPointerY: number = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -111,15 +116,10 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   private createBackground(): void {
     this.background = this.scene.add.graphics();
 
-    // Use fillGradientStyle for gradient effect
-    this.background.fillGradientStyle(
-      DARK_GOTHIC_THEME.colors.gradients.cardGradient.start,
-      DARK_GOTHIC_THEME.colors.gradients.cardGradient.start,
-      DARK_GOTHIC_THEME.colors.gradients.cardGradient.end,
-      DARK_GOTHIC_THEME.colors.gradients.cardGradient.end,
+    this.background.fillStyle(
+      DARK_GOTHIC_THEME.colors.background,
       0.9,
     );
-
     this.background.fillRoundedRect(
       -this.scaledConfig.width / 2,
       -this.scaledConfig.height / 2,
@@ -129,6 +129,64 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     );
 
     this.add(this.background);
+
+    this.glassOverlay = this.scene.add.graphics();
+    this.glassOverlay.setAlpha(0);
+    this.createGlassEffect();
+    this.add(this.glassOverlay);
+
+    this.spotlightOverlay = this.scene.add.graphics();
+    this.spotlightOverlay.setAlpha(0);
+    this.add(this.spotlightOverlay);
+  }
+
+  private createGlassEffect(): void {
+    const width = this.scaledConfig.width;
+    const height = this.scaledConfig.height;
+    const radius = DASHBOARD_CARD_CONFIG.borderRadius;
+
+    this.glassOverlay.fillStyle(0xffffff, 0.08);
+    this.glassOverlay.fillRoundedRect(
+      -width / 2,
+      -height / 2,
+      width,
+      height,
+      radius,
+    );
+
+    this.glassOverlay.lineStyle(2, 0xffffff, 0.15);
+    this.glassOverlay.strokeRoundedRect(
+      -width / 2 + 2,
+      -height / 2 + 2,
+      width - 4,
+      height - 4,
+      radius - 2,
+    );
+  }
+
+  private updateSpotlight(pointerX: number, pointerY: number): void {
+    this.spotlightOverlay.clear();
+    const width = this.scaledConfig.width;
+    const height = this.scaledConfig.height;
+    const radius = DASHBOARD_CARD_CONFIG.borderRadius;
+
+    const localX = pointerX - this.x;
+    const localY = pointerY - this.y;
+
+    const maxDistance = Math.max(width, height) * 0.5;
+    const distance = Math.sqrt(localX * localX + localY * localY);
+    const alpha = Math.max(0, 0.15 * (1 - distance / maxDistance));
+
+    if (alpha > 0) {
+      this.spotlightOverlay.fillStyle(0xffffff, alpha);
+      this.spotlightOverlay.fillRoundedRect(
+        -width / 2,
+        -height / 2,
+        width,
+        height,
+        radius
+      );
+    }
   }
 
   /**
@@ -403,6 +461,17 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     // Also set the container size to match
     this.setSize(cardWidth, cardHeight);
 
+    // Add slight padding to hit area for better usability on touch devices
+    this.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(
+        -halfWidth - borderOffset - 5,
+        -halfHeight - borderOffset - 5,
+        cardWidth + borderWidth + 10,
+        cardHeight + borderWidth + 10,
+      ),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+    });
+
     // Hover effects
     this.on('pointerover', this.onHoverStart, this);
     this.on('pointerout', this.onHoverEnd, this);
@@ -523,32 +592,20 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   private onHoverStart(): void {
     this.isHovered = true;
 
-    // Cancel any ongoing hover animation
     if (this.hoverTween) {
       this.hoverTween.stop();
       this.hoverTween = undefined;
     }
 
-    // Calculate target position (ABSOLUTE, not relative) - use SCALED config
-    // Constrain hover to prevent overflow above viewport
-    const maxLiftAllowed = Math.min(
-      Math.abs(this.scaledConfig.hoverLift),
-      this.baseY - this.scaledConfig.height / 2 - 20,  // Don't lift above screen top
-    );
-    const constrainedLift = -maxLiftAllowed; // Negative = up
-
-    const targetY = this.baseY + constrainedLift;
-
-    // Lift and scale animation with SCALED values
-    this.hoverTween = this.scene.tweens.add({
-      targets: this,
-      scale: this.scaledConfig.hoverScale,
-      y: targetY,
-      duration: DARK_GOTHIC_THEME.animations.presets.cardHover.duration,
-      ease: DARK_GOTHIC_THEME.animations.presets.cardHover.easing,
+    // Animate glass overlay smoothly
+    this.scene.tweens.add({
+      targets: this.glassOverlay,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2.easeOut',
     });
 
-    // Border color change
+    // Update border color to orange (warning color indicates interactive)
     this.borderGraphics.clear();
     this.borderGraphics.lineStyle(
       DASHBOARD_CARD_CONFIG.borderWidth,
@@ -563,13 +620,30 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       DASHBOARD_CARD_CONFIG.borderRadius,
     );
 
-    // Enhance glow
+    // Enhance glow effect if present
     if (this.glowEffect) {
       this.glowEffect.setGlowIntensity(
         DASHBOARD_CARD_CONFIG.hoverGlowIntensity / 10,
         DASHBOARD_CARD_CONFIG.hoverGlowIntensity / 20,
       );
     }
+
+    // Add subtle scale effect for better feedback
+    this.scene.tweens.add({
+      targets: this,
+      scale: 1.02,
+      y: this.y - 5,
+      duration: 200,
+      ease: 'Back.easeOut',
+    });
+
+    // Setup spotlight tracking
+    this.on('pointermove', this.onPointerMove, this);
+  }
+
+  private onPointerMove(pointer: Phaser.Input.Pointer): void {
+    if (!this.isHovered) return;
+    this.updateSpotlight(pointer.x, pointer.y);
   }
 
   /**
@@ -579,22 +653,17 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     if (!this.isHovered) return;
     this.isHovered = false;
 
-    // Cancel any ongoing hover animation
-    if (this.hoverTween) {
-      this.hoverTween.stop();
-      this.hoverTween = undefined;
-    }
-
-    // Return to base position (ABSOLUTE)
-    this.hoverTween = this.scene.tweens.add({
-      targets: this,
-      scale: 1,
-      y: this.baseY,
-      duration: DARK_GOTHIC_THEME.animations.presets.cardHover.duration,
-      ease: DARK_GOTHIC_THEME.animations.presets.cardHover.easing,
+    this.scene.tweens.add({
+      targets: this.glassOverlay,
+      alpha: 0,
+      duration: 200,
+      ease: 'Power2.easeOut',
     });
 
-    // Restore border color
+    this.spotlightOverlay.clear();
+
+    this.off('pointermove', this.onPointerMove, this);
+
     this.borderGraphics.clear();
     this.borderGraphics.lineStyle(
       DASHBOARD_CARD_CONFIG.borderWidth,
@@ -609,7 +678,6 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       DASHBOARD_CARD_CONFIG.borderRadius,
     );
 
-    // Restore glow
     if (this.glowEffect && this.config.glow) {
       this.glowEffect.setGlowIntensity(
         this.config.glow.intensity,
@@ -622,27 +690,92 @@ export class DashboardCard extends Phaser.GameObjects.Container {
    * Handle pointer down (press)
    */
   private onPointerDown(): void {
+    const pointer = this.scene.input.activePointer;
+
+    // Animate press effect
     this.scene.tweens.add({
       targets: this,
-      scale: DARK_GOTHIC_THEME.animations.pressScale,
-      duration: DARK_GOTHIC_THEME.animations.presets.buttonPress.duration,
-      ease: DARK_GOTHIC_THEME.animations.presets.buttonPress.easing,
+      scale: 0.98,
+      y: this.y + 2,
+      duration: 100,
+      ease: 'Power2.easeIn',
     });
+
+    // Create ripple effect at click position
+    this.createRippleEffect(pointer.x - this.x, pointer.y - this.y);
+
+    // Create particle burst
+    this.createParticleBurst();
+
+    // Haptic feedback on mobile
+    if (navigator.vibrate) {
+      navigator.vibrate([10, 50, 10]);
+    }
+
+    // Screen shake for main play button
+    if (this.config.id === 'play') {
+      this.scene.cameras.main.shake(100, 0.005);
+    }
+  }
+
+  private createRippleEffect(x: number, y: number): void {
+    const ripple = this.scene.add.graphics();
+    ripple.lineStyle(3, DARK_GOTHIC_THEME.colors.accent, 1);
+    ripple.strokeCircle(0, 0, 10);
+    ripple.setAlpha(0.6);
+    this.add(ripple);
+
+    this.scene.tweens.add({
+      targets: ripple,
+      scale: 15,
+      alpha: 0,
+      duration: 400,
+      ease: 'Power2.easeOut',
+      onComplete: () => ripple.destroy(),
+    });
+  }
+
+  private createParticleBurst(): void {
+    const particleCount = 10;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (360 / particleCount) * i;
+      const speed = Phaser.Math.FloatBetween(100, 200);
+      const particle = this.scene.add.circle(0, 0, Phaser.Math.Between(2, 5), DARK_GOTHIC_THEME.colors.accent);
+      particle.setAlpha(Phaser.Math.FloatBetween(0.6, 1));
+      this.add(particle);
+
+      const velocityX = Math.cos(angle * Math.PI / 180) * speed;
+      const velocityY = Math.sin(angle * Math.PI / 180) * speed;
+
+      this.scene.tweens.add({
+        targets: particle,
+        x: particle.x + velocityX,
+        y: particle.y + velocityY,
+        alpha: 0,
+        scale: 0,
+        duration: 400,
+        ease: 'Power2.easeOut',
+        onComplete: () => particle.destroy(),
+      });
+    }
   }
 
   /**
    * Handle pointer up (release and click)
    */
   private onPointerUp(): void {
+    // Animate back to normal state
     this.scene.tweens.add({
       targets: this,
-      scale: this.isHovered ? DASHBOARD_CARD_CONFIG.hoverScale : 1,
-      duration: DARK_GOTHIC_THEME.animations.presets.buttonPress.duration,
-      ease: 'Power2.easeOut',
+      scale: 1,
+      y: this.y - 5, // Maintain hover lift
+      duration: 150,
+      ease: 'Elastic.easeOut',
+      onComplete: () => {
+        // Execute onClick callback after animation completes
+        this.config.onClick();
+      },
     });
-
-    // Execute onClick callback
-    this.config.onClick();
   }
 
   /**
@@ -651,15 +784,8 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   updatePosition(x: number, y: number): void {
     this.baseX = x;
     this.baseY = y;
-
-    // If currently hovering, maintain hover offset
-    if (this.isHovered) {
-      this.x = x;
-      this.y = y + DASHBOARD_CARD_CONFIG.hoverLift;
-    } else {
-      this.x = x;
-      this.y = y;
-    }
+    this.x = x;
+    this.y = y;
   }
 
   /**

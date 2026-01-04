@@ -109,9 +109,24 @@ export class ParticleBackground extends Phaser.GameObjects.Container {
    * Particles are repelled by the cursor position
    */
   private updateParticleInteraction(): void {
-    // TODO: Implement particle-cursor interaction
-    // This requires accessing individual particles which may vary by Phaser version
-    // For now, particles will float freely without cursor interaction
+    const repelRadius = 150;
+    const repelForce = 3;
+
+    this.emitters.forEach((emitter) => {
+      emitter.forEachAlive((particle) => {
+        const dx = particle.x - this.cursorX;
+        const dy = particle.y - this.cursorY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < repelRadius && distance > 0) {
+          const force = (repelRadius - distance) / repelRadius * repelForce;
+          const angle = Math.atan2(dy, dx);
+          
+          particle.x += Math.cos(angle) * force;
+          particle.y += Math.sin(angle) * force;
+        }
+      }, this);
+    });
   }
 
   /**

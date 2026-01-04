@@ -3,8 +3,8 @@
  * Helper functions for working with the theme system
  */
 
-import Phaser from 'phaser';
-import { ThemeConfig, GradientPalette, ShadowConfig } from '../config/types';
+import type Phaser from 'phaser';
+import type { ThemeConfig, GradientPalette, ShadowConfig } from '../config/types';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 
 /**

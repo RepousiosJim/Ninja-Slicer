@@ -9,7 +9,8 @@ import Phaser from 'phaser';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
-import { BossConfig, BossPhase, MonsterType } from '@config/types';
+import type { BossConfig} from '@config/types';
+import { BossPhase, MonsterType } from '@config/types';
 import { BOSS_PHASE_THRESHOLDS, BOSS_INVULNERABLE_DURATION, BOSS_MINION_SPAWN_DELAY } from '@config/constants';
 import { EventBus } from '../utils/EventBus';
 
@@ -147,7 +148,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     // Play spawn animation
     this.playSpawnAnimation();
 
-    console.log(`[Boss] ${bossConfig.name} spawned at (${x}, ${y})`);
+    debugLog(`[Boss] ${bossConfig.name} spawned at (${x}, ${y})`);
   }
 
   /**
@@ -255,7 +256,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
       phase,
     });
 
-    console.log(`[Boss] ${this.bossConfig.name} entered phase ${phase}`);
+    debugLog(`[Boss] ${this.bossConfig.name} entered phase ${phase}`);
   }
 
   /**
@@ -273,7 +274,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.attackTimer = 2.0 - (this.currentPhase * 0.3); // Faster attacks in later phases
 
     // Override in subclasses for specific attack patterns
-    console.log(`[Boss] ${this.bossConfig.name} attacks with pattern: ${attackPattern}`);
+    debugLog(`[Boss] ${this.bossConfig.name} attacks with pattern: ${attackPattern}`);
   }
 
   /**
@@ -302,7 +303,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
       count: 2 + this.currentPhase, // More minions in later phases
     });
 
-    console.log(`[Boss] ${this.bossConfig.name} spawned ${minionType} minions`);
+    debugLog(`[Boss] ${this.bossConfig.name} spawned ${minionType} minions`);
   }
 
   /**
@@ -481,7 +482,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
       this.healthBar = null;
     }
 
-    console.log(`[Boss] ${this.bossConfig?.name} defeated`);
+    debugLog(`[Boss] ${this.bossConfig?.name} defeated`);
   }
 
   /**

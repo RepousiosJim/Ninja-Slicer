@@ -4,7 +4,7 @@
  * Basic monster implementation that splits into two halves when sliced.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
@@ -13,6 +13,20 @@ import { MonsterType } from '@config/types';
 import { GRAVITY } from '@config/constants';
 
 export class Zombie extends Monster {
+  /**
+   * Initialize zombie monster with default stats
+   * Zombies split into two halves when sliced
+   * 
+   * @param scene - The Phaser scene this zombie belongs to
+   * @param x - Initial X position
+   * @param y - Initial Y position
+   * 
+   * @example
+   * ```typescript
+   * const zombie = new Zombie(this, 100, 200);
+   * this.add.existing(zombie);
+   * ```
+   */
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'monster_zombie', MonsterType.ZOMBIE);
     
@@ -23,8 +37,15 @@ export class Zombie extends Monster {
   }
 
   /**
-   * Called when zombie is sliced
-   * Splits into two halves that fall with physics
+   * Handle zombie being sliced
+   * Creates visual flash effect and splits zombie into two halves
+   * Both halves have physics and fall off-screen
+   * 
+   * @example
+   * ```typescript
+   * // Automatically called by Monster.slice()
+   * zombie.slice(); // Triggers onSliced()
+   * ```
    */
   protected onSliced(): void {
     // Create visual flash effect
@@ -112,7 +133,9 @@ export class Zombie extends Monster {
   }
 
   /**
-   * Get base health for zombie
+   * Get base health value for zombie
+   * 
+   * @returns Health value (always 1 for zombies)
    */
   protected getBaseHealth(): number {
     return 1;

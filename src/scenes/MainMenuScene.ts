@@ -16,8 +16,10 @@ import { SaveManager } from '../managers/SaveManager';
 import { AudioManager } from '../managers/AudioManager';
 import { formatNumber } from '../utils/helpers';
 import { ResponsiveUtils } from '../utils/ResponsiveUtils';
-import { ResponsiveCardScaler, ScaledCardConfig } from '../utils/ResponsiveCardScaler';
-import { GameSave } from '@config/types';
+import type { ScaledCardConfig } from '../utils/ResponsiveCardScaler';
+import { ResponsiveCardScaler } from '../utils/ResponsiveCardScaler';
+import type { GameSave } from '@config/types';
+import { debugLog, debugWarn, debugError } from '../utils/DebugLogger';
 
 /**
  * Main Menu Scene
@@ -30,6 +32,9 @@ export class MainMenuScene extends Phaser.Scene {
   private particleBackground: ParticleBackground | null = null;
   private backgroundGraphics: Phaser.GameObjects.Graphics | null = null;
   private vignetteOverlay: Phaser.GameObjects.Image | null = null;
+  private loadingOverlay: Phaser.GameObjects.Graphics | null = null;
+  private loadingText: Phaser.GameObjects.Text | null = null;
+  private isFullyLoaded: boolean = false;
 
   // Managers
   private saveManager: SaveManager;
@@ -38,15 +43,37 @@ export class MainMenuScene extends Phaser.Scene {
   // Debug
   private debugMode: boolean = false;
 
+  /**
+   * Initialize main menu scene
+   * Sets up scene key and save manager
+   * 
+   * @example
+   * ```typescript
+   * // Scene is automatically created by Phaser
+   * // Use scene keys to navigate:
+   * this.scene.start('mainMenu');
+   * ```
+   */
   constructor() {
     super({ key: SCENE_KEYS.mainMenu });
     this.saveManager = new SaveManager();
   }
 
   /**
-   * Create scene
+   * Create all main menu UI elements
+   * Initializes background, logo, dashboard cards, and souls display
+   * Sets up event handlers and debug controls
+   * 
+   * @example
+   * ```typescript
+   * // This method is called automatically by Phaser
+   * // when the scene is started
+   * ```
    */
   public create(): void {
+    // Show loading overlay first
+    this.createLoadingOverlay();
+
     // Initialize audio manager
     this.audioManager = new AudioManager(this);
     this.audioManager.initialize();
@@ -63,8 +90,19 @@ export class MainMenuScene extends Phaser.Scene {
     // Create souls display
     this.createSoulsDisplay();
 
-    // Play menu music
-    this.audioManager?.playMusic('menuMusic');
+    // Play menu music with fallback
+    try {
+      // Check if music key exists in cache before playing
+      if (this.cache.audio.exists('menuMusic')) {
+        this.audioManager?.playMusic('menuMusic');
+      } else {
+        // Fallback: don't show error, just silently continue
+        debugLog('[MainMenuScene] Menu music not found, continuing without music');
+      }
+    } catch (error) {
+      debugWarn('[MainMenuScene] Failed to play menu music:', error);
+      // Continue without music - non-critical feature
+    }
 
     // Animate elements in
     this.animateIn();
@@ -74,17 +112,23 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Setup debug controls (press D to toggle debug hit boxes)
     this.input.keyboard?.on('keydown-D', this.toggleDebugMode, this);
+
+    // Mark as loaded and hide loading overlay after short delay
+    this.time.delayedCall(500, () => {
+      this.hideLoadingOverlay();
+      this.isFullyLoaded = true;
+    });
   }
 
   /**
-   * Create layered background with gradient, particles, and vignette
+   * Create layered background
    */
   private createLayeredBackground(): void {
     // Use actual camera dimensions for responsive background
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
 
-    // Layer 1: Gradient background
+    // Layer 1: Gradient background (lowest depth)
     this.backgroundGraphics = this.add.graphics();
     this.backgroundGraphics.fillGradientStyle(
       DARK_GOTHIC_THEME.colors.gradients.backgroundGradient.start,
@@ -94,17 +138,17 @@ export class MainMenuScene extends Phaser.Scene {
       1,
     );
     this.backgroundGraphics.fillRect(0, 0, screenWidth, screenHeight);
-    this.backgroundGraphics.setDepth(-20);
+    this.backgroundGraphics.setDepth(-100);
 
-    // Layer 2: Particle systems
+    // Layer 2: Particle systems (middle background)
     this.particleBackground = new ParticleBackground(this, {
       types: ['soulWisp', 'ember', 'mist'],
-      depth: -10,
+      depth: -50,
       interactive: true,
     });
     this.add.existing(this.particleBackground);
 
-    // Layer 3: Vignette overlay
+    // Layer 3: Vignette overlay (highest background layer)
     const vignetteTexture = TextureGenerator.createVignetteTexture(
       this,
       screenWidth,
@@ -115,7 +159,7 @@ export class MainMenuScene extends Phaser.Scene {
     );
 
     this.vignetteOverlay = this.add.image(screenWidth / 2, screenHeight / 2, vignetteTexture.key);
-    this.vignetteOverlay.setDepth(-5);
+    this.vignetteOverlay.setDepth(-10);
     this.vignetteOverlay.setAlpha(0.8);
   }
 
@@ -404,6 +448,58 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   /**
+   * Create loading overlay to prevent premature interaction
+   */
+  private createLoadingOverlay(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    this.loadingOverlay = this.add.graphics();
+    this.loadingOverlay.fillStyle(0x000000, 0.95);
+    this.loadingOverlay.fillRect(0, 0, screenWidth, screenHeight);
+    this.loadingOverlay.setDepth(1000);
+
+    this.loadingText = this.add.text(screenWidth / 2, screenHeight / 2, 'Loading...', {
+      fontFamily: DARK_GOTHIC_THEME.fonts.primary,
+      fontSize: '32px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    this.loadingText.setOrigin(0.5);
+    this.loadingText.setDepth(1001);
+  }
+
+  /**
+   * Hide loading overlay
+   */
+  private hideLoadingOverlay(): void {
+    if (this.loadingOverlay) {
+      this.tweens.add({
+        targets: this.loadingOverlay,
+        alpha: 0,
+        duration: 300,
+        ease: 'Power2.easeOut',
+        onComplete: () => {
+          this.loadingOverlay?.destroy();
+          this.loadingOverlay = null;
+        },
+      });
+    }
+    if (this.loadingText) {
+      this.tweens.add({
+        targets: this.loadingText,
+        alpha: 0,
+        duration: 300,
+        ease: 'Power2.easeOut',
+        onComplete: () => {
+          this.loadingText?.destroy();
+          this.loadingText = null;
+        },
+      });
+    }
+  }
+
+  /**
    * Animate elements in
    */
   private animateIn(): void {
@@ -574,8 +670,30 @@ export class MainMenuScene extends Phaser.Scene {
    * Helper: Get new items badge if applicable
    */
   private getNewItemsBadge(saveData: Readonly<GameSave>): { text: string; color: number } | undefined {
-    // TODO: Implement logic to detect new items since last visit
-    // For now, return undefined (no badge)
+    // Check if there are new weapons since last shop visit
+    if (!saveData.lastShopVisit || Object.keys(saveData.weaponUnlockTimes).length === 0) {
+      return undefined;
+    }
+
+    const lastVisitTime = new Date(saveData.lastShopVisit).getTime();
+    let newItemsCount = 0;
+
+    // Count weapons unlocked after last shop visit
+    for (const [weaponId, unlockTime] of Object.entries(saveData.weaponUnlockTimes)) {
+      const unlockTimestamp = new Date(unlockTime).getTime();
+      if (unlockTimestamp > lastVisitTime) {
+        newItemsCount++;
+      }
+    }
+
+    // Show badge if there are new items
+    if (newItemsCount > 0) {
+      return {
+        text: newItemsCount.toString(),
+        color: 0xff4444, // Red color for badge
+      };
+    }
+
     return undefined;
   }
 
@@ -655,7 +773,14 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   /**
-   * Cleanup
+   * Cleanup scene resources and remove event listeners
+   * Called automatically when scene is shut down
+   * 
+   * @example
+   * ```typescript
+   * // Called automatically by Phaser
+   * // Clean up: particle systems, cards, event listeners, audio
+   * ```
    */
   public shutdown(): void {
     // Remove event listeners
@@ -669,6 +794,12 @@ export class MainMenuScene extends Phaser.Scene {
     // Clean up all cards
     this.dashboardCards.forEach((card) => card.destroy());
     this.dashboardCards.clear();
+
+    // Clean up loading overlay
+    this.loadingOverlay?.destroy();
+    this.loadingOverlay = null;
+    this.loadingText?.destroy();
+    this.loadingText = null;
 
     // Stop music
     this.audioManager?.stopMusic();

@@ -5,7 +5,7 @@
  * Adds blue tint to screen while active.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { PowerUp } from './PowerUp';
 import { PowerUpType } from '@config/types';
 import { POWERUP_SLOW_MOTION } from '@config/constants';

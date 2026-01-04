@@ -6,7 +6,7 @@
  * Minions: Zombies and Vampires
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { Boss } from './Boss';
 import { BossConfig } from '@config/types';
 import { EventBus } from '../utils/EventBus';

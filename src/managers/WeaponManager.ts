@@ -5,15 +5,17 @@
  * Applies weapon effects to gameplay and provides trail styles.
  */
 
-import { WeaponId, WeaponConfig, WeaponStats, WeaponEffect, MonsterType } from '@config/types';
+import type { WeaponConfig, WeaponStats, WeaponEffect} from '@config/types';
+import { WeaponId, MonsterType } from '@config/types';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
 import { dataLoader } from '@utils/DataLoader';
 import { SaveManager } from '@managers/SaveManager';
 import { EventBus } from '@utils/EventBus';
+import type { IManager } from './IManager';
 
-export class WeaponManager {
+export class WeaponManager implements IManager {
   private static instance: WeaponManager;
 
   // Loaded weapon data
@@ -26,6 +28,12 @@ export class WeaponManager {
   // References
   private saveManager: SaveManager;
 
+  /**
+   * Private constructor for singleton pattern
+   * Initializes weapon manager with save data
+   * 
+   * @private
+   */
   private constructor() {
     this.saveManager = new SaveManager();
     this.loadWeaponTiersFromSave();
@@ -42,6 +50,22 @@ export class WeaponManager {
   }
 
   /**
+   * Initialize manager and load weapon tiers from save data
+   * 
+   * @param scene - Optional Phaser scene (not currently used)
+   * 
+   * @example
+   * ```typescript
+   * const weaponManager = WeaponManager.getInstance();
+   * await weaponManager.loadWeapons();
+   * weaponManager.initialize();
+   * ```
+   */
+  initialize(scene?: Phaser.Scene): void {
+    this.loadWeaponTiersFromSave();
+  }
+
+  /**
    * Load weapon definitions from data files
    */
   async loadWeapons(): Promise<void> {
@@ -52,7 +76,7 @@ export class WeaponManager {
       this.weapons.set(weapon.id as WeaponId, weapon);
     }
 
-    console.log('[WeaponManager] Loaded', this.weapons.size, 'weapons');
+    debugLog('[WeaponManager] Loaded', this.weapons.size, 'weapons');
   }
 
   /**
@@ -100,7 +124,20 @@ export class WeaponManager {
   }
 
   /**
-   * Upgrade a weapon tier
+   * Upgrade a weapon to the next tier
+   * Returns false if weapon doesn't exist or is already at max tier
+   * 
+   * @param weaponId - The weapon ID to upgrade
+   * @returns true if upgrade successful, false otherwise
+   * 
+   * @example
+   * ```
+typescript
+   * const success = weaponManager.upgradeWeapon(WeaponId.BASIC_SWORD);
+   * if (success) {
+   *   debugLog('Weapon upgraded to tier', weaponManager.getWeaponTier(WeaponId.BASIC_SWORD));
+   * }
+   * ```
    */
   upgradeWeapon(weaponId: WeaponId): boolean {
     const currentTier = this.getWeaponTier(weaponId);
@@ -123,7 +160,19 @@ export class WeaponManager {
   }
 
   /**
-   * Get weapon stats with current tier
+   * Get weapon stats with current tier effects
+   * Returns complete weapon information including current tier and active effects
+   * 
+   * @param weaponId - The weapon ID to get stats for
+   * @returns Weapon stats object with id, name, tier, effects, and trail colors
+   * @throws Error if weapon not found
+   * 
+   * @example
+   * ```typescript
+   * const stats = weaponManager.getWeaponStats(WeaponId.FIRE_SWORD);
+   * debugLog(`${stats.name} (Tier ${stats.tier})`);
+   * stats.effects.forEach(effect => debugLog(effect.type));
+   * ```
    */
   getWeaponStats(weaponId: WeaponId): WeaponStats {
     const config = this.getWeaponConfig(weaponId);
@@ -161,7 +210,25 @@ export class WeaponManager {
   }
 
   /**
-   * Apply weapon effects to a monster
+   * Apply weapon effects to a monster based on equipped weapon's tier
+   * Effects include bonus damage, damage over time, slow, stun, chain damage, and more
+   * 
+   * @param slashEvent - The slash event containing position data
+   * @param monster - The monster to apply effects to, with type, position, and effect callbacks
+   * 
+   * @example
+   * ```typescript
+   * weaponManager.applyWeaponEffects(
+   *   { position: { x: 100, y: 200 } },
+   *   {
+   *     type: MonsterType.VAMPIRE,
+   *     position: { x: 100, y: 200 },
+   *     health: 100,
+   *     applyDamage: (dmg) => this.takeDamage(dmg),
+   *     applyBurn: (dmg, dur) => this.burn(dmg, dur),
+   *   }
+   * );
+   * ```
    */
   applyWeaponEffects(
     slashEvent: { position: { x: number; y: number } },
@@ -259,6 +326,11 @@ export class WeaponManager {
 
     case 'slash_width':
       // Handled by UpgradeManager
+      break;
+
+    case 'critical_hit_chance':
+      // Critical hit chance is handled in SlashSystem damage calculation
+      // This effect serves as metadata for the weapon
       break;
     }
   }
@@ -358,6 +430,14 @@ export class WeaponManager {
     this.weapons.clear();
     this.weaponTiers.clear();
     this.equippedWeapon = WeaponId.BASIC_SWORD;
+  }
+
+  /**
+   * Shutdown and cleanup
+   */
+  shutdown(): void {
+    this.weapons.clear();
+    this.weaponTiers.clear();
   }
 }
 

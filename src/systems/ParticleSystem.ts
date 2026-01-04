@@ -5,8 +5,9 @@
  * with object pooling for performance optimization.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { COLORS } from '../config/constants';
+import { ObjectPool } from '../utils/ObjectPool';
 
 /**
  * Particle type enum
@@ -46,22 +47,23 @@ interface ParticleConfig {
  */
 class PooledEmitter {
   private emitter: Phaser.GameObjects.Particles.ParticleEmitter;
-  private inUse: boolean = false;
+  private type: ParticleType;
 
-  constructor(emitter: Phaser.GameObjects.Particles.ParticleEmitter) {
+  constructor(emitter: Phaser.GameObjects.Particles.ParticleEmitter, type: ParticleType) {
     this.emitter = emitter;
+    this.type = type;
   }
 
   public getEmitter(): Phaser.GameObjects.Particles.ParticleEmitter {
     return this.emitter;
   }
 
-  public isInUse(): boolean {
-    return this.inUse;
+  public getType(): ParticleType {
+    return this.type;
   }
 
-  public setInUse(inUse: boolean): void {
-    this.inUse = inUse;
+  public reset(): void {
+    this.emitter.stop();
   }
 
   public destroy(): void {
@@ -74,8 +76,7 @@ class PooledEmitter {
  */
 export class ParticleSystem {
   private scene: Phaser.Scene;
-  private emitters: Map<ParticleType, PooledEmitter[]> = new Map();
-  private activeEmitters: Set<PooledEmitter> = new Set();
+  private emitterPools: Map<ParticleType, ObjectPool<PooledEmitter>> = new Map();
   private maxEmittersPerType: number = 5;
 
   constructor(scene: Phaser.Scene) {
@@ -217,30 +218,27 @@ export class ParticleSystem {
    * Get or create pooled emitter
    */
   private getEmitter(type: ParticleType): PooledEmitter | null {
-    if (!this.emitters.has(type)) {
-      this.emitters.set(type, []);
+    if (!this.emitterPools.has(type)) {
+      const pool = new ObjectPool<PooledEmitter>(
+        () => this.createPooledEmitter(type),
+        (emitter) => emitter.reset(),
+        3,
+        this.maxEmittersPerType,
+      );
+      this.emitterPools.set(type, pool);
     }
 
-    const pool = this.emitters.get(type)!;
+    const pool = this.emitterPools.get(type)!;
+    return pool.get();
+  }
 
-    // Find available emitter
-    for (const pooledEmitter of pool) {
-      if (!pooledEmitter.isInUse()) {
-        return pooledEmitter;
-      }
-    }
-
-    // Create new emitter if under limit
-    if (pool.length < this.maxEmittersPerType) {
-      const emitter = this.createEmitter(type);
-      if (emitter) {
-        const pooledEmitter = new PooledEmitter(emitter);
-        pool.push(pooledEmitter);
-        return pooledEmitter;
-      }
-    }
-
-    return null;
+  /**
+   * Create pooled emitter for type
+   */
+  private createPooledEmitter(type: ParticleType): PooledEmitter | null {
+    const emitter = this.createEmitter(type);
+    if (!emitter) return null;
+    return new PooledEmitter(emitter, type);
   }
 
   /**
@@ -386,15 +384,13 @@ export class ParticleSystem {
       emitter.explode(config.count || 10);
     }
 
-    // Mark as in use
-    pooledEmitter.setInUse(true);
-    this.activeEmitters.add(pooledEmitter);
-
     // Auto-release after lifespan
     const lifespan = config.lifespan || 1000;
     this.scene.time.delayedCall(lifespan + 100, () => {
-      pooledEmitter.setInUse(false);
-      this.activeEmitters.delete(pooledEmitter);
+      const pool = this.emitterPools.get(config.type);
+      if (pool) {
+        pool.release(pooledEmitter);
+      }
     });
   }
 
@@ -530,13 +526,9 @@ export class ParticleSystem {
    * Clean up inactive emitters
    */
   private cleanupInactiveEmitters(): void {
-    for (const [type, pool] of this.emitters) {
-      for (let i = pool.length - 1; i >= 0; i--) {
-        const emitter = pool[i];
-        if (emitter && !emitter.isInUse() && pool.length > 2) {
-          emitter.destroy();
-          pool.splice(i, 1);
-        }
+    for (const pool of this.emitterPools.values()) {
+      if (pool.availableCount > 2) {
+        pool.shrink(2);
       }
     }
   }
@@ -545,12 +537,10 @@ export class ParticleSystem {
    * Destroy particle system
    */
   public destroy(): void {
-    for (const pool of this.emitters.values()) {
-      for (const emitter of pool) {
-        emitter.destroy();
-      }
+    for (const pool of this.emitterPools.values()) {
+      pool.forEach((emitter) => emitter.destroy());
+      pool.clear();
     }
-    this.emitters.clear();
-    this.activeEmitters.clear();
+    this.emitterPools.clear();
   }
 }

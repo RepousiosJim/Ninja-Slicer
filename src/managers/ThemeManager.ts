@@ -3,11 +3,11 @@
  * Centralized theme management system for applying and managing themes across the game
  */
 
-import { Scene } from 'phaser';
+import type { Scene } from 'phaser';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
-import { ThemeConfig, GradientPalette, ShadowConfig, AnimationPresets } from '../config/types';
+import type { ThemeConfig, GradientPalette, ShadowConfig, AnimationPresets } from '../config/types';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 
 /**

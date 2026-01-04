@@ -5,15 +5,16 @@
  * Handles level loading, completion tracking, and unlock status.
  */
 
-import { LevelConfig, WorldConfig, BossConfig } from '@config/types';
+import type { LevelConfig, WorldConfig, BossConfig } from '@config/types';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
 import { SaveManager } from './SaveManager';
 import { DataLoader } from '../utils/DataLoader';
 import { LEVEL_COMPLETE_SOULS, BOSS_DEFEAT_SOULS, STAR_BONUS_MULTIPLIER } from '@config/constants';
+import type { IManager } from './IManager';
 
-export class LevelManager {
+export class LevelManager implements IManager {
   private static instance: LevelManager;
 
   // Loaded data
@@ -25,6 +26,12 @@ export class LevelManager {
   private saveManager: SaveManager;
   private dataLoader: DataLoader;
 
+  /**
+   * Private constructor for singleton pattern
+   * Initializes with save manager and data loader
+   * 
+   * @private
+   */
   private constructor() {
     this.saveManager = new SaveManager();
     this.dataLoader = DataLoader.getInstance();
@@ -38,6 +45,23 @@ export class LevelManager {
       LevelManager.instance = new LevelManager();
     }
     return LevelManager.instance;
+  }
+
+  /**
+   * Initialize level manager
+   * Levels are loaded via loadLevels() method
+   * 
+   * @param scene - Optional Phaser scene (not currently used)
+   * 
+   * @example
+   * ```typescript
+   * const levelManager = LevelManager.getInstance();
+   * await levelManager.loadLevels();
+   * levelManager.initialize();
+   * ```
+   */
+  initialize(scene?: Phaser.Scene): void {
+    // Initialization is done in loadLevels()
   }
 
   /**
@@ -132,12 +156,15 @@ export class LevelManager {
   completeLevel(world: number, level: number, score: number): number {
     const levelConfig = this.getLevelConfig(world, level);
     if (!levelConfig) {
-      console.error(`[LevelManager] Level ${world}-${level} not found`);
+      debugError(`[LevelManager] Level ${world}-${level} not found`);
       return 0;
     }
 
     const stars = this.calculateStars(levelConfig, score);
     const levelId = `${world}-${level}`;
+
+    // Record attempt
+    this.saveManager.recordAttempt(levelId);
 
     // Save level completion
     this.saveManager.completeLevel(levelId, stars);
@@ -157,7 +184,7 @@ export class LevelManager {
     // Award souls
     this.saveManager.addSouls(soulsReward);
 
-    console.log(`[LevelManager] Level ${levelId} completed with ${stars} stars, earned ${soulsReward} souls`);
+    debugLog(`[LevelManager] Level ${levelId} completed with ${stars} stars, earned ${soulsReward} souls`);
     return stars;
   }
 
@@ -268,6 +295,54 @@ export class LevelManager {
   getBossIdForLevel(world: number, level: number): string | undefined {
     const config = this.getLevelConfig(world, level);
     return config?.bossId;
+  }
+
+  /**
+   * Get total score across all completed levels
+   */
+  getTotalScore(): number {
+    const save = this.saveManager.load();
+    return Object.values(save.highScores).reduce((sum, score) => sum + score, 0);
+  }
+
+  /**
+   * Get total souls earned
+   */
+  getTotalSouls(): number {
+    const save = this.saveManager.load();
+    return save.souls;
+  }
+
+  /**
+   * Get total attempts across all levels
+   */
+  getTotalAttempts(): number {
+    return this.saveManager.getTotalAttempts();
+  }
+
+  /**
+   * Get total time played (in seconds)
+   */
+  getTotalTimePlayed(): number {
+    return 0;
+  }
+
+  /**
+   * Reset level data
+   */
+  reset(): void {
+    this.levels.clear();
+    this.worlds.clear();
+    this.bosses.clear();
+  }
+
+  /**
+   * Shutdown and cleanup
+   */
+  shutdown(): void {
+    this.levels.clear();
+    this.worlds.clear();
+    this.bosses.clear();
   }
 }
 

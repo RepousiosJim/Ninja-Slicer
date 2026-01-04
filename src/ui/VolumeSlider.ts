@@ -21,7 +21,7 @@ export interface VolumeSliderConfig {
   /** Label text */
   label?: string;
   /** Callback when value changes */
-  onChange: (value: number) => void;
+  onChange: (_value: number) => void;
   /** Slider width in pixels */
   width?: number;
   /** Slider height in pixels */
@@ -38,7 +38,7 @@ export interface VolumeSliderConfig {
   /** Show percentage display */
   showPercentage?: boolean;
   /** Custom percentage format */
-  percentageFormat?: (value: number) => string;
+  percentageFormat?: (_value: number) => string;
 }
 
 /**

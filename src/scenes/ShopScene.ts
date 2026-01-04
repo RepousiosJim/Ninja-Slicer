@@ -16,7 +16,7 @@ import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { ShopManager } from '../managers/ShopManager';
 import { AudioManager } from '../managers/AudioManager';
-import { WeaponId, UpgradeId } from '../config/types';
+import type { WeaponId, UpgradeId } from '../config/types';
 import { formatNumber } from '../utils/helpers';
 
 /**
@@ -46,6 +46,16 @@ export class ShopScene extends Phaser.Scene {
   private currentTab: 'weapons' | 'upgrades' = 'weapons';
   private pendingPurchase: { type: 'weapon' | 'upgrade'; id: string; cost: number } | null = null;
 
+  /**
+   * Initialize shop scene
+   * Sets up scene key, all managers (save, weapon, upgrade, shop, audio)
+   * 
+   * @example
+   * ```typescript
+   * // Navigate to shop
+   * this.scene.start('shop');
+   * ```
+   */
   constructor() {
     super({ key: SCENE_KEYS.shop });
     this.saveManager = new SaveManager();
@@ -56,7 +66,14 @@ export class ShopScene extends Phaser.Scene {
   }
 
   /**
-   * Create scene
+   * Create shop UI with weapons and upgrades tabs
+   * Displays souls, purchasable items, and handles transactions
+   * 
+   * @example
+   * ```typescript
+   * // Automatically called when scene starts
+   * // Shows weapons tab by default
+   * ```
    */
   public create(): void {
     // Create background
@@ -768,6 +785,7 @@ export class ShopScene extends Phaser.Scene {
     const iconMap: Record<string, string> = {
       basic_sword: TEXTURE_KEYS.basicSword,
       silver_blade: TEXTURE_KEYS.silverBlade,
+      shadow_blade: TEXTURE_KEYS.shadowBlade,
       holy_cross_blade: TEXTURE_KEYS.holyCrossBlade,
       fire_sword: TEXTURE_KEYS.fireSword,
       ice_blade: TEXTURE_KEYS.iceBlade,
@@ -781,6 +799,8 @@ export class ShopScene extends Phaser.Scene {
    */
   private onBack(): void {
     this.audioManager.playSFX('uiClick');
+    // Update last shop visit timestamp for new items badge
+    this.saveManager.updateLastShopVisit();
     this.scene.start(SCENE_KEYS.mainMenu);
   }
 }

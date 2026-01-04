@@ -6,7 +6,7 @@
  * Shows shield icon indicator while active.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { PowerUp } from './PowerUp';
 import { PowerUpType } from '@config/types';
 import { POWERUP_SHIELD } from '@config/constants';

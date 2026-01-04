@@ -3,7 +3,7 @@
  * Complete theme system with all color palette, typography, spacing, and animation constants
  */
 
-import { ThemeConfig, DashboardCardConfig, BackgroundLayerConfig } from '../config/types';
+import type { ThemeConfig, DashboardCardConfig, BackgroundLayerConfig } from '../config/types';
 
 /**
  * Dark Gothic Theme Configuration
@@ -384,9 +384,9 @@ export const DASHBOARD_CARD_CONFIG: DashboardCardConfig = {
   innerPadding: 20,
 
   // Animation (constrained to prevent overflow)
-  hoverLift: -12,    // REDUCED from -20 to prevent viewport overflow
-  hoverScale: 1.03,  // REDUCED from 1.05 for better control
-  hoverGlowIntensity: 20,
+  hoverLift: -8,     // REDUCED from -12 to prevent viewport overflow
+  hoverScale: 1.02,   // REDUCED from 1.03 for better control
+  hoverGlowIntensity: 15,
 
   // Content
   iconSize: 80,

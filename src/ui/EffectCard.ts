@@ -8,7 +8,7 @@
 
 import Phaser from 'phaser';
 import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
-import { WeaponEffect } from '../config/types';
+import type { WeaponEffect } from '../config/types';
 
 /**
  * Effect card configuration interface

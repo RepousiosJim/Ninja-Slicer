@@ -5,7 +5,7 @@
  * based on available viewport space. Ensures cards never overflow.
  */
 
-import { DashboardCardConfig } from '../config/types';
+import type { DashboardCardConfig } from '../config/types';
 
 export interface ScalerInput {
   viewportWidth: number;
@@ -33,9 +33,9 @@ export class ResponsiveCardScaler {
     const { viewportWidth, viewportHeight, logoHeight, soulsHeight, baseConfig } = input;
 
     // Calculate available space (with safety margins)
-    const horizontalMargin = 40; // 20px per side
-    const verticalMargin = 40; // 20px top and bottom
-    const safetyMargin = 1.2; // 20% extra space for animations and safety
+    const horizontalMargin = Math.max(30, viewportWidth * 0.03); // Adaptive margin
+    const verticalMargin = Math.max(30, viewportHeight * 0.04); // Adaptive margin
+    const safetyMargin = 1.25; // 25% extra space for animations and safety
 
     const availableWidth = viewportWidth - horizontalMargin;
     const availableHeight = (viewportHeight - logoHeight - soulsHeight - verticalMargin);
@@ -66,8 +66,8 @@ export class ResponsiveCardScaler {
     const minGap = baseConfig.minGap || 10;
     const maxGap = baseConfig.maxGap || 20;
 
-    // Calculate gap based on available space
-    const gap = Math.max(minGap, Math.min(maxGap, availableWidth * 0.015));
+    // Calculate gap based on available space (adaptive)
+    const gap = Math.max(minGap, Math.min(maxGap, Math.min(availableWidth, availableHeight) * 0.02));
 
     // Calculate card size to fit in available space
     const maxCardWidth = (availableWidth - (columns - 1) * gap) / columns;
@@ -119,9 +119,9 @@ export class ResponsiveCardScaler {
    */
   static getAdaptiveLogoHeight(screenHeight: number, basePadding: number): number {
     if (screenHeight < 600) {
-      return basePadding * 2; // Very small screens
+      return basePadding * 2.5; // Very small screens
     } else if (screenHeight < 700) {
-      return basePadding * 2.5; // Small screens
+      return basePadding * 3; // Small screens
     } else if (screenHeight < 900) {
       return basePadding * 3.5; // Medium screens
     } else {

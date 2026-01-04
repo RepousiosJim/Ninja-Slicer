@@ -50,6 +50,22 @@ export interface FilterBarConfig {
 }
 
 /**
+ * Extended button container with additional properties
+ */
+interface FilterButtonContainer extends Phaser.GameObjects.Container {
+  filterType: FilterType;
+  background: Phaser.GameObjects.Rectangle;
+  text: Phaser.GameObjects.Text;
+}
+
+/**
+ * Extended text container with sort type property
+ */
+interface SortOptionText extends Phaser.GameObjects.Text {
+  sortType: SortType;
+}
+
+/**
  * Filter bar component for inventory controls
  */
 export class FilterBar extends Phaser.GameObjects.Container {
@@ -165,9 +181,10 @@ export class FilterBar extends Phaser.GameObjects.Container {
     button.add(text);
 
     // Store filter type
-    (button as any).filterType = filterType;
-    (button as any).background = background;
-    (button as any).text = text;
+    const filterButton = button as FilterButtonContainer;
+    filterButton.filterType = filterType;
+    filterButton.background = background;
+    filterButton.text = text;
 
     // Setup button interaction
     background.on('pointerover', () => this.onFilterButtonHover(button, true));
@@ -263,14 +280,15 @@ export class FilterBar extends Phaser.GameObjects.Container {
    * Handle filter button hover
    */
   private onFilterButtonHover(button: Phaser.GameObjects.Container, hovered: boolean): void {
-    const background = (button as any).background as Phaser.GameObjects.Rectangle;
-    const text = (button as any).text as Phaser.GameObjects.Text;
+    const filterButton = button as FilterButtonContainer;
+    const background = filterButton.background;
+    const text = filterButton.text;
 
     if (hovered) {
       background.setFillStyle(0x3a3a5a);
       text.setColor('#FFFFFF');
     } else {
-      const filterType = (button as any).filterType as FilterType;
+      const filterType = filterButton.filterType;
       if (filterType === this.currentFilter) {
         background.setFillStyle(COLORS.accent);
         text.setColor('#000000');
@@ -289,9 +307,10 @@ export class FilterBar extends Phaser.GameObjects.Container {
 
     // Update all button appearances
     this.filterButtons.forEach((button) => {
-      const buttonFilterType = (button as any).filterType as FilterType;
-      const background = (button as any).background as Phaser.GameObjects.Rectangle;
-      const text = (button as any).text as Phaser.GameObjects.Text;
+      const filterButton = button as FilterButtonContainer;
+      const buttonFilterType = filterButton.filterType;
+      const background = filterButton.background;
+      const text = filterButton.text;
 
       if (buttonFilterType === filterType) {
         background.setFillStyle(COLORS.accent);
@@ -357,7 +376,8 @@ export class FilterBar extends Phaser.GameObjects.Container {
       }
 
       // Store sort type
-      (optionText as any).sortType = sort;
+      const sortOption = optionText as SortOptionText;
+      sortOption.sortType = sort;
 
       // Setup option interaction
       optionText.on('pointerover', () => {
@@ -474,7 +494,8 @@ export class FilterBar extends Phaser.GameObjects.Container {
   public destroy(): void {
     // Clean up filter buttons
     this.filterButtons.forEach((button) => {
-      const background = (button as any).background as Phaser.GameObjects.Rectangle;
+      const filterButton = button as FilterButtonContainer;
+      const background = filterButton.background;
       background.off('pointerover');
       background.off('pointerout');
       background.off('pointerdown');

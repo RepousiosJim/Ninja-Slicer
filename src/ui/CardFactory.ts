@@ -5,10 +5,10 @@
  * used across inventory, shop, and other UI scenes.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { COLORS, FONT_SIZES, TEXTURE_KEYS } from '../config/constants';
 import { Button, ButtonStyle } from './Button';
-import { WeaponConfig, UpgradeConfig, WeaponRarity } from '../config/types';
+import type { WeaponConfig, UpgradeConfig, WeaponRarity } from '../config/types';
 import { formatNumber } from '../utils/helpers';
 import { ProgressBar } from './ProgressBar';
 

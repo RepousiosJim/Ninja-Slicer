@@ -5,7 +5,7 @@
  * with proper easing functions and cleanup.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 
 /**
  * Animation type enum

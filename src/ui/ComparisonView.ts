@@ -8,10 +8,11 @@
 
 import Phaser from 'phaser';
 import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
-import { WeaponConfig } from '../config/types';
+import type { WeaponConfig } from '../config/types';
 import { WeaponPreview } from './WeaponPreview';
 import { StatBar } from './StatBar';
-import { EffectivenessChart, EffectivenessData } from './EffectivenessChart';
+import type { EffectivenessData } from './EffectivenessChart';
+import { EffectivenessChart } from './EffectivenessChart';
 
 /**
  * Comparison view configuration interface

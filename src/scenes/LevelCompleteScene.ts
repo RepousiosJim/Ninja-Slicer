@@ -7,6 +7,7 @@
 
 import Phaser from 'phaser';
 import { SCENE_KEYS } from '@config/constants';
+import { ParticleSystem, ParticleType } from '../systems/ParticleSystem';
 
 interface LevelCompleteData {
   world: number;
@@ -14,6 +15,7 @@ interface LevelCompleteData {
   score: number;
   stars: number;
   souls: number;
+  previousStars?: number;
   stats: {
     monstersSliced: number;
     maxCombo: number;
@@ -23,10 +25,12 @@ interface LevelCompleteData {
 
 export class LevelCompleteScene extends Phaser.Scene {
   private levelData: LevelCompleteData | null = null;
-  private starSprites: Phaser.GameObjects.Rectangle[] = [];
+  private starSprites: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] = [];
   private scoreText: Phaser.GameObjects.Text | null = null;
   private soulsText: Phaser.GameObjects.Text | null = null;
   private statsText: Phaser.GameObjects.Text | null = null;
+  private perfectText: Phaser.GameObjects.Text | null = null;
+  private highScoreText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super({ key: SCENE_KEYS.levelComplete });
@@ -84,7 +88,7 @@ export class LevelCompleteScene extends Phaser.Scene {
     title.setDepth(10);
 
     // Score display
-    this.scoreText = this.add.text(centerX, centerY - 150, `Score: ${this.levelData.score}`, {
+    this.scoreText = this.add.text(centerX, centerY - 170, `Score: ${this.levelData.score}`, {
       fontSize: '32px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -92,8 +96,36 @@ export class LevelCompleteScene extends Phaser.Scene {
     this.scoreText.setOrigin(0.5);
     this.scoreText.setDepth(10);
 
+    // Check if this is a new high score
+    if (this.levelData.previousStars !== undefined) {
+      const isNewHighScore = this.levelData.stars > this.levelData.previousStars;
+      
+      if (isNewHighScore) {
+        this.highScoreText = this.add.text(centerX, centerY - 130, '★ NEW BEST! ★', {
+          fontSize: '28px',
+          color: '#44ff44',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4,
+        });
+        this.highScoreText.setOrigin(0.5);
+        this.highScoreText.setDepth(10);
+        this.highScoreText.setScale(0);
+        
+        // Animate the high score text
+        this.tweens.add({
+          targets: this.highScoreText,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 500,
+          ease: 'Elastic.easeOut',
+          delay: 1000,
+        });
+      }
+    }
+
     // Souls earned display
-    this.soulsText = this.add.text(centerX, centerY - 100, `Souls Earned: ${this.levelData.souls}`, {
+    this.soulsText = this.add.text(centerX, centerY - 80, `Souls Earned: ${this.levelData.souls}`, {
       fontSize: '28px',
       color: '#ffd700',
       fontStyle: 'bold',
@@ -105,7 +137,7 @@ export class LevelCompleteScene extends Phaser.Scene {
     const stats = this.levelData.stats;
     this.statsText = this.add.text(
       centerX,
-      centerY - 40,
+      centerY - 20,
       `Monsters Sliced: ${stats.monstersSliced}\nMax Combo: ${stats.maxCombo}\nTime: ${Math.floor(stats.timeElapsed)}s`,
       {
         fontSize: '20px',
@@ -116,34 +148,33 @@ export class LevelCompleteScene extends Phaser.Scene {
     this.statsText.setDepth(10);
 
     // Star rating container
-    const starContainer = this.add.container(centerX, centerY + 50);
+    const starContainer = this.add.container(centerX, centerY + 70);
 
-    // Create 3 star placeholders (empty)
+    // Create 3 star placeholders (empty stars)
     for (let i = 0; i < 3; i++) {
-      const star = this.add.rectangle(0, 0, 50, 50, 0x444444);
-      star.setStrokeStyle(3, 0x666666);
-      star.setPosition((i - 1) * 70, 0);
+      const star = this.add.image((i - 1) * 70, 0, 'ui_star_empty');
+      star.setScale(1.2);
       star.setAlpha(0);
       starContainer.add(star);
-      this.starSprites.push(star);
+      this.starSprites.push(star as any);
     }
 
     starContainer.setDepth(10);
 
     // Next Level button
-    const nextButton = this.createButton(centerX, centerY + 150, 'NEXT LEVEL', () => {
+    const nextButton = this.createButton(centerX, centerY + 200, 'NEXT LEVEL', () => {
       this.onNextLevel();
     });
     nextButton.setDepth(10);
 
     // Replay button
-    const replayButton = this.createButton(centerX, centerY + 220, 'REPLAY', () => {
+    const replayButton = this.createButton(centerX, centerY + 270, 'REPLAY', () => {
       this.onReplay();
     });
     replayButton.setDepth(10);
 
     // Menu button
-    const menuButton = this.createButton(centerX, centerY + 290, 'MENU', () => {
+    const menuButton = this.createButton(centerX, centerY + 340, 'MENU', () => {
       this.onMenu();
     });
     menuButton.setDepth(10);
@@ -220,30 +251,143 @@ export class LevelCompleteScene extends Phaser.Scene {
     if (!this.levelData) return;
 
     const starsEarned = this.levelData.stars;
+    const isPerfect = starsEarned === 3;
 
     for (let i = 0; i < starsEarned; i++) {
       this.time.delayedCall(i * 300, () => {
-        const star = this.starSprites[i];
+        const star = this.starSprites[i] as Phaser.GameObjects.Image;
         if (!star) return;
 
-        star.setFillStyle(0xffd700);
-        star.setStrokeStyle(3, 0xffaa00);
+        // Change texture from empty to full
+        star.setTexture('ui_star_full');
+        star.setScale(1.2);
 
         // Pop animation
-        star.setScale(0);
         this.tweens.add({
           targets: star,
           alpha: 1,
-          scaleX: 1,
-          scaleY: 1,
+          scaleX: 1.2,
+          scaleY: 1.2,
           duration: 300,
           ease: 'Back.easeOut',
         });
 
         // Play sound (if available)
-        // this.sound.play('star');
+        const audioManager = (this as any).audioManager;
+        if (audioManager) {
+          audioManager.playSFX('uiClick');
+        }
+
+        // Trigger 3-star celebration on final star
+        if (isPerfect && i === 2) {
+          this.time.delayedCall(300, () => {
+            this.triggerThreeStarCelebration();
+          });
+        }
       });
     }
+  }
+
+  /**
+   * Trigger special celebration for 3-star achievement
+   */
+  private triggerThreeStarCelebration(): void {
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+
+    // Screen shake
+    this.cameras.main.shake(800, 0.03);
+
+    // "PERFECT!" text popup
+    this.perfectText = this.add.text(centerX, centerY - 400, '★ PERFECT! ★', {
+      fontSize: '72px',
+      color: '#ffd700',
+      fontStyle: 'bold',
+      stroke: '#8b0000',
+      strokeThickness: 8,
+      shadow: {
+        offsetX: 4,
+        offsetY: 4,
+        color: '#000000',
+        blur: 8,
+        fill: true
+      }
+    });
+    this.perfectText.setOrigin(0.5);
+    this.perfectText.setDepth(100);
+    this.perfectText.setScale(0);
+
+    // Animate perfect text
+    this.tweens.add({
+      targets: this.perfectText,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 600,
+      ease: 'Elastic.easeOut',
+      yoyo: true,
+      repeat: -1,
+      yoyoOnComplete: false,
+      onYoyo: () => {
+        this.tweens.add({
+          targets: this.perfectText,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 400,
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1,
+          hold: 1000
+        });
+      }
+    });
+
+    // Gold particle explosion
+    const particleSystem = new ParticleSystem(this);
+
+    // Create multiple bursts around the stars
+    for (let i = 0; i < 5; i++) {
+      this.time.delayedCall(i * 100, () => {
+        const x = centerX + Phaser.Math.Between(-200, 200);
+        const y = centerY + Phaser.Math.Between(-50, 150);
+        
+        particleSystem.emit({
+          type: ParticleType.SPARKLE,
+          x: x,
+          y: y,
+          count: 30,
+        });
+      });
+    }
+
+    // Gold confetti rain
+    for (let i = 0; i < 20; i++) {
+      this.time.delayedCall(i * 50, () => {
+        const x = Phaser.Math.Between(100, 1180);
+        const y = -50;
+
+        particleSystem.emit({
+          type: ParticleType.SPARKLE,
+          x: x,
+          y: y,
+          count: 15,
+        });
+      });
+    }
+
+    // Star glow effect
+    this.starSprites.forEach((star, index) => {
+      this.time.delayedCall(index * 100, () => {
+        this.tweens.add({
+          targets: star,
+          scale: 1.3,
+          duration: 200,
+          ease: 'Back.easeOut',
+          yoyo: true,
+          repeat: 3,
+          repeatDelay: 100
+        });
+      });
+    });
   }
 
   /**
@@ -252,20 +396,84 @@ export class LevelCompleteScene extends Phaser.Scene {
   private onNextLevel(): void {
     if (!this.levelData) return;
 
-    // Get next level
+    // Check if completing world's final level
+    if (this.levelData.level === 5) {
+      this.showWorldCompletion();
+      return;
+    }
+
+    // Otherwise, go to next level normally
     const nextWorld = this.levelData.level === 5 ? this.levelData.world + 1 : this.levelData.world;
     const nextLevel = this.levelData.level === 5 ? 1 : this.levelData.level + 1;
 
-    // Check if there's a next level
     if (nextWorld > 5) {
-      // All levels complete, go to world select
       this.scene.start(SCENE_KEYS.worldSelect);
     } else {
-      // Start next level
       this.scene.start(SCENE_KEYS.gameplay, {
         world: nextWorld,
         level: nextLevel,
       });
+    }
+  }
+
+  private showWorldCompletion(): void {
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+
+    // "WORLD COMPLETE" badge
+    const badge = this.add.rectangle(centerX, centerY, 400, 200, 0x44ff44);
+    badge.setStrokeStyle(4, 0xffffff);
+    badge.setDepth(20);
+
+    const text = this.add.text(centerX, centerY, 'WORLD COMPLETE!', {
+      fontSize: '48px',
+      color: '#000000',
+      fontStyle: 'bold',
+    });
+    text.setOrigin(0.5);
+    text.setDepth(21);
+
+    // Confetti particles
+    const particleSystem = new ParticleSystem(this);
+
+    for (let i = 0; i < 10; i++) {
+      this.time.delayedCall(i * 100, () => {
+        const x = Phaser.Math.Between(100, 1180);
+        const y = Phaser.Math.Between(100, 620);
+        particleSystem.emit({
+          type: ParticleType.SPARKLE,
+          x: x,
+          y: y,
+          count: 20,
+        });
+      });
+    }
+
+    // Play sound
+    const audioManager = (this as any).audioManager;
+    if (audioManager) {
+      audioManager.playSFX('uiClick');
+    }
+
+    // Fade out and continue after 2 seconds
+    this.time.delayedCall(2000, () => {
+      badge.destroy();
+      text.destroy();
+      this.onNextLevelAfterCelebration();
+    });
+  }
+
+  private onNextLevelAfterCelebration(): void {
+    if (!this.levelData) return;
+
+    const nextWorld = this.levelData.world + 1;
+
+    if (nextWorld > 5) {
+      // All worlds complete - go to campaign complete
+      this.scene.start(SCENE_KEYS.campaignComplete);
+    } else {
+      // Go to world select for next world
+      this.scene.start(SCENE_KEYS.worldSelect);
     }
   }
 
@@ -286,5 +494,21 @@ export class LevelCompleteScene extends Phaser.Scene {
    */
   private onMenu(): void {
     this.scene.start(SCENE_KEYS.worldSelect);
+  }
+
+  /**
+   * Cleanup when scene is shutting down
+   */
+  shutdown(): void {
+    // Destroy perfect text if exists
+    if (this.perfectText) {
+      this.perfectText.destroy();
+      this.perfectText = null;
+    }
+    // Destroy high score text if exists
+    if (this.highScoreText) {
+      this.highScoreText.destroy();
+      this.highScoreText = null;
+    }
   }
 }

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+  
 /**
  * Monster Slayer - TypeScript Type Definitions
  * Central location for all game interfaces and types
@@ -8,6 +8,7 @@
 // ENUMS
 // =============================================================================
 
+ 
 export enum MonsterType {
   ZOMBIE = 'zombie',
   VAMPIRE = 'vampire',
@@ -24,6 +25,7 @@ export enum PowerUpType {
 export enum WeaponId {
   BASIC_SWORD = 'basic_sword',
   SILVER_BLADE = 'silver_blade',
+  SHADOW_BLADE = 'shadow_blade',
   HOLY_CROSS_BLADE = 'holy_cross_blade',
   FIRE_SWORD = 'fire_sword',
   ICE_BLADE = 'ice_blade',
@@ -72,7 +74,12 @@ export enum SlashPatternType {
   CIRCLE = 'circle',
   ZIGZAG = 'zigzag',
   STRAIGHT = 'straight',
+  HORIZONTAL = 'horizontal',
+  VERTICAL = 'vertical',
+  SLASH_DOWN = 'slash_down',
+  SLASH_UP = 'slash_up',
 }
+ 
 
 // =============================================================================
 // SAVE DATA
@@ -102,11 +109,14 @@ export interface GameSave {
   completedLevels: string[];
   levelStars: Record<string, number>;
   highScores: Record<string, number>;
+  levelAttempts: Record<string, number>;
   settings: GameSettings;
   personalBests: ScoreEntry[];
   playerName: string | null;
   createdAt: string;
   updatedAt: string;
+  lastShopVisit?: string; // ISO timestamp of last shop visit
+  weaponUnlockTimes: Record<string, string>; // ISO timestamp of weapon unlock
   testResults?: TestWeaponResult[];
 }
 
@@ -119,6 +129,9 @@ export interface GameSettings {
   sfxEnabled: boolean;
   cloudSaveEnabled: boolean;
   uiScale: 'small' | 'medium' | 'large';
+  highContrastMode: boolean;
+  reducedMotionMode: boolean;
+  quality: 'low' | 'medium' | 'high';
 }
 
 export interface ScoreEntry {
@@ -249,7 +262,8 @@ export type WeaponEffectType =
   | 'slow'
   | 'freeze_chance'
   | 'chain_damage'
-  | 'chain_stun';
+  | 'chain_stun'
+  | 'critical_hit_chance';
 
 // =============================================================================
 // UPGRADES
@@ -366,7 +380,9 @@ export interface SlashPatternState {
 
 export interface SlashPatternResult {
   pattern: SlashPatternType;
+  type: SlashPatternType; // alias for compatibility
   confidence: number;
+  difficulty: number; // 1-5 scale
   points: SlashPatternPoint[];
   center?: Vector2;
   radius?: number;

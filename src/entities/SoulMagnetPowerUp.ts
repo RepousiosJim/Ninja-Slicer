@@ -5,7 +5,7 @@
  * Adds purple glow effect to soul display while active.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { PowerUp } from './PowerUp';
 import { PowerUpType } from '@config/types';
 import { POWERUP_SOUL_MAGNET } from '@config/constants';

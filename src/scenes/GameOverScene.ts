@@ -9,7 +9,7 @@ import Phaser from 'phaser';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
-import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, COLORS, FONT_SIZES } from '@config/constants';
+import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, COLORS, FONT_SIZES, DEFAULT_STARTING_LIVES } from '@config/constants';
 import { SupabaseService } from '../services/SupabaseService';
 import { SaveManager } from '../managers/SaveManager';
 import { Panel } from '../ui/Panel';
@@ -22,6 +22,8 @@ export class GameOverScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private soulsText!: Phaser.GameObjects.Text;
   private monstersSlicedText!: Phaser.GameObjects.Text;
+  private villagersSlicedText!: Phaser.GameObjects.Text;
+  private livesLostText!: Phaser.GameObjects.Text;
   private maxComboText!: Phaser.GameObjects.Text;
   private timeElapsedText!: Phaser.GameObjects.Text;
   private rankText: Phaser.GameObjects.Text | null = null;
@@ -37,7 +39,7 @@ export class GameOverScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'GameOverScene' });
-    this.supabaseService = new SupabaseService();
+    this.supabaseService = SupabaseService.getInstance();
     this.saveManager = new SaveManager();
   }
 
@@ -145,10 +147,45 @@ export class GameOverScene extends Phaser.Scene {
     this.monstersSlicedText.setOrigin(0.5, 0);
     this.monstersSlicedText.setDepth(1001);
 
+    // Villagers sliced display
+    this.villagersSlicedText = this.add.text(
+      GAME_WIDTH / 2,
+      360,
+      `Villagers Sliced: ${this.finalStats.villagersSliced || 0}`,
+      {
+        fontFamily: 'Arial',
+        fontSize: `${FONT_SIZES.medium}px`,
+        color: '#ff0000',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 4,
+      },
+    );
+    this.villagersSlicedText.setOrigin(0.5, 0);
+    this.villagersSlicedText.setDepth(1001);
+
+    // Lives lost display
+    const livesLost = (this.finalStats.startingLives || DEFAULT_STARTING_LIVES) - (this.finalStats.lives || 0);
+    this.livesLostText = this.add.text(
+      GAME_WIDTH / 2,
+      400,
+      `Lives Lost: ${livesLost}`,
+      {
+        fontFamily: 'Arial',
+        fontSize: `${FONT_SIZES.medium}px`,
+        color: '#ff6600',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 4,
+      },
+    );
+    this.livesLostText.setOrigin(0.5, 0);
+    this.livesLostText.setDepth(1001);
+
     // Max combo display
     this.maxComboText = this.add.text(
       GAME_WIDTH / 2,
-      360,
+      440,
       `Max Combo: ${this.finalStats.maxCombo}x`,
       {
         fontFamily: 'Arial',
@@ -165,7 +202,7 @@ export class GameOverScene extends Phaser.Scene {
     // Time elapsed display
     this.timeElapsedText = this.add.text(
       GAME_WIDTH / 2,
-      400,
+      480,
       `Time: ${this.formatTime(this.finalStats.timeElapsed)}`,
       {
         fontFamily: 'Arial',
@@ -197,7 +234,7 @@ export class GameOverScene extends Phaser.Scene {
   private createRankDisplay(): void {
     this.rankText = this.add.text(
       GAME_WIDTH / 2,
-      440,
+      520,
       'Loading rank...',
       {
         fontFamily: 'Arial',
@@ -213,7 +250,7 @@ export class GameOverScene extends Phaser.Scene {
 
     this.personalBestText = this.add.text(
       GAME_WIDTH / 2,
-      480,
+      560,
       '',
       {
         fontFamily: 'Arial',
@@ -233,7 +270,7 @@ export class GameOverScene extends Phaser.Scene {
    * Create retry button
    */
   private createRetryButton(): void {
-    this.retryButton = this.add.container(GAME_WIDTH / 2, 500);
+    this.retryButton = this.add.container(GAME_WIDTH / 2, 600);
 
     // Button background
     const buttonBg = this.add.graphics();
@@ -280,7 +317,7 @@ export class GameOverScene extends Phaser.Scene {
    * Create menu button
    */
   private createMenuButton(): void {
-    this.menuButton = this.add.container(GAME_WIDTH / 2, 580);
+    this.menuButton = this.add.container(GAME_WIDTH / 2, 680);
 
     // Button background
     const buttonBg = this.add.graphics();

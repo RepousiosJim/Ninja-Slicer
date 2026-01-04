@@ -13,7 +13,8 @@ import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, LEADERBOARD_DISPLAY_LIMIT, LEADERBOARD_PERSONAL_LIMIT, COLORS, FONT_SIZES } from '@config/constants';
 import { Button, ButtonStyle } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { SupabaseService, LeaderboardEntry } from '../services/SupabaseService';
+import type { LeaderboardEntry } from '../services/SupabaseService';
+import { SupabaseService } from '../services/SupabaseService';
 
 export class LeaderboardScene extends Phaser.Scene {
   private supabaseService: SupabaseService;
@@ -43,7 +44,7 @@ export class LeaderboardScene extends Phaser.Scene {
 
   constructor() {
     super({ key: SCENE_KEYS.leaderboard });
-    this.supabaseService = new SupabaseService();
+    this.supabaseService = SupabaseService.getInstance();
     this.titleText = {} as Phaser.GameObjects.Text;
     this.tabsContainer = {} as Phaser.GameObjects.Container;
     this.leaderboardContainer = {} as Phaser.GameObjects.Container;

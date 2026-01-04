@@ -5,7 +5,7 @@
  * Uses DARK_GOTHIC_THEME and ResponsiveUtils for unified styling
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { DARK_GOTHIC_THEME } from '@config/theme';
 import { FONT_SIZES, GAME_WIDTH, GAME_HEIGHT } from '@config/constants';
 import { ResponsiveUtils } from './ResponsiveUtils';

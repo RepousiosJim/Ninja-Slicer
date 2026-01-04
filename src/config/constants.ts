@@ -215,6 +215,7 @@ export const BOSS_MINION_SPAWN_DELAY = 3.0; // seconds between minion waves
 export const UI_ANIMATION_DURATION = 200; // ms
 export const SCREEN_SHAKE_DURATION = 100; // ms
 export const SCREEN_SHAKE_INTENSITY = 10; // pixels
+export const LIFE_LOSS_ANIMATION_DURATION = 800; // ms for life loss text animation
 
 export const COLORS = {
   // Reference theme colors for consistency
@@ -313,13 +314,14 @@ export const TEXTURE_KEYS = {
   shield: 'powerup_shield',
   soulMagnet: 'powerup_soul_magnet',
   
-  // Weapons
-  basicSword: 'weapon_basic_sword',
-  silverBlade: 'weapon_silver_blade',
-  holyCrossBlade: 'weapon_holy_cross_blade',
-  fireSword: 'weapon_fire_sword',
-  iceBlade: 'weapon_ice_blade',
-  lightningKatana: 'weapon_lightning_katana',
+   // Weapons
+   basicSword: 'weapon_basic_sword',
+   silverBlade: 'weapon_silver_blade',
+   shadowBlade: 'weapon_shadow_blade',
+   holyCrossBlade: 'weapon_holy_cross_blade',
+   fireSword: 'weapon_fire_sword',
+   iceBlade: 'weapon_ice_blade',
+   lightningKatana: 'weapon_lightning_katana',
   
   // UI
   buttonNormal: 'ui_button_normal',
@@ -387,6 +389,8 @@ export const SCENE_KEYS = {
   gameOver: 'GameOverScene',
   testWeapon: 'TestWeaponScene',
   updates: 'UpdatesScene',
+  campaignComplete: 'CampaignCompleteScene',
+  error: 'ErrorScene',
 } as const;
 
 // =============================================================================
@@ -435,10 +439,10 @@ export const SLASH_POWER_WIDTH_MULTIPLIERS = {
 
 // Power level visual colors (for trail effects)
 export const SLASH_POWER_COLORS = {
-  0: 0xffffff, // NONE - white/default
-  1: 0xffff00, // LOW - yellow
-  2: 0xff8c00, // MEDIUM - orange
-  3: 0xff0000, // HIGH - red
+  0: { color: 0xffffff, glow: 0xffffff }, // NONE - white/default
+  1: { color: 0xffff00, glow: 0xffffaa }, // LOW - yellow
+  2: { color: 0xff8c00, glow: 0xffcc00 }, // MEDIUM - orange
+  3: { color: 0xff0000, glow: 0xff4400 }, // HIGH - red
 } as const;
 
 // =============================================================================
@@ -447,11 +451,16 @@ export const SLASH_POWER_COLORS = {
 
 export const SLASH_PATTERN = {
   minPointsForDetection: 8, // minimum trail points to attempt pattern detection
+  minPointsRequired: 8, // alias for compatibility
   patternTimeout: 1.5, // seconds before pattern detection resets
+  patternTimeoutMs: 1500, // timeout in milliseconds
+  minPointDistance: 10, // minimum distance between points for pattern detection
+  simplificationEpsilon: 2.0, // Douglas-Peucker simplification tolerance
   // Circle detection
   circleClosureThreshold: 50, // max distance between start and end points for circle
   circleMinRadius: 40, // minimum radius for valid circle
   circleMaxRadiusVariance: 0.35, // max variance from mean radius (35%)
+  circleVarianceThreshold: 0.35, // alias for compatibility
   // Zigzag detection
   zigzagMinDirectionChanges: 3, // minimum direction changes for zigzag
   zigzagAngleThreshold: 60, // degrees - minimum angle change for direction switch
@@ -459,6 +468,17 @@ export const SLASH_PATTERN = {
   // Straight line detection
   straightLineMaxDeviation: 15, // max perpendicular distance from ideal line
   straightLineMinLength: 150, // minimum length for straight line recognition
+  // Horizontal line detection
+  horizontalAngleTolerance: 30, // degrees from horizontal
+  horizontalMinLength: 150, // minimum length
+  horizontalVarianceThreshold: 15, // max deviation from line
+  // Vertical line detection
+  verticalAngleTolerance: 30, // degrees from vertical
+  verticalMinLength: 150, // minimum length
+  verticalVarianceThreshold: 15, // max deviation from line
+  // Slash patterns
+  slashAngleTolerance: 25, // degrees from diagonal
+  slashMinLength: 100, // minimum length for slash pattern
 } as const;
 
 // Pattern bonus values
@@ -485,6 +505,30 @@ export const SLASH_PATTERN_BONUSES = {
     bonusScore: 50, // flat bonus
     damageMultiplier: 2.0, // double damage (precision strike)
     effectDescription: 'Piercing strike',
+  },
+  horizontal: {
+    scoreMultiplier: 1.3, // 30% more score
+    bonusScore: 30, // flat bonus
+    damageMultiplier: 1.2, // 20% more damage
+    effectDescription: 'Horizontal sweep',
+  },
+  vertical: {
+    scoreMultiplier: 1.3, // 30% more score
+    bonusScore: 30, // flat bonus
+    damageMultiplier: 1.2, // 20% more damage
+    effectDescription: 'Vertical strike',
+  },
+  slash_down: {
+    scoreMultiplier: 1.4, // 40% more score
+    bonusScore: 40, // flat bonus
+    damageMultiplier: 1.3, // 30% more damage
+    effectDescription: 'Downward slash',
+  },
+  slash_up: {
+    scoreMultiplier: 1.4, // 40% more score
+    bonusScore: 40, // flat bonus
+    damageMultiplier: 1.3, // 30% more damage
+    effectDescription: 'Upward slash',
   },
 } as const;
 
@@ -518,6 +562,11 @@ export const EVENTS = {
   livesChanged: 'lives-changed',
   levelComplete: 'level-complete',
   gameOver: 'game-over',
+  slashEnergyChanged: 'slash-energy-changed',
+  slashEnergyDepleted: 'slash-energy-depleted',
+  slashEnergyLow: 'slash-energy-low',
+  slashPowerChanged: 'slash-power-changed',
+  slashPatternDetected: 'slash-pattern-detected',
   
   // System events
   saveCompleted: 'save-completed',

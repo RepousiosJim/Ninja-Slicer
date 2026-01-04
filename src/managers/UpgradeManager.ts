@@ -5,15 +5,17 @@
  * Provides combined player stats from all upgrades.
  */
 
-import { UpgradeId, UpgradeConfig, PlayerStats } from '@config/types';
+import type { UpgradeConfig, PlayerStats } from '@config/types';
+import { UpgradeId } from '@config/types';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
 import { dataLoader } from '@utils/DataLoader';
 import { SaveManager } from '@managers/SaveManager';
 import { EventBus } from '@utils/EventBus';
+import type { IManager } from './IManager';
 
-export class UpgradeManager {
+export class UpgradeManager implements IManager {
   private static instance: UpgradeManager;
 
   // Loaded upgrade data
@@ -25,19 +27,40 @@ export class UpgradeManager {
   // References
   private saveManager: SaveManager;
 
+  /**
+   * Private constructor for singleton pattern
+   * Initializes with save manager and loads upgrade tiers
+   * 
+   * @private
+   */
   private constructor() {
     this.saveManager = new SaveManager();
     this.loadUpgradeTiersFromSave();
   }
 
   /**
-   * Get singleton instance
+   * Get singleton instance of upgrade manager
+   * 
+   * @returns The global UpgradeManager instance
+   * 
+   * @example
+   * ```typescript
+   * const upgradeManager = UpgradeManager.getInstance();
+   * const stats = upgradeManager.getPlayerStats();
+   * ```
    */
   static getInstance(): UpgradeManager {
     if (!UpgradeManager.instance) {
       UpgradeManager.instance = new UpgradeManager();
     }
     return UpgradeManager.instance;
+  }
+
+  /**
+   * Initialize manager
+   */
+  initialize(scene?: Phaser.Scene): void {
+    this.loadUpgradeTiersFromSave();
   }
 
   /**
@@ -178,6 +201,14 @@ export class UpgradeManager {
    * Reset all upgrade data (for testing)
    */
   reset(): void {
+    this.upgrades.clear();
+    this.upgradeTiers.clear();
+  }
+
+  /**
+   * Shutdown and cleanup
+   */
+  shutdown(): void {
     this.upgrades.clear();
     this.upgradeTiers.clear();
   }

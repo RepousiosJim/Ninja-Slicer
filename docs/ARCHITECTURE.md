@@ -596,6 +596,297 @@ npm run build
 npm run preview
 ```
 
+---
+
+## Asset Loading System
+
+The asset loading system provides centralized, efficient management of all game assets.
+
+### Components
+
+#### 1. AssetRegistry
+Central registry of all game assets with metadata:
+- Asset configurations (type, path, priority, bundle)
+- Bundle definitions (groupings of related assets)
+- Query methods for filtering by bundle, priority, tags
+
+Location: `src/managers/AssetRegistry.ts`
+
+**Key Features:**
+- Type-safe asset configuration
+- Priority-based loading order
+- Tag-based filtering
+- Automatic bundle population
+
+#### 2. LoadingManager
+Coordinates all asset loading operations:
+- Loads bundles with priority ordering
+- Tracks progress with fine-grained details
+- Implements retry logic with exponential backoff
+- Manages loaded/failed asset state
+- Handles memory cleanup
+
+Location: `src/managers/LoadingManager.ts`
+
+**Key Features:**
+- Bundle-based loading
+- Individual asset loading
+- Progress tracking with callbacks
+- Error handling with retry logic
+- Asset unloading for memory management
+
+#### 3. ProgressTracker
+Fine-grained progress tracking:
+- Tracks total, loaded, failed assets
+- Calculates percentage and ETA
+- Error tracking with asset keys
+- Real-time progress callbacks
+
+Location: `src/managers/ProgressTracker.ts`
+
+**Key Features:**
+- Real-time progress updates
+- Error collection
+- Speed calculation (assets/sec)
+- Estimated time remaining
+
+#### 4. LazyLoader
+Utility for convenient on-demand loading:
+- Preloads scene-specific assets
+- Loads world-specific bundles
+- Automatically unloads unused bundles
+- Memory statistics tracking
+
+Location: `src/managers/LazyLoader.ts`
+
+**Key Features:**
+- Scene-based preloading
+- World-specific asset loading
+- Automatic memory management
+- Memory usage statistics
+
+### Asset Bundles
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Asset Bundles                    │
+├─────────────────────────────────────────────────────────┤
+│ BOOT → UI → CORE → EFFECTS → WORLD → AUDIO    │
+│ (Critical) (High) (Normal) (Low) (Optional)  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Bundle Loading Strategy:**
+
+1. **BOOT Bundle** (Critical - Immediate)
+   - Button textures for loading screen
+   - Loads in BootScene
+
+2. **UI Bundle** (High - Immediate)
+   - All HUD elements, icons, panels
+   - Loads in PreloaderScene
+
+3. **CORE_GAMEPLAY Bundle** (High - Immediate)
+   - Enemies, villagers, weapons
+   - Loads in PreloaderScene
+
+4. **EFFECTS Bundle** (Normal - Immediate)
+   - Particle effects, slicing effects
+   - Loads in PreloaderScene
+
+5. **WORLD Bundles** (Normal - Lazy)
+   - World 1: Loads immediately
+   - World 2-5: Load on-demand per world
+   - Unload when leaving world
+
+6. **AUDIO Bundles** (Low - Lazy)
+   - Music: Load first track, lazy load rest
+   - SFX: Load first sounds, lazy load rest
+   - Unload unused audio when possible
+
+### Loading Flow
+
+```mermaid
+flowchart TD
+    subgraph "Loading Flow"
+        BootScene["BootScene<br/>Initialize System"]
+        Preloader["PreloaderScene<br/>Load Critical Bundles"]
+        Gameplay["GameplayScene<br/>Lazy Load World Assets"]
+        MainMenu["MainMenu<br/>Unload Unused"]
+    end
+    
+    BootScene -->|"Initialize"| LoadingMgr["LoadingManager"]
+    LoadingMgr -->|"Load: BOOT, UI, CORE, EFFECTS, WORLD_1"| Preloader
+    Preloader -->|"Display Progress"| Progress["ProgressTracker"]
+    Progress -->|"Update: %, current asset"| Preloader
+    
+    Preloader -->|"Transition"| MainMenu
+    
+    MainMenu -->|"Load: WORLD_2"| Gameplay
+    Gameplay -->|"Lazy Load"| LoadingMgr
+    LoadingMgr -->|"Unload: WORLD_3, 4, 5"| MainMenu
+end
+```
+
+### Lazy Loading Strategy
+
+**When to Lazy Load:**
+- Large assets (> 500KB)
+- World-specific content
+- Boss-specific assets
+- Audio/music files
+- Non-essential effects
+
+**Preload at Startup:**
+- UI elements
+- Core gameplay sprites
+- Essential effects
+- World 1 assets
+
+**Memory Management:**
+```typescript
+// In GameplayScene
+create(): void {
+  // Load world assets
+  lazyLoader.preloadWorldAssets(this.worldId);
+  
+  // Clean up on scene shutdown
+  this.events.once('shutdown', () => {
+    lazyLoader.unloadUnusedBundles([
+      AssetBundle.UI,
+      AssetBundle.CORE_GAMEPLAY,
+      // Keep critical bundles
+    ]);
+  });
+}
+```
+
+### Progress Tracking
+
+**Progress Information:**
+```typescript
+interface LoadProgress {
+  total: number;        // Total assets to load
+  loaded: number;       // Successfully loaded
+  failed: number;       // Failed to load
+  percentage: number;   // 0-100 completion
+  currentAsset: string; // Currently loading
+  category: string;     // Current bundle category
+  errors: Array<{ key: string; error: string }>;
+  startTime: number;    // Load start timestamp
+  elapsed: number;       // Time elapsed in seconds
+  estimatedRemaining: number; // Estimated seconds remaining
+}
+```
+
+**Usage:**
+```typescript
+loadingManager.onProgress((progress: LoadProgress) => {
+  console.log(`Loading: ${progress.percentage}%`);
+  console.log(`Current: ${progress.currentAsset}`);
+  console.log(`Failed: ${progress.failed}`);
+  console.log(`ETA: ${progress.estimatedRemaining}s`);
+});
+```
+
+### Error Handling
+
+**Retry Logic:**
+- Max 3 retries per asset
+- Exponential backoff: 1s, 2s, 4s
+- Graceful degradation on final failure
+- User notification for non-critical assets
+
+**Error Recovery:**
+```typescript
+// Critical assets (UI, Core): Show error, continue with fallbacks
+// Non-critical (Audio, Worlds): Log warning, continue without
+// Data (JSON): Use default values if load fails
+```
+
+### Memory Management
+
+**Automatic Unloading:**
+```typescript
+// LazyLoader automatically unloads when:
+lazyLoader.unloadUnusedBundles([
+  AssetBundle.UI,      // Keep UI in menus
+  AssetBundle.CORE_GAMEPLAY, // Keep core in gameplay
+]);
+```
+
+**Manual Unloading:**
+```typescript
+loadingManager.unloadAsset('boss_gravetitan');
+loadingManager.unloadBundle(AssetBundle.WORLD_2);
+```
+
+### Performance Targets
+
+| Metric | Target | Notes |
+|---------|--------|-------|
+| Initial load time | < 3s | Critical bundles only |
+| Lazy load time | < 1s | Single bundle |
+| Memory usage | < 200MB | With lazy loading |
+| Failed asset rate | < 1% | With retry logic |
+
+### Integration with Existing Systems
+
+**AudioManager:**
+```typescript
+// Lazy load audio on-demand
+playMusic(key: string, config?: SoundConfig): void {
+  if (!this.scene.cache.audio.exists(key)) {
+    LoadingManager.getInstance().lazyLoadAsset(key);
+  }
+  // ... play music
+}
+```
+
+**DataLoader:**
+```typescript
+// Check LoadingManager for cached data
+async loadWeapons(): Promise<WeaponConfig[]> {
+  const loadingManager = LoadingManager.getInstance();
+  if (loadingManager.isAssetLoaded('data_weapons')) {
+    // Retrieve from registry
+    return this.scene.registry.get('weapons');
+  }
+  // ... load via fetch
+}
+```
+
+### Best Practices
+
+1. **Add New Assets:**
+   - Register in AssetRegistry with correct type
+   - Add to appropriate bundle
+   - Set appropriate priority (CRITICAL for UI)
+   - Add descriptive tags for filtering
+
+2. **Lazy Load Appropriately:**
+   - Preload assets before they're needed
+   - Unload unused bundles when possible
+   - Keep critical bundles in memory
+   - Use scene transitions for cleanup
+
+3. **Monitor Performance:**
+   - Track initial load time
+   - Monitor memory usage
+   - Test on slow connections
+   - Check for memory leaks
+
+4. **Handle Errors Gracefully:**
+   - Non-critical assets → Continue without
+   - Critical assets → Use procedural fallbacks
+   - Show user notifications for failures
+   - Log errors for debugging
+
+### Related Documentation
+
+- [ASSET_LOADING_GUIDE.md](ASSET_LOADING_GUIDE.md) - Detailed asset loading guide
+- [PERFORMANCE_GUIDE.md](PERFORMANCE_GUIDE.md) - Performance optimization
+
 ### Environment Variables
 
 ```env

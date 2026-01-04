@@ -5,7 +5,7 @@
  * Features fade-in/y animations with automatic cleanup.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
 
 /**

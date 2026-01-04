@@ -7,9 +7,11 @@
  */
 
 import Phaser from 'phaser';
+import { BaseScene } from './BaseScene';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
-import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, DEFAULT_STARTING_LIVES } from '@config/constants';
-import { LevelConfig } from '@config/types';
+import { ErrorHandler, ErrorCategory, ErrorSeverity } from '@utils/ErrorHandler';
+import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, DEFAULT_STARTING_LIVES, LIFE_LOSS_ANIMATION_DURATION } from '@config/constants';
+import type { LevelConfig } from '@config/types';
 import { SlashTrail } from '../entities/SlashTrail';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { SlashSystem } from '../systems/SlashSystem';
@@ -18,18 +20,17 @@ import { ComboSystem } from '../systems/ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
-import { SaveManager } from '../managers/SaveManager';
 import { LevelManager } from '../managers/LevelManager';
 import { SlashEnergyManager } from '../managers/SlashEnergyManager';
 import { EventBus } from '../utils/EventBus';
-import { Boss } from '../entities/Boss';
+import type { Boss } from '../entities/Boss';
 import { GraveTitan } from '../entities/GraveTitan';
 import { HeadlessHorseman } from '../entities/HeadlessHorseman';
 import { VampireLord } from '../entities/VampireLord';
 import { PhantomKing } from '../entities/PhantomKing';
 import { DemonOverlord } from '../entities/DemonOverlord';
 
-export class GameplayScene extends Phaser.Scene {
+export class GameplayScene extends BaseScene {
   private slashTrail!: SlashTrail;
   private spawnSystem!: SpawnSystem;
   private slashSystem!: SlashSystem;
@@ -38,7 +39,6 @@ export class GameplayScene extends Phaser.Scene {
   private powerUpManager!: PowerUpManager;
   private weaponManager!: WeaponManager;
   private upgradeManager!: UpgradeManager;
-  private saveManager!: SaveManager;
   private levelManager!: LevelManager;
   private slashEnergyManager!: SlashEnergyManager;
 
@@ -52,9 +52,12 @@ export class GameplayScene extends Phaser.Scene {
   private currentKills: number = 0;
   private boss: Boss | null = null;
   private bossSpawned: boolean = false;
+  private quotaMet: boolean = false;
 
   private pointerX: number = 0;
   private pointerY: number = 0;
+  private previousPointerX: number = 0;
+  private previousPointerY: number = 0;
   private isPointerDown: boolean = false;
   private lastPointerTime: number = 0;
 
@@ -63,76 +66,119 @@ export class GameplayScene extends Phaser.Scene {
   private gameOverTimer: number = 0;
   private isPaused: boolean = false;
 
+  /**
+   * Initialize gameplay scene
+   * Sets up scene key for game mode
+   * 
+   * @example
+   * ```typescript
+   * // Start campaign level
+   * this.scene.start('gameplay', { world: 1, level: 1 });
+   * 
+   * // Start endless mode
+   * this.scene.start('gameplay');
+   * ```
+   */
   constructor() {
-    super({ key: SCENE_KEYS.gameplay });
+    super(SCENE_KEYS.gameplay);
   }
 
+  /**
+   * Create gameplay scene and initialize all game systems
+   * Supports both campaign mode (with world/level data) and endless mode
+   * 
+   * @param data - Optional data containing world and level numbers for campaign mode
+   * 
+   * @example
+   * ```typescript
+   * // Campaign mode
+   * create({ world: 1, level: 1 });
+   * 
+   * // Endless mode
+   * create({});
+   * ```
+   */
   create(data: { world?: number; level?: number } = {}): void {
-    // Check if campaign mode
-    this.isCampaignMode = data.world !== undefined && data.level !== undefined;
-    this.currentWorld = data.world || 1;
-    this.currentLevel = data.level || 1;
+    try {
+      // Check if campaign mode
+      this.isCampaignMode = data.world !== undefined && data.level !== undefined;
+      this.currentWorld = data.world || 1;
+      this.currentLevel = data.level || 1;
 
-    // Create background
-    this.createBackground();
+      // Create background
+      this.createBackground();
 
-    // Initialize all managers
-    this.weaponManager = WeaponManager.getInstance();
-    this.upgradeManager = UpgradeManager.getInstance();
-    this.saveManager = new SaveManager();
-    this.levelManager = LevelManager.getInstance();
-    this.slashEnergyManager = SlashEnergyManager.getInstance();
-    this.slashEnergyManager.initialize(this);
-    this.slashEnergyManager.setUpgradeManager(this.upgradeManager);
+      // Initialize all managers
+      this.weaponManager = WeaponManager.getInstance();
+      this.upgradeManager = UpgradeManager.getInstance();
+      this.levelManager = LevelManager.getInstance();
+      this.slashEnergyManager = SlashEnergyManager.getInstance();
+      this.slashEnergyManager.initialize(this);
+      this.slashEnergyManager.setUpgradeManager(this.upgradeManager);
 
-    // Load data
-    this.loadProgressionData();
+      // Load data
+      this.loadProgressionData();
 
-    // Initialize all systems
-    this.slashTrail = new SlashTrail(this);
-    this.spawnSystem = new SpawnSystem(this);
-    this.slashSystem = new SlashSystem(this);
-    this.comboSystem = new ComboSystem();
-    this.powerUpManager = PowerUpManager.getInstance();
-    this.powerUpManager.initialize(this);
-    this.powerUpManager.setUpgradeManager(this.upgradeManager);
-    this.hud = new HUD(this);
+      // Initialize all systems
+      this.slashTrail = new SlashTrail(this);
+      this.spawnSystem = new SpawnSystem(this);
+      this.slashSystem = new SlashSystem(this);
+      this.comboSystem = new ComboSystem();
+      this.powerUpManager = PowerUpManager.getInstance();
+      this.powerUpManager.initialize(this);
+      this.powerUpManager.setUpgradeManager(this.upgradeManager);
+      this.hud = new HUD(this);
 
-    // Connect systems
-    this.slashSystem.setComboSystem(this.comboSystem);
-    this.slashSystem.setPowerUpManager(this.powerUpManager);
-    this.slashSystem.setWeaponManager(this.weaponManager);
-    this.slashSystem.setUpgradeManager(this.upgradeManager);
-    this.slashSystem.setEnergyManager(this.slashEnergyManager);
+      // Connect systems
+      this.slashSystem.setComboSystem(this.comboSystem);
+      this.slashSystem.setPowerUpManager(this.powerUpManager);
+      this.slashSystem.setWeaponManager(this.weaponManager);
+      this.slashSystem.setUpgradeManager(this.upgradeManager);
+      this.slashSystem.setEnergyManager(this.slashEnergyManager);
 
-    // Apply starting lives from upgrade
-    const playerStats = this.upgradeManager.getPlayerStats();
-    this.lives = Math.floor(playerStats.startingLives);
+      // Apply starting lives from upgrade
+      const playerStats = this.upgradeManager.getPlayerStats();
+      this.lives = Math.floor(playerStats.startingLives);
 
-    // Update slash trail style from weapon
-    this.updateSlashTrailStyle();
+      // Update slash trail style from weapon
+      this.updateSlashTrailStyle();
 
-    // Setup campaign mode if applicable
-    if (this.isCampaignMode) {
-      this.setupCampaignMode();
+      // Setup campaign mode if applicable
+      if (this.isCampaignMode) {
+        this.setupCampaignMode();
+      }
+
+      // Create HUD
+      this.hud.create();
+
+      // Add pause button to HUD
+      this.hud.addPauseButton(this.togglePause.bind(this));
+
+      // Set up input handlers
+      this.setupInput();
+
+      // Set up keyboard for restart
+      this.setupKeyboard();
+
+      // Set up base event listeners (resize, orientation)
+      super.setupEventListeners();
+
+      // Set up game-specific event listeners
+      this.setupGameEventListeners();
+
+      debugLog('GameplayScene created - Phase 4 Campaign ready!');
+    } catch (error) {
+      const err = error as Error;
+      debugError('[GameplayScene] Failed to create scene:', err);
+      
+      ErrorHandler.handle(err, {
+        scene: this.scene.key,
+        component: 'GameplayScene',
+        action: 'create'
+      });
+      
+      this.scene.start(SCENE_KEYS.error);
     }
-
-    // Create HUD
-    this.hud.create();
-    
-    // Add pause button to HUD
-    this.hud.addPauseButton(this.togglePause.bind(this));
-
-    // Set up input handlers
-    this.setupInput();
-
-    // Set up keyboard for restart
-    this.setupKeyboard();
-
-    // Set up event listeners
-    this.setupEventListeners();
-
-    debugLog('GameplayScene created - Phase 4 Campaign ready!');
   }
 
   /**
@@ -148,7 +194,7 @@ export class GameplayScene extends Phaser.Scene {
       this.currentLevelConfig = levelConfig || null;
 
       if (!this.currentLevelConfig) {
-        console.error(`[GameplayScene] Level ${this.currentWorld}-${this.currentLevel} not found`);
+        debugError(`[GameplayScene] Level ${this.currentWorld}-${this.currentLevel} not found`);
         return;
       }
 
@@ -158,13 +204,13 @@ export class GameplayScene extends Phaser.Scene {
       this.currentKills = 0;
 
       // Configure spawn system with level config
-      // this.spawnSystem.setLevelConfig(this.currentLevelConfig);
+      this.spawnSystem.setLevelConfig(this.currentLevelConfig);
 
       // Show timer and kill quota in HUD
-      // this.hud.showTimer(true);
-      // this.hud.showKillQuota(true);
-      // this.hud.updateTimer(0, this.currentLevelConfig.duration);
-      // this.hud.updateKillQuota(0, this.killQuota);
+      this.hud.showTimer(true);
+      this.hud.showKillQuota(true);
+      this.hud.updateTimer(0, this.currentLevelConfig.duration);
+      this.hud.updateKillQuota(0, this.killQuota);
 
       // Load world background
       this.loadWorldBackground();
@@ -174,7 +220,7 @@ export class GameplayScene extends Phaser.Scene {
         this.prepareBossSpawn();
       }
 
-      console.log(`[GameplayScene] Campaign mode: World ${this.currentWorld}, Level ${this.currentLevel}`);
+      debugLog(`[GameplayScene] Campaign mode: World ${this.currentWorld}, Level ${this.currentLevel}`);
     } catch (error) {
       debugError('[GameplayScene] Failed to setup campaign mode:', error);
     }
@@ -219,7 +265,7 @@ export class GameplayScene extends Phaser.Scene {
     const bossId = this.currentLevelConfig?.bossId;
     if (!bossId) return;
 
-    console.log(`[GameplayScene] Preparing boss: ${bossId}`);
+    debugLog(`[GameplayScene] Preparing boss: ${bossId}`);
   }
 
   /**
@@ -230,6 +276,9 @@ export class GameplayScene extends Phaser.Scene {
 
     const bossId = this.currentLevelConfig?.bossId;
     if (!bossId) return;
+
+    // Show boss announcement
+    this.showBossAnnouncement();
 
     // Create boss based on ID
     switch (bossId) {
@@ -249,7 +298,7 @@ export class GameplayScene extends Phaser.Scene {
         this.boss = new DemonOverlord(this);
         break;
       default:
-        console.error(`[GameplayScene] Unknown boss ID: ${bossId}`);
+        debugError(`[GameplayScene] Unknown boss ID: ${bossId}`);
         return;
     }
 
@@ -257,18 +306,62 @@ export class GameplayScene extends Phaser.Scene {
     const bossConfig = this.levelManager.getBossConfig(bossId);
     if (!bossConfig) return;
 
-    // Spawn boss at top center
-    this.boss.spawn(GAME_WIDTH / 2, 150, bossConfig);
+    // Spawn boss at top center (delayed after announcement)
+    this.time.delayedCall(2000, () => {
+      this.boss.spawn(GAME_WIDTH / 2, 150, bossConfig);
+      this.hud.showBossHealthBar(true);
 
-    // Show boss health bar
-    // this.hud.showBossHealthBar(true);
+      // Set up boss damage listener
+      EventBus.on('boss-hit', this.handleBossHit.bind(this));
+      EventBus.on('boss-defeated', this.handleBossDefeated.bind(this));
 
-    // Set up boss damage listener
-    EventBus.on('boss-hit', this.handleBossHit.bind(this));
-    EventBus.on('boss-defeated', this.handleBossDefeated.bind(this));
+      this.bossSpawned = true;
+      debugLog(`[GameplayScene] Boss spawned: ${bossConfig.name}`);
+    });
+  }
 
-    this.bossSpawned = true;
-    console.log(`[GameplayScene] Boss spawned: ${bossConfig.name}`);
+  /**
+   * Show boss announcement
+   */
+  private showBossAnnouncement(): void {
+    const centerX = GAME_WIDTH / 2;
+    const centerY = GAME_HEIGHT / 2;
+
+    // Darken background
+    const overlay = this.add.rectangle(centerX, centerY, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7);
+    overlay.setDepth(500);
+
+    // Announcement text
+    const text = this.add.text(centerX, centerY, 'BOSS INCOMING!', {
+      fontSize: '72px',
+      color: '#ff0000',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 8,
+    });
+    text.setOrigin(0.5);
+    text.setDepth(501);
+
+    // Screen shake
+    this.cameras.main.shake(500, 0.02);
+
+    // Play sound
+    const audioManager = (this as any).audioManager;
+    if (audioManager) {
+      audioManager.playSFX('uiClick');
+    }
+
+    // Fade out after 2 seconds
+    this.tweens.add({
+      targets: [overlay, text],
+      alpha: 0,
+      duration: 500,
+      delay: 1500,
+      onComplete: () => {
+        overlay.destroy();
+        text.destroy();
+      },
+    });
   }
 
   /**
@@ -278,7 +371,7 @@ export class GameplayScene extends Phaser.Scene {
     if (!this.boss) return;
 
     // Update boss health bar
-    // this.hud.updateBossHealth(data.remainingHealth, data.maxHealth);
+    this.hud.updateBossHealth(data.remainingHealth, data.maxHealth);
   }
 
   /**
@@ -287,10 +380,10 @@ export class GameplayScene extends Phaser.Scene {
   private handleBossDefeated(data: any): void {
     if (!this.boss) return;
 
-    console.log('[GameplayScene] Boss defeated!');
+    debugLog('[GameplayScene] Boss defeated!');
 
     // Hide boss health bar
-    // this.hud.showBossHealthBar(false);
+    this.hud.showBossHealthBar(false);
 
     // Award boss souls
     const soulsReward = data.soulsReward || 0;
@@ -309,7 +402,7 @@ export class GameplayScene extends Phaser.Scene {
       await this.upgradeManager.loadUpgrades();
       debugLog('[GameplayScene] Progression data loaded');
     } catch (error) {
-      console.error('[GameplayScene] Failed to load progression data:', error);
+      debugError('[GameplayScene] Failed to load progression data:', error);
     }
   }
 
@@ -383,11 +476,16 @@ export class GameplayScene extends Phaser.Scene {
   }
 
   /**
-   * Set up event listeners
+   * Set up game-specific event listeners
    */
-  private setupEventListeners(): void {
+  private setupGameEventListeners(): void {
     // Listen for monster missed events
     EventBus.on('monster-missed', () => {
+      this.loseLife();
+    });
+
+    // Listen for villager sliced events
+    EventBus.on('villager-sliced', () => {
       this.loseLife();
     });
 
@@ -415,10 +513,12 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
+    this.updatePerformance(delta);
+
     // Update level timer in campaign mode
     if (this.isCampaignMode && this.currentLevelConfig) {
       this.levelTimer += delta / 1000;
-      // this.hud.updateTimer(this.levelTimer, this.currentLevelConfig.duration);
+      this.hud.updateTimer(this.levelTimer, this.currentLevelConfig.duration);
 
       // Check for boss spawn (at 80% of level duration)
       const bossSpawnTime = this.currentLevelConfig?.duration * 0.8 || 0;
@@ -470,10 +570,38 @@ export class GameplayScene extends Phaser.Scene {
     const duration = this.currentLevelConfig.duration;
     const killsMet = this.currentKills >= this.killQuota;
 
+    // Check if quota just met (one-time trigger)
+    if (killsMet && !this.quotaMet && !this.currentLevelConfig.isBoss) {
+      this.quotaMet = true;
+      this.onKillQuotaMet();
+    }
+
     // Normal levels: Timer reaches duration AND kill quota met
     // Boss levels: Boss defeated (handled in handleBossDefeated)
     if (!this.currentLevelConfig.isBoss && timeElapsed >= duration && killsMet) {
       this.onLevelComplete();
+    }
+  }
+
+  /**
+   * Handle kill quota met
+   */
+  private onKillQuotaMet(): void {
+    // Flash kill quota text green
+    if ((this.hud as any)['killQuotaText']) {
+      this.tweens.add({
+        targets: (this.hud as any)['killQuotaText'],
+        tint: 0x44ff44,
+        duration: 200,
+        yoyo: true,
+        repeat: 2,
+      });
+    }
+
+    // Play sound
+    const audioManager = (this as any).audioManager;
+    if (audioManager) {
+      audioManager.playSFX('uiClick');
     }
   }
 
@@ -483,7 +611,7 @@ export class GameplayScene extends Phaser.Scene {
   private onLevelComplete(): void {
     if (!this.currentLevelConfig) return;
 
-    console.log(`[GameplayScene] Level ${this.currentWorld}-${this.currentLevel} complete!`);
+    debugLog(`[GameplayScene] Level ${this.currentWorld}-${this.currentLevel} complete!`);
 
     // Calculate final stats
     const finalStats = {
@@ -496,12 +624,16 @@ export class GameplayScene extends Phaser.Scene {
       timeElapsed: this.spawnSystem.getElapsedTime(),
     };
 
+    // Get previous stars for improvement tracking (before completing level)
+    const levelId = `${this.currentWorld}-${this.currentLevel}`;
+    const previousStars = this.levelManager.getLevelStars(this.currentWorld, this.currentLevel);
+
     // Complete level and calculate stars
     const stars = this.levelManager.completeLevel(this.currentWorld, this.currentLevel, finalStats.score);
 
     // Emit level complete event
     EventBus.emit('level-complete', {
-      levelId: `${this.currentWorld}-${this.currentLevel}`,
+      levelId: levelId,
       score: finalStats.score,
       souls: finalStats.souls,
       stars,
@@ -509,7 +641,15 @@ export class GameplayScene extends Phaser.Scene {
     });
 
     // Transition to level complete scene
-    this.isGameOver = true;
+    this.scene.start(SCENE_KEYS.levelComplete, {
+      world: this.currentWorld,
+      level: this.currentLevel,
+      score: finalStats.score,
+      souls: finalStats.souls,
+      stars,
+      previousStars,
+      stats: finalStats,
+    });
   }
 
   /**
@@ -529,8 +669,20 @@ export class GameplayScene extends Phaser.Scene {
     // Update slash trail
     this.slashTrail.update(this.pointerX, this.pointerY, delta);
 
+    // Calculate distance moved
+    const distance = Phaser.Math.Distance.Between(
+      this.previousPointerX,
+      this.previousPointerY,
+      this.pointerX,
+      this.pointerY
+    );
+
+    // Update previous position
+    this.previousPointerX = this.pointerX;
+    this.previousPointerY = this.pointerY;
+
     // Consume energy for the slash
-    this.slashEnergyManager.consumeEnergy();
+    this.slashEnergyManager.consumeEnergy(distance);
   }
 
   /**
@@ -540,7 +692,7 @@ export class GameplayScene extends Phaser.Scene {
     for (const monster of activeMonsters) {
       if (monster.y > GAME_HEIGHT) {
         // Monster fell off screen
-        this.spawnSystem.removeMonster(monster);
+        monster.destroy();
         EventBus.emit('monster-missed');
       }
     }
@@ -553,9 +705,65 @@ export class GameplayScene extends Phaser.Scene {
     this.lives--;
     this.hud.updateLives(this.lives);
 
+    // Enhanced visual feedback
+    this.createLifeLossFeedback();
+
     if (this.lives <= 0) {
       this.gameOver();
     }
+  }
+
+  /**
+   * Create visual feedback for life loss
+   */
+  private createLifeLossFeedback(): void {
+    // Red screen flash
+    const flash = this.add.graphics();
+    flash.fillStyle(0xff0000, 0.5);
+    flash.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    flash.setDepth(2000);
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => {
+        flash.destroy();
+      },
+    });
+
+    // Enhanced screen shake (stronger than monster hits)
+    this.cameras.main.shake(200, 0.02);
+
+    // Floating "-1 LIFE" text at screen center
+    const lifeLossText = this.add.text(
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2,
+      '-1 LIFE',
+      {
+        fontFamily: 'Arial',
+        fontSize: '64px',
+        color: '#ff0000',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 8,
+      },
+    );
+    lifeLossText.setOrigin(0.5, 0.5);
+    lifeLossText.setDepth(2001);
+
+    // Animate text floating up and fading
+    this.tweens.add({
+      targets: lifeLossText,
+      y: GAME_HEIGHT / 2 - 100,
+      alpha: 0,
+      scale: 1.2,
+      duration: LIFE_LOSS_ANIMATION_DURATION,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        lifeLossText.destroy();
+      },
+    });
   }
 
   /**
@@ -565,6 +773,9 @@ export class GameplayScene extends Phaser.Scene {
     this.isGameOver = true;
     this.isPaused = false;
 
+    const playerStats = this.upgradeManager.getPlayerStats();
+    const startingLives = Math.floor(playerStats.startingLives);
+
     const finalStats = {
       score: this.slashSystem.getScore(),
       souls: this.slashSystem.getSouls(),
@@ -573,6 +784,8 @@ export class GameplayScene extends Phaser.Scene {
       powerUpsCollected: this.slashSystem.getPowerUpsCollected(),
       maxCombo: this.comboSystem.getMaxCombo(),
       timeElapsed: this.spawnSystem.getElapsedTime(),
+      startingLives,
+      lives: this.lives,
     };
 
     // Emit game over event
@@ -628,6 +841,6 @@ export class GameplayScene extends Phaser.Scene {
     EventBus.off('monster-missed');
     EventBus.off('monster-sliced');
     EventBus.off('boss-hit');
-    EventBus.off('boss-defeated');
-  }
+     EventBus.off('boss-defeated');
+   }
 }

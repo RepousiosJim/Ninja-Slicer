@@ -9,11 +9,12 @@
  * Requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env
  */
 
-import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import type { SupabaseClient, User } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
-import { GameSave } from '@config/types';
+import type { GameSave } from '@config/types';
 
 // Types for database tables
 export interface LeaderboardEntry {
@@ -37,12 +38,25 @@ export interface CloudSaveData {
 }
 
 export class SupabaseService {
+  private static instance: SupabaseService | null = null;
+
   private client: SupabaseClient | null = null;
   private user: User | null = null;
   private initialized: boolean = false;
 
-  constructor() {
+  private constructor() {
     this.initialize();
+  }
+
+  /**
+   * Get singleton instance of SupabaseService
+   * Prevents multiple instances from causing conflicts
+   */
+  static getInstance(): SupabaseService {
+    if (!SupabaseService.instance) {
+      SupabaseService.instance = new SupabaseService();
+    }
+    return SupabaseService.instance;
   }
 
   // ===========================================================================
@@ -66,7 +80,7 @@ export class SupabaseService {
       this.initialized = true;
       debugLog('[SupabaseService] Initialized');
     } catch (error) {
-      console.error('[SupabaseService] Failed to initialize:', error);
+      debugError('[SupabaseService] Failed to initialize:', error);
     }
   }
 

@@ -58,7 +58,7 @@ export class EndlessGameplayScene extends Phaser.Scene {
 
   constructor() {
     super({ key: SCENE_KEYS.endlessGameplay });
-    this.supabaseService = new SupabaseService();
+    this.supabaseService = SupabaseService.getInstance();
     this.sessionStats = {
       monstersSliced: 0,
       maxCombo: 0,
@@ -217,6 +217,11 @@ export class EndlessGameplayScene extends Phaser.Scene {
       this.loseLife();
     });
 
+    // Listen for villager sliced events
+    EventBus.on('villager-sliced', () => {
+      this.loseLife();
+    });
+
     // Listen for monster sliced events
     EventBus.on('monster-sliced', () => {
       this.sessionStats.monstersSliced++;
@@ -355,10 +360,66 @@ export class EndlessGameplayScene extends Phaser.Scene {
       delta: -1,
     });
 
+    // Enhanced visual feedback
+    this.createLifeLossFeedback();
+
     // Check for game over
     if (this.lives <= 0) {
       this.triggerGameOver();
     }
+  }
+
+  /**
+   * Create visual feedback for life loss
+   */
+  private createLifeLossFeedback(): void {
+    // Red screen flash
+    const flash = this.add.graphics();
+    flash.fillStyle(0xff0000, 0.5);
+    flash.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    flash.setDepth(2000);
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => {
+        flash.destroy();
+      },
+    });
+
+    // Enhanced screen shake (stronger than monster hits)
+    this.cameras.main.shake(200, 0.02);
+
+    // Floating "-1 LIFE" text at screen center
+    const lifeLossText = this.add.text(
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2,
+      '-1 LIFE',
+      {
+        fontFamily: 'Arial',
+        fontSize: '64px',
+        color: '#ff0000',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 8,
+      },
+    );
+    lifeLossText.setOrigin(0.5, 0.5);
+    lifeLossText.setDepth(2001);
+
+    // Animate text floating up and fading
+    this.tweens.add({
+      targets: lifeLossText,
+      y: GAME_HEIGHT / 2 - 100,
+      alpha: 0,
+      scale: 1.2,
+      duration: 800,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        lifeLossText.destroy();
+      },
+    });
   }
 
   /**
@@ -399,6 +460,9 @@ export class EndlessGameplayScene extends Phaser.Scene {
    */
   private async onGameOver(): Promise<void> {
     // Prepare final stats
+    const playerStats = this.upgradeManager.getPlayerStats();
+    const startingLives = Math.floor(playerStats.startingLives);
+
     const finalStats = {
       score: this.slashSystem.getScore(),
       souls: this.slashSystem.getSouls(),
@@ -407,6 +471,8 @@ export class EndlessGameplayScene extends Phaser.Scene {
       powerUpsCollected: this.slashSystem.getPowerUpsCollected(),
       maxCombo: this.comboSystem.getMaxCombo(),
       timeElapsed: this.spawnSystem.getElapsedTime(),
+      startingLives,
+      lives: this.lives,
     };
 
     // Emit game over event

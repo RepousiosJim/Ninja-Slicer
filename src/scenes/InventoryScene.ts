@@ -11,8 +11,10 @@ import { Button, ButtonStyle } from '../ui/Button';
 import { SaveManager } from '../managers/SaveManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { AudioManager } from '../managers/AudioManager';
-import { WeaponId, WeaponConfig, WeaponRarity } from '../config/types';
-import { WeaponCard, WeaponCardConfig } from '../ui/WeaponCard';
+import { debugLog } from '../utils/DebugLogger';
+import type { WeaponId, WeaponConfig, WeaponRarity } from '../config/types';
+import type { WeaponCardConfig } from '../ui/WeaponCard';
+import { WeaponCard } from '../ui/WeaponCard';
 import { FilterBar, FilterType, SortType } from '../ui/FilterBar';
 import { ComparisonView } from '../ui/ComparisonView';
 import { WeaponDetailsModal } from '../ui/WeaponDetailsModal';
@@ -202,11 +204,11 @@ export class InventoryScene extends Phaser.Scene {
     const equippedWeaponId = saveData.equippedWeapon;
 
     // DEBUG: Log weapon loading status
-    console.log('[InventoryScene] Creating weapon grid');
-    console.log('[InventoryScene] Number of weapons loaded:', allWeapons.length);
-    console.log('[InventoryScene] Weapons:', allWeapons.map(w => w.id));
-    console.log('[InventoryScene] Unlocked weapons:', saveData.unlockedWeapons);
-    console.log('[InventoryScene] Equipped weapon:', equippedWeaponId);
+    debugLog('[InventoryScene] Creating weapon grid');
+    debugLog('[InventoryScene] Number of weapons loaded:', allWeapons.length);
+    debugLog('[InventoryScene] Weapons:', allWeapons.map(w => w.id));
+    debugLog('[InventoryScene] Unlocked weapons:', saveData.unlockedWeapons);
+    debugLog('[InventoryScene] Equipped weapon:', equippedWeaponId);
 
     // Apply initial filter
     this.applyFilter(FilterType.ALL);

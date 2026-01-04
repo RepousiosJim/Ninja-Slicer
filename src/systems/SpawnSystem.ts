@@ -4,19 +4,20 @@
  * Manages monster, villager, and power-up spawning with configurable intervals and difficulty scaling.
  */
 
-import Phaser from 'phaser';
-import { Monster } from '../entities/Monster';
+import type Phaser from 'phaser';
+import type { Monster } from '../entities/Monster';
 import { Zombie } from '../entities/Zombie';
 import { Vampire } from '../entities/Vampire';
 import { Ghost } from '../entities/Ghost';
 import { Villager } from '../entities/Villager';
-import { PowerUp } from '../entities/PowerUp';
+import type { PowerUp } from '../entities/PowerUp';
 import { SlowMotionPowerUp } from '../entities/SlowMotionPowerUp';
 import { FrenzyPowerUp } from '../entities/FrenzyPowerUp';
 import { ShieldPowerUp } from '../entities/ShieldPowerUp';
 import { SoulMagnetPowerUp } from '../entities/SoulMagnetPowerUp';
 import { MonsterFactory } from '../entities/MonsterFactory';
-import { MonsterType, PowerUpType, LevelConfig, SpawnPattern } from '@config/types';
+import type { MonsterType, LevelConfig} from '@config/types';
+import { PowerUpType, SpawnPattern } from '@config/types';
 import { GRAVITY, POWERUP_BASE_SPAWN_INTERVAL, VILLAGER_SPEED_MULTIPLIER, SPAWN_PATTERNS, SCREEN_BOTTOM_Y } from '@config/constants';
 import { calculateLaunchVelocity, randomInt, randomFloat, weightedRandom } from '../utils/helpers';
 
@@ -35,6 +36,8 @@ export class SpawnSystem {
   private isSpawning: boolean = true;
   private levelConfig: LevelConfig | null = null;
   private spawnPattern: SpawnPattern = SpawnPattern.DEFAULT;
+  // Difficulty modifier for endless mode villager chance
+  private difficultyVillagerChance: number | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -126,7 +129,7 @@ export class SpawnSystem {
     );
 
     // Store villager chance for spawnEntity
-    (this as any).difficultyVillagerChance = modifiers.villagerChance;
+    this.difficultyVillagerChance = modifiers.villagerChance;
   }
 
   /**
@@ -138,8 +141,8 @@ export class SpawnSystem {
     let villagerChance = Math.min(0.05 + (gameTimeSeconds / 120), 0.15);
 
     // Use difficulty modifier if set
-    if ((this as any).difficultyVillagerChance !== undefined) {
-      villagerChance = (this as any).difficultyVillagerChance;
+    if (this.difficultyVillagerChance !== null) {
+      villagerChance = this.difficultyVillagerChance;
     }
     
     // Use level-specific villager chance if in campaign mode
@@ -507,6 +510,7 @@ export class SpawnSystem {
     this.difficultyScale = 0;
     this.powerUpTimer = 0;
     this.isSpawning = true;
+    this.difficultyVillagerChance = null;
   }
 
   /**

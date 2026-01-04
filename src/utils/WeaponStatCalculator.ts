@@ -5,7 +5,8 @@
  * effectiveness ratings, and damage calculations based on tier data.
  */
 
-import { WeaponConfig, MonsterType } from '../config/types';
+import type { WeaponConfig} from '../config/types';
+import { MonsterType } from '../config/types';
 
 /**
  * Stat calculation result interface
@@ -53,7 +54,7 @@ export class WeaponStatCalculator {
   static calculateDamageRating(tierData: any): number {
     let rating = 50; // Base rating
 
-    if (!tierData || !tierData.effects) {
+    if (!tierData?.effects) {
       return rating;
     }
 
@@ -83,6 +84,11 @@ export class WeaponStatCalculator {
       if (effect.type === 'slash_width') {
         rating += (effect.value - 1.0) * 15;
       }
+
+      // Critical hit chance increases effective damage rating
+      if (effect.type === 'critical_hit_chance') {
+        rating += (effect.value || 0.1) * 100; // 10% chance = +10 rating
+      }
     }
 
     return Math.min(100, Math.round(rating)); // Cap at 100
@@ -96,7 +102,7 @@ export class WeaponStatCalculator {
   static calculateSpeedRating(tierData: any): number {
     let rating = 60; // Base speed rating
 
-    if (!tierData || !tierData.effects) {
+    if (!tierData?.effects) {
       return rating;
     }
 
@@ -128,7 +134,7 @@ export class WeaponStatCalculator {
   static calculateRangeRating(tierData: any): number {
     let rating = 60; // Base range
 
-    if (!tierData || !tierData.effects) {
+    if (!tierData?.effects) {
       return rating;
     }
 
@@ -164,7 +170,7 @@ export class WeaponStatCalculator {
    * @returns Effectiveness rating (0-100 scale)
    */
   static calculateEffectivenessRating(weapon: WeaponConfig, tier: number): number {
-    if (!weapon || !weapon.tiers) {
+    if (!weapon?.tiers) {
       return 50;
     }
 
@@ -217,7 +223,7 @@ export class WeaponStatCalculator {
     tier: number,
     monsterType: MonsterType,
   ): number {
-    if (!weapon || !weapon.tiers) {
+    if (!weapon?.tiers) {
       return 50;
     }
 
@@ -340,7 +346,7 @@ export class WeaponStatCalculator {
       targetTypes: [],
     };
 
-    if (!tierData || !tierData.effects) {
+    if (!tierData?.effects) {
       return analysis;
     }
 
@@ -401,7 +407,7 @@ export class WeaponStatCalculator {
     monsterType: MonsterType,
   ): boolean {
     const tierData = weapon.tiers[tier - 1];
-    if (!tierData || !tierData.effects) {
+    if (!tierData?.effects) {
       return false;
     }
 

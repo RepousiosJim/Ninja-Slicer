@@ -9,7 +9,7 @@
 import Phaser from 'phaser';
 import { TEXTURE_KEYS } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
-import { WeaponConfig, WeaponRarity } from '../config/types';
+import type { WeaponConfig, WeaponRarity } from '../config/types';
 import { TierBadge } from './TierBadge';
 import { getTierColor } from '../utils/ThemeUtils';
 

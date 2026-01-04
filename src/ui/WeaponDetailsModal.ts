@@ -8,10 +8,12 @@
 
 import Phaser from 'phaser';
 import { COLORS, FONT_SIZES, UI_ANIMATION_DURATION } from '../config/constants';
-import { WeaponConfig, WeaponRarity } from '../config/types';
+import type { WeaponConfig} from '../config/types';
+import { WeaponRarity } from '../config/types';
 import { WeaponPreview } from './WeaponPreview';
 import { StatBar } from './StatBar';
-import { EffectivenessChart, EffectivenessData } from './EffectivenessChart';
+import type { EffectivenessData } from './EffectivenessChart';
+import { EffectivenessChart } from './EffectivenessChart';
 import { EffectCard } from './EffectCard';
 import { TierBadge } from './TierBadge';
 
@@ -290,7 +292,7 @@ export class WeaponDetailsModal extends Phaser.GameObjects.Container {
    */
   private createSpecialEffects(): void {
     const currentTierData = this.weapon.tiers[this.tier - 1];
-    if (!currentTierData || !currentTierData.effects || currentTierData.effects.length === 0) {
+    if (!currentTierData?.effects || currentTierData.effects.length === 0) {
       return;
     }
 

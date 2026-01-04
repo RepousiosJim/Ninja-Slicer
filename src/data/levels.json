@@ -566,7 +566,7 @@
       "name": "Haunted Village",
       "description": "An abandoned town of terror",
       "theme": "village",
-      "backgroundKey": "bg_village",
+      "backgroundKey": "bg_haunted_village",
       "unlockRequirement": "1-5",
       "spawnPattern": "default"
     },
@@ -575,7 +575,7 @@
       "name": "Vampire Castle",
       "description": "The lord's gothic domain",
       "theme": "castle",
-      "backgroundKey": "bg_castle",
+      "backgroundKey": "bg_vampire_castle",
       "unlockRequirement": "2-5",
       "spawnPattern": "default"
     },

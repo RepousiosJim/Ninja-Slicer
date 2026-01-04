@@ -25,7 +25,8 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    host: true, // Allow access from network (for mobile testing)
+    host: true,
+    allowedHosts: true,
   },
   
   // Build config
@@ -36,7 +37,11 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.logs in production
+        drop_console: true,
+        passes: 2,
+      },
+      mangle: {
+        safari10: true,
       },
     },
     rollupOptions: {
@@ -47,10 +52,14 @@ export default defineConfig({
         },
       },
     },
+    target: 'es2022',
   },
   
   // Optimizations
   optimizeDeps: {
     include: ['phaser'],
+    esbuildOptions: {
+      target: 'es2022',
+    },
   },
 });

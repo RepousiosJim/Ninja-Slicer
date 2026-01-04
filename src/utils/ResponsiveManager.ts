@@ -397,12 +397,10 @@ export class ResponsiveManager {
     switch (this.currentBreakpoint) {
     case Breakpoint.MOBILE_SMALL:
       return 0.7;
-    case Breakpoint.MOBILE_SMALL:
-      return 0.8;
     case Breakpoint.MOBILE:
-      return 0.9;
+      return 0.8;
     case Breakpoint.TABLET:
-      return 1.0;
+      return 0.9;
     case Breakpoint.DESKTOP:
       return 1.0;
     case Breakpoint.LARGE_DESKTOP:
@@ -417,7 +415,6 @@ export class ResponsiveManager {
    */
   public getGridColumns(defaultColumns: number = 3): number {
     switch (this.currentBreakpoint) {
-    case Breakpoint.MOBILE_SMALL:
     case Breakpoint.MOBILE_SMALL:
       return 1;
     case Breakpoint.MOBILE:
@@ -438,7 +435,6 @@ export class ResponsiveManager {
    */
   public getGridRows(defaultRows: number = 2): number {
     switch (this.currentBreakpoint) {
-    case Breakpoint.MOBILE_SMALL:
     case Breakpoint.MOBILE_SMALL:
       return 3;
     case Breakpoint.MOBILE:

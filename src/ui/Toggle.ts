@@ -16,7 +16,7 @@ export interface ToggleConfig {
   initialValue?: boolean;
   label?: string;
   labelPosition?: 'left' | 'right';
-  onChange?: (value: boolean) => void;
+  onChange?: (_value: boolean) => void;
   disabled?: boolean;
 }
 
@@ -33,7 +33,7 @@ export class Toggle extends Phaser.GameObjects.Container {
   // Toggle state
   private isOn: boolean;
   private isEnabled: boolean;
-  private callback: ((value: boolean) => void) | null = null;
+  private callback: ((_value: boolean) => void) | null = null;
   private isAnimating: boolean = false;
 
   // Dimensions
@@ -299,7 +299,7 @@ export class Toggle extends Phaser.GameObjects.Container {
   /**
    * Set toggle callback
    */
-  public setCallback(callback: (value: boolean) => void): void {
+  public setCallback(callback: (_value: boolean) => void): void {
     this.callback = callback;
   }
 

@@ -5,23 +5,36 @@
  * Singleton pattern for global access.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { PowerUpType, UpgradeId } from '@config/types';
 import { POWERUP_SLOW_MOTION, POWERUP_FRENZY, POWERUP_SHIELD, POWERUP_SOUL_MAGNET } from '@config/constants';
 import { EventBus } from '@utils/EventBus';
-import { UpgradeManager } from './UpgradeManager';
+import type { UpgradeManager } from './UpgradeManager';
+import type { IManager } from './IManager';
 
-export class PowerUpManager {
+export class PowerUpManager implements IManager {
   private static instance: PowerUpManager | null = null;
   private activePowerUps: Map<PowerUpType, number> = new Map();
   private scene: Phaser.Scene | null = null;
   private shieldInstance: any = null; // Reference to active ShieldPowerUp
   private upgradeManager: UpgradeManager | null = null;
 
+  /**
+   * Private constructor for singleton pattern
+   * @private
+   */
   private constructor() {}
 
   /**
-   * Get singleton instance
+   * Get singleton instance of power-up manager
+   * 
+   * @returns The global PowerUpManager instance
+   * 
+   * @example
+   * ```typescript
+   * const powerUpManager = PowerUpManager.getInstance();
+   * powerUpManager.initialize(this);
+   * ```
    */
   static getInstance(): PowerUpManager {
     if (!PowerUpManager.instance) {
@@ -31,7 +44,15 @@ export class PowerUpManager {
   }
 
   /**
-   * Initialize the manager with a scene reference
+   * Initialize power-up manager with scene reference
+   * 
+   * @param scene - The Phaser scene this manager belongs to
+   * 
+   * @example
+   * ```typescript
+   * const powerUpManager = PowerUpManager.getInstance();
+   * powerUpManager.initialize(this);
+   * ```
    */
   initialize(scene: Phaser.Scene): void {
     this.scene = scene;
@@ -60,7 +81,7 @@ export class PowerUpManager {
       const powerUpObj = this.scene?.children.getByName('powerup');
       if (powerUpObj) {
         const powerUp = powerUpObj as any;
-        if (powerUp.getPowerUpType && powerUp.getPowerUpType() === PowerUpType.SHIELD) {
+        if (powerUp.getPowerUpType?.() === PowerUpType.SHIELD) {
           this.shieldInstance = powerUp;
         }
       }
@@ -170,6 +191,15 @@ export class PowerUpManager {
   reset(): void {
     this.activePowerUps.clear();
     this.shieldInstance = null;
+  }
+
+  /**
+   * Shutdown and cleanup
+   */
+  shutdown(): void {
+    this.reset();
+    this.scene = null;
+    this.upgradeManager = null;
   }
 
   /**

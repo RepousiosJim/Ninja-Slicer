@@ -16,14 +16,14 @@ import Phaser from 'phaser';
 import {
   SLASH_VELOCITY_THRESHOLD,
   SLASH_TRAIL_MAX_LENGTH,
-  SLASH_TRAIL_FADE_RATE,
   SLASH_TRAIL_WIDTH,
   SLASH_TRAIL_GLOW_WIDTH,
   SLASH_POWER,
   SLASH_POWER_COLORS,
   SLASH_POWER_WIDTH_MULTIPLIERS
 } from '@config/constants';
-import { SlashPowerLevel, SlashPowerState } from '@config/types';
+import type { SlashPowerState } from '@config/types';
+import { SlashPowerLevel } from '@config/types';
 import { EventBus } from '@utils/EventBus';
 
 /**
@@ -77,7 +77,6 @@ export class SlashTrail {
   private points: Phaser.Math.Vector2[] = [];
   private previousPosition: Phaser.Math.Vector2;
   private currentPosition: Phaser.Math.Vector2;
-  private lastUpdateTime: number = 0;
   private active: boolean = false;
 
   // Object pool for Vector2 reuse
@@ -86,7 +85,6 @@ export class SlashTrail {
   // Dirty flags for optimization - track what needs redrawing
   private trailDirty: boolean = true;
   private cursorDirty: boolean = true;
-  private chargeDirty: boolean = true;
   private lastCursorX: number = 0;
   private lastCursorY: number = 0;
   private lastPointCount: number = 0;
@@ -180,7 +178,6 @@ export class SlashTrail {
 
     // Update previous position
     this.previousPosition.copy(this.currentPosition);
-    this.lastUpdateTime = this.scene.time.now;
 
     // Track point count changes for dirty detection
     if (this.points.length !== this.lastPointCount) {
@@ -375,7 +372,6 @@ export class SlashTrail {
     // Reset dirty flags
     this.trailDirty = true;
     this.cursorDirty = true;
-    this.chargeDirty = true;
     this.lastPointCount = 0;
   }
 
@@ -495,7 +491,6 @@ export class SlashTrail {
     this.powerState.isCharging = false;
     this.powerState.chargeProgress = 0;
     this.chargeAnimationTime = 0;
-    this.chargeDirty = true;
     this.chargeGraphics.clear();
 
     return releasedLevel;
@@ -506,19 +501,16 @@ export class SlashTrail {
    * Applies color and width multipliers from power config
    */
   private updatePowerVisuals(level: SlashPowerLevel): void {
-    // Get power color for this level
-    const powerColor = SLASH_POWER_COLORS[level as keyof typeof SLASH_POWER_COLORS];
-
-    if (powerColor) {
-      this.trailColor = powerColor.color;
-      this.trailGlow = powerColor.glow;
+    const powerColors = SLASH_POWER_COLORS as any;
+    
+    if (powerColors[level]?.color) {
+      this.trailColor = powerColors[level].color;
+      this.trailGlow = powerColors[level].glow;
     } else {
-      // Fallback to base colors if power level not found
       this.trailColor = this.baseTrailColor;
       this.trailGlow = this.baseTrailGlow;
     }
 
-    // Mark trail as dirty to apply new colors
     this.trailDirty = true;
   }
 

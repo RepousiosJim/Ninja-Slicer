@@ -5,7 +5,7 @@
  * Handles purchase logic and integrates with SaveManager.
  */
 
-import { WeaponId, UpgradeId } from '@config/types';
+import type { WeaponId, UpgradeId } from '@config/types';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
