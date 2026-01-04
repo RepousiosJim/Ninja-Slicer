@@ -1,0 +1,328 @@
+{
+  "feature": "Soul Currency & Economy System",
+  "workflow_type": "feature",
+  "workflow_rationale": "New game economy feature integrating with existing combat, HUD, save, and shop systems. Most infrastructure exists; task involves wiring up existing components and adding missing pieces.",
+  "phases": [
+    {
+      "id": "phase-1-soul-earning",
+      "name": "Core Soul Earning",
+      "type": "implementation",
+      "description": "Wire up monster kill events to award souls via SaveManager",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add soul earning event listener in GameplayScene",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/GameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/scenes/GameplayScene.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Start campaign mode, slice monsters, verify souls increase in HUD (EventBus.on('monster-sliced') should call SaveManager.addSouls() and emit 'souls-updated')"
+          },
+          "status": "completed",
+          "notes": "Implemented soul earning event listener in GameplayScene. The monster-sliced event handler now: 1) extracts souls from event data, 2) calls SaveManager.addSouls() to persist souls, 3) emits 'souls-updated' event for HUD updates. Committed as 875b5ee.",
+          "updated_at": "2026-01-01T12:29:47.491411+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Add soul earning event listener in EndlessGameplayScene",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/EndlessGameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/scenes/GameplayScene.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Start endless mode, slice monsters, verify souls increase in HUD"
+          },
+          "status": "completed",
+          "notes": "Added soul earning event listener in EndlessGameplayScene. Updated monster-sliced listener to receive souls data, award souls via SaveManager.addSouls(), and emit souls-updated event. Follows pattern from GameplayScene.ts exactly.",
+          "updated_at": "2026-01-01T12:31:38.074076+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-level-completion",
+      "name": "Level Completion Bonuses",
+      "type": "implementation",
+      "description": "Award bonus souls when player completes levels",
+      "depends_on": [
+        "phase-1-soul-earning"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Implement level completion soul bonus calculation",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/LevelCompleteScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/config/constants.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Complete a campaign level, verify level completion scene shows bonus souls awarded using formula: LEVEL_COMPLETE_SOULS.base + (world * LEVEL_COMPLETE_SOULS.perWorld)"
+          },
+          "status": "completed",
+          "notes": "Implemented level completion soul bonus calculation using formula LEVEL_COMPLETE_SOULS.base + (world * LEVEL_COMPLETE_SOULS.perWorld). UI displays breakdown: souls from slicing, level bonus (+X), and total souls. Souls are persisted via SaveManager.addSouls().",
+          "updated_at": "2026-01-01T12:34:59.860926+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-cloud-persistence",
+      "name": "Cloud Persistence",
+      "type": "implementation",
+      "description": "Persist souls to Supabase for cloud save functionality",
+      "depends_on": [
+        "phase-1-soul-earning"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Add souls to Supabase player_profiles schema",
+          "service": "main",
+          "files_to_modify": [
+            "src/services/SupabaseService.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/SupabaseService.ts",
+            "src/managers/SaveManager.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Enable cloud save in settings, earn souls, verify souls persist after page refresh by checking Supabase dashboard"
+          },
+          "status": "completed",
+          "notes": "Added PlayerProfile interface and three methods to SupabaseService: getPlayerProfile(), updatePlayerSouls(), and syncPlayerSouls(). Methods handle authentication checks, error handling, and validation (non-negative souls). Uses upsert pattern to create/update player_profiles table. Committed as 0a2e56c.",
+          "updated_at": "2026-01-01T12:37:30.223113+00:00"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Add auto-sync for souls on cloud save",
+          "service": "main",
+          "files_to_modify": [
+            "src/managers/SaveManager.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/managers/SaveManager.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Enable cloud save, earn souls, wait for auto-save interval (30s), verify Supabase has latest soul count"
+          },
+          "status": "completed",
+          "notes": "Added auto-sync for souls on cloud save. Implementation includes: SupabaseService import, setSupabaseService() method, syncSoulsToCloud() method called during auto-save interval when cloud save is enabled.",
+          "updated_at": "2026-01-01T12:40:15.375610+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-ui-enhancements",
+      "name": "UI Enhancements",
+      "type": "implementation",
+      "description": "Add visual feedback for soul earning and purchase confirmations",
+      "depends_on": [
+        "phase-2-level-completion"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Add floating +souls text animation on monster kill",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/GameplayScene.ts",
+            "src/scenes/EndlessGameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Slice monsters and verify floating text appears showing +X souls at monster death position, fading upward"
+          },
+          "status": "completed",
+          "notes": "Implemented floating +souls text animation in both GameplayScene and EndlessGameplayScene. Text shows \"+X souls\" in gold (#ffd700) at monster death position, floats upward 60px while fading out over 1 second. Follows the pattern from SlashSystem.createFloatingText.",
+          "updated_at": "2026-01-01T12:42:31.906125+00:00"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Add purchase confirmation modal in ShopScene",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/ShopScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/ui/Panel.ts",
+            "src/ui/Button.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Attempt to purchase weapon/upgrade, verify modal shows: item name, cost, current souls, post-purchase souls, and confirm/cancel buttons"
+          },
+          "status": "pending",
+          "notes": "ShopManager already checks canAfford(). Add confirmation modal before calling purchase methods. Show insufficient funds message if souls < cost."
+        }
+      ]
+    },
+    {
+      "id": "phase-5-integration",
+      "name": "Integration Testing",
+      "type": "integration",
+      "description": "End-to-end verification of soul economy flow",
+      "depends_on": [
+        "phase-3-cloud-persistence",
+        "phase-4-ui-enhancements"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "End-to-end soul economy verification",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "1. Start new game, verify souls start at 0",
+              "2. Slice 10 monsters, verify souls increase (5-10 per monster)",
+              "3. Build combo, verify souls multiply with combo (1 + combo * 0.1)",
+              "4. Complete level, verify level completion bonus awarded (50 + world * 20)",
+              "5. Open shop, verify current souls displayed correctly",
+              "6. Attempt purchase with insufficient souls, verify error shown",
+              "7. Attempt purchase with sufficient souls, verify confirmation modal",
+              "8. Confirm purchase, verify souls deducted and saved to localStorage",
+              "9. Enable cloud save, earn souls, verify sync to Supabase",
+              "10. Refresh page, verify souls persist from cloud"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 8,
+    "services_involved": [
+      "main"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 2,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-2-level-completion",
+            "phase-3-cloud-persistence"
+          ],
+          "reason": "Both depend only on phase-1, different file sets (LevelCompleteScene vs SupabaseService)"
+        }
+      ],
+      "recommended_workers": 2,
+      "speedup_estimate": "1.3x faster than sequential"
+    },
+    "startup_command": "npm run dev"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "Souls earned from monster kills with combo multipliers",
+      "Level completion bonuses awarded correctly",
+      "Souls display in HUD updates in real-time",
+      "Purchase confirmations prevent accidental spending",
+      "Souls persist across sessions (localStorage + Supabase)",
+      "Visual feedback (floating text) on soul earn"
+    ],
+    "verification_steps": [
+      {
+        "name": "Manual Integration Testing",
+        "command": "npm run dev",
+        "expected_outcome": "All e2e verification steps pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk due to cross-cutting integration. Most infrastructure exists, reducing implementation risk. Manual testing required as game mechanics don't have automated test coverage."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": false,
+      "commands": [],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "npm run dev"
+      ],
+      "services_to_test": [
+        "main"
+      ]
+    },
+    "e2e_tests": {
+      "required": true,
+      "commands": [],
+      "flows": [
+        "soul-earning-flow",
+        "level-completion-bonus",
+        "purchase-confirmation",
+        "cloud-sync"
+      ]
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:5173/",
+          "checks": [
+            "Start game and slice monsters - souls increase in HUD",
+            "Complete level - bonus souls awarded",
+            "Open shop - souls displayed, purchase confirmation works",
+            "Enable cloud save - souls sync to Supabase"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": true,
+      "checks": [
+        "player_profiles table includes souls field",
+        "souls persist correctly in Supabase when cloud save enabled"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "status": "human_review",
+  "planStatus": "review",
+  "updated_at": "2026-01-01T12:21:32.472Z",
+  "last_updated": "2026-01-01T12:42:31.906145+00:00"
+}

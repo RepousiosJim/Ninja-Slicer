@@ -1,0 +1,4 @@
+{
+  "task_description": "# Soul Currency & Economy\n\nImplement souls as the primary currency earned from slicing monsters, used for weapon purchases and upgrades.\n\n## Rationale\nEarning currency through gameplay (not IAPs) addresses competitor pain points about pay-to-win mechanics (pain-1-2, pain-4-1). Fair progression without monetization barriers.\n\n## User Stories\n- As a player, I want to earn currency through gameplay so that I can unlock upgrades without paying\n\n## Acceptance Criteria\n- [ ] Souls awarded per monster based on type and combo\n- [ ] Total souls displayed in HUD and menus\n- [ ] Souls persist between sessions\n- [ ] Level completion bonus souls awarded\n- [ ] Souls deducted on purchases with confirmation\n",
+  "workflow_type": "feature"
+}
