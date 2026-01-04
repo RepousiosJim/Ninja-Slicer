@@ -1,0 +1,4 @@
+{
+  "task_description": "# Hit Detection & Slicing Feedback\n\nImplement precise collision detection between slash trails and monsters, with satisfying visual and audio feedback on successful hits.\n\n## Rationale\nSatisfying hit feedback is crucial for game feel. Fruit Ninja's success comes from the visceral satisfaction of slicing. Web clones (pain-3-1) lack this polish.\n\n## User Stories\n- As a player, I want to feel a satisfying impact when I slice a monster so that every kill feels rewarding\n\n## Acceptance Criteria\n- [ ] Slash lines accurately detect intersection with monster hitboxes\n- [ ] Monsters split or explode with particle effects on hit\n- [ ] Screen shake occurs on monster kills\n- [ ] Audio plays on successful slash (unique per monster type)\n- [ ] Visual blood/soul particles spawn at impact point\n",
+  "workflow_type": "feature"
+}

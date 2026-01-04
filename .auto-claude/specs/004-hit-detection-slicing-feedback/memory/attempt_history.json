@@ -1,0 +1,81 @@
+{
+  "subtasks": {
+    "subtask-1-1": {
+      "attempts": [
+        {
+          "session": 1,
+          "timestamp": "2025-12-30T16:25:22.190897",
+          "approach": "Implemented: Enhance createHitEffect() to spawn 15-30 particles with increased velocity and spread",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-1-2": {
+      "attempts": [
+        {
+          "session": 2,
+          "timestamp": "2025-12-30T16:29:06.240860",
+          "approach": "Implemented: Verify particles spawn at exact impact point (not monster center)",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-2-1": {
+      "attempts": [
+        {
+          "session": 3,
+          "timestamp": "2025-12-30T16:31:13.293614",
+          "approach": "Implemented: Increase screen shake intensity in Monster.onSliced() from 0.003 to 0.005-0.01",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-3-1": {
+      "attempts": [
+        {
+          "session": 4,
+          "timestamp": "2025-12-30T16:36:23.553379",
+          "approach": "Implemented: Add AudioManager.playSFX() calls in SlashSystem.handleMonsterHit() with monster-type-specific keys",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-4-1": {
+      "attempts": [
+        {
+          "session": 5,
+          "timestamp": "2025-12-30T16:39:04.269261",
+          "approach": "Implemented: Test and optionally adjust MONSTER_HITBOX_RADIUS if collision feel is imprecise",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-5-1": {
+      "attempts": [
+        {
+          "session": 6,
+          "timestamp": "2025-12-30T16:43:42.703660",
+          "approach": "Implemented: Verify complete hit feedback pipeline: collision \u2192 particles + shake + audio",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    }
+  },
+  "stuck_subtasks": [],
+  "metadata": {
+    "created_at": "2025-12-30T16:23:04.646656",
+    "last_updated": "2025-12-30T16:43:42.703669"
+  }
+}

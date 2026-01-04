@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "004-hit-detection-slicing-feedback",
+  "state": "complete",
+  "subtasks": {
+    "completed": 6,
+    "total": 6,
+    "in_progress": 0,
+    "failed": 0
+  },
+  "phase": {
+    "current": "End-to-End Integration",
+    "id": null,
+    "total": 1
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 6,
+    "started_at": "2025-12-30T16:23:04.647467"
+  },
+  "last_update": "2025-12-30T16:43:46.786449"
+}
