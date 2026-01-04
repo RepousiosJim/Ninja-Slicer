@@ -1,0 +1,70 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "New game system requiring 5-8 files across spawn management, physics, and monster entities. Contained to single service with no external integrations. Phaser physics is well-documented and likely has patterns in existing codebase.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 7,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Spawn manager (1-2 files), monster entity classes or configurations (3 types), physics/trajectory calculations (1-2 files), difficulty/config data (1 file), game scene integration (1-2 existing files modified)"
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Phaser.js is already a project dependency. Physics system is built into Phaser with extensive documentation. No external APIs or services required."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "Pure client-side game logic. Spawn rates and difficulty configs will be in-code or JSON files, not infrastructure-level configuration."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Phaser is a mature, well-documented game framework. Existing codebase likely has entity/game object patterns. Context phase will reveal existing physics and spawn patterns."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Physics tuning for satisfying trajectories requires iteration",
+        "Spawn rate balancing to avoid overwhelming player",
+        "Performance with many active monsters on screen",
+        "Integration with existing game loop timing"
+      ],
+      "notes": "Main risks are gameplay feel and performance tuning, not technical complexity. No security or data integrity concerns for client-side game logic."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Game logic with spawn rates, physics calculations, and multiple entity types requires unit tests for spawn logic/difficulty progression and integration tests for physics behavior. No security implications for client-side game mechanics."
+  },
+
+  "created_at": "2025-12-29T00:00:00.000Z"
+}

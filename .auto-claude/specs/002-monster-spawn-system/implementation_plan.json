@@ -1,0 +1,383 @@
+{
+  "feature": "Monster Spawn System",
+  "description": "Enhance the existing SpawnSystem with externalized configuration, multi-edge spawning, and object pooling to create a robust, tunable monster spawn system similar to Fruit Ninja.",
+  "created_at": "2025-12-29T18:29:01.721Z",
+  "updated_at": "2025-12-29T19:00:00.000Z",
+  "status": "in_progress",
+  "analysis": {
+    "existing_code": {
+      "SpawnSystem.ts": "Core spawn logic exists with monster spawning, weighted selection, trajectory physics, and difficulty progression. Needs refactoring to externalize config and add multi-edge spawning.",
+      "Monster.ts": "Base monster class with physics, gravity, and off-screen cleanup already implemented.",
+      "GameplayScene.ts": "SpawnSystem already integrated into game loop.",
+      "ObjectPool.ts": "Generic object pooling utility exists but not yet used by SpawnSystem.",
+      "helpers.ts": "weightedRandom, calculateLaunchVelocity, randomInt, randomFloat already implemented."
+    },
+    "gaps_to_address": [
+      "No dedicated SpawnConfig.ts file - config is hardcoded in SpawnSystem",
+      "Monster type weights differ from spec (80/15/5 vs 50/30/20)",
+      "Multi-edge spawning (left/right) only enabled for Ghost Realm pattern, not default",
+      "Spawn interval progression goes to 500ms, spec says 800-1200ms",
+      "Object pooling not utilized despite ObjectPool utility existing",
+      "No unit tests for spawn system"
+    ]
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Configuration Infrastructure",
+      "description": "Create externalized SpawnConfig.ts with all tunable parameters",
+      "subtasks": [
+        {
+          "id": "1.1",
+          "title": "Create SpawnConfig.ts",
+          "description": "Create a new configuration file at src/config/SpawnConfig.ts with all spawn-related parameters including timing, monster weights, physics constants, and spawn edge definitions. Match the interface defined in the spec.",
+          "file": "src/config/SpawnConfig.ts",
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "SpawnConfig interface matches spec schema",
+            "Default values set: initialSpawnInterval=2000ms, finalSpawnInterval=1000ms, progressionDuration=60000ms",
+            "Monster weights: zombie=50, vampire=30, ghost=20",
+            "Gravity=800, launch angle range defined",
+            "All edges enabled by default: bottom, left, right",
+            "Export both interface and default config"
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "Add SpawnConfig types to types.ts",
+          "description": "Add or verify SpawnConfig-related types in src/config/types.ts for type safety. May need to extend existing types.",
+          "file": "src/config/types.ts",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "SpawnEdge enum/type defined (bottom, left, right)",
+            "MonsterSpawnConfig interface defined",
+            "Full type coverage for config options"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Multi-Edge Spawn System",
+      "description": "Update SpawnSystem to support spawning from bottom, left, and right edges by default",
+      "subtasks": [
+        {
+          "id": "2.1",
+          "title": "Refactor spawn position calculation",
+          "description": "Update SpawnSystem.spawnMonster() to calculate spawn positions for all enabled edges, not just bottom. Implement edge selection logic that randomly picks from enabled edges.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "Spawn positions calculated for bottom, left, and right edges",
+            "Edge selection is random among enabled edges",
+            "Left/right edge monsters have appropriate horizontal velocity (toward center)",
+            "Bottom edge monsters maintain current arc trajectory",
+            "Spawn X/Y positions respect screen bounds and edgeMargin config"
+          ]
+        },
+        {
+          "id": "2.2",
+          "title": "Update trajectory calculation for side spawns",
+          "description": "Ensure monsters spawned from left/right edges have correct trajectory toward screen center with appropriate arc height. May need to adjust calculateLaunchVelocity usage.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "Left-edge monsters arc toward right side of screen",
+            "Right-edge monsters arc toward left side of screen",
+            "Arc peak height is consistent regardless of spawn edge",
+            "Visual trajectory looks natural for all spawn directions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Configuration Integration",
+      "description": "Refactor SpawnSystem to use externalized SpawnConfig instead of hardcoded values",
+      "subtasks": [
+        {
+          "id": "3.1",
+          "title": "Update SpawnSystem constructor",
+          "description": "Modify SpawnSystem constructor to accept SpawnConfig as parameter. Initialize all internal values from config instead of hardcoded defaults.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "Constructor accepts optional SpawnConfig parameter",
+            "Falls back to DEFAULT_SPAWN_CONFIG if not provided",
+            "All hardcoded values replaced with config references",
+            "Config can be changed at runtime via setter method"
+          ]
+        },
+        {
+          "id": "3.2",
+          "title": "Update monster type weights",
+          "description": "Change default monster weights from current 80/15/5 to spec-defined 50/30/20. Use weights from SpawnConfig for weighted random selection.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "getMonsterWeights() uses config values",
+            "Default weights are 50/30/20 (zombie/vampire/ghost)",
+            "Time-based weight progression removed or made configurable",
+            "Weighted selection produces expected distribution"
+          ]
+        },
+        {
+          "id": "3.3",
+          "title": "Update difficulty progression",
+          "description": "Adjust spawn interval progression to match spec (2000ms -> 800-1200ms over 60s). Use config values for initialSpawnInterval, finalSpawnInterval, and progressionDuration.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "Initial spawn interval: 2000ms (from config)",
+            "Final spawn interval: 1000ms (from config)",
+            "Progression duration: 60000ms (from config)",
+            "Linear interpolation between initial and final",
+            "No sudden jumps in spawn rate"
+          ]
+        },
+        {
+          "id": "3.4",
+          "title": "Update GameplayScene to pass config",
+          "description": "Modify GameplayScene to instantiate SpawnSystem with SpawnConfig. Allow level-specific configs to override defaults.",
+          "file": "src/scenes/GameplayScene.ts",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "SpawnSystem instantiated with DEFAULT_SPAWN_CONFIG",
+            "Campaign mode can override with level-specific config",
+            "Config changes reflected in spawn behavior"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Object Pooling",
+      "description": "Integrate ObjectPool utility with SpawnSystem for improved performance",
+      "subtasks": [
+        {
+          "id": "4.1",
+          "title": "Create monster pools",
+          "description": "Create object pools for each monster type (Zombie, Vampire, Ghost) using the existing ObjectPool/PhaserPool utility. Pre-populate pools on system initialization.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "Separate pools for Zombie, Vampire, Ghost",
+            "Pools pre-warmed with configurable initial size",
+            "Pool size limits configurable",
+            "Monsters retrieved from pool instead of new instantiation"
+          ]
+        },
+        {
+          "id": "4.2",
+          "title": "Implement monster reset method",
+          "description": "Add reset() method to Monster base class that resets all state for reuse. Ensure physics body, effects, and visual state are properly reset.",
+          "file": "src/entities/Monster.ts",
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "reset() method resets position, velocity, health, effects",
+            "isSliced flag reset to false",
+            "Physics body re-enabled and configured",
+            "Visual state (tint, scale, alpha) reset",
+            "Compatible with ObjectPool reset callback"
+          ]
+        },
+        {
+          "id": "4.3",
+          "title": "Update spawn logic to use pools",
+          "description": "Modify spawnMonster() to retrieve monsters from pools instead of creating new instances. Update monster tracking to work with pooled objects.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "spawnMonster() gets monster from appropriate pool",
+            "Falls back to new instance if pool exhausted",
+            "Monster returned to pool when destroyed/cleanup",
+            "Active monster tracking works with pooled objects"
+          ]
+        },
+        {
+          "id": "4.4",
+          "title": "Update cleanup to return to pools",
+          "description": "Modify monster cleanup logic to return monsters to pools instead of destroying. Update clearEntities() and related methods.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "Off-screen monsters returned to pool",
+            "Sliced monsters returned to pool after death animation",
+            "clearEntities() returns all monsters to pools",
+            "Scene shutdown properly handles pool cleanup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Testing & Verification",
+      "description": "Write unit tests and verify all functionality",
+      "subtasks": [
+        {
+          "id": "5.1",
+          "title": "Create SpawnSystem unit tests",
+          "description": "Write unit tests for MonsterSpawner/SpawnSystem covering initialization, weighted type selection, spawn rate progression, and edge position calculation.",
+          "file": "src/systems/__tests__/SpawnSystem.test.ts",
+          "status": "pending",
+          "estimated_effort": "large",
+          "acceptance_criteria": [
+            "Test spawner initializes with config values",
+            "Test weighted selection produces ~50/30/20 distribution over 1000 iterations",
+            "Test spawn interval decreases linearly over progression duration",
+            "Test spawn positions are within screen bounds and on edges",
+            "Test pause/resume functionality"
+          ]
+        },
+        {
+          "id": "5.2",
+          "title": "Create SpawnConfig unit tests",
+          "description": "Write unit tests for SpawnConfig validation and default values.",
+          "file": "src/config/__tests__/SpawnConfig.test.ts",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "Test default config values match spec",
+            "Test config interface type safety",
+            "Test config validation (if implemented)"
+          ]
+        },
+        {
+          "id": "5.3",
+          "title": "Manual browser verification",
+          "description": "Perform manual testing in browser to verify visual quality, spawn behavior, and performance.",
+          "file": null,
+          "status": "pending",
+          "estimated_effort": "medium",
+          "acceptance_criteria": [
+            "Monsters spawn from all three edges",
+            "Arc trajectories look natural",
+            "Spawn rate visibly increases over time",
+            "All three monster types appear",
+            "60 FPS maintained with 15+ monsters",
+            "No console errors"
+          ]
+        },
+        {
+          "id": "5.4",
+          "title": "TypeScript type checking",
+          "description": "Run TypeScript compiler to verify no type errors in modified files.",
+          "file": null,
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "npm run typecheck passes with no errors",
+            "All new types properly exported and imported",
+            "No implicit any types"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Documentation & Cleanup",
+      "description": "Final documentation and code cleanup",
+      "subtasks": [
+        {
+          "id": "6.1",
+          "title": "Update code comments",
+          "description": "Ensure all new and modified functions have proper JSDoc comments explaining parameters, return values, and behavior.",
+          "file": "src/systems/SpawnSystem.ts",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "All public methods have JSDoc comments",
+            "SpawnConfig interface documented",
+            "Complex logic has inline comments"
+          ]
+        },
+        {
+          "id": "6.2",
+          "title": "Update build-progress.txt",
+          "description": "Document implementation completion in build-progress.txt with summary of changes made.",
+          "file": ".auto-claude/specs/002-monster-spawn-system/build-progress.txt",
+          "status": "pending",
+          "estimated_effort": "small",
+          "acceptance_criteria": [
+            "Summary of all changes made",
+            "List of files created/modified",
+            "Any known limitations or future improvements noted"
+          ]
+        }
+      ]
+    }
+  ],
+  "dependencies": {
+    "external": [
+      "phaser@3.80.1 - Game engine with built-in physics"
+    ],
+    "internal": [
+      "src/entities/Monster.ts - Base monster class",
+      "src/entities/Zombie.ts - Zombie monster type",
+      "src/entities/Vampire.ts - Vampire monster type",
+      "src/entities/Ghost.ts - Ghost monster type",
+      "src/utils/ObjectPool.ts - Object pooling utility",
+      "src/utils/helpers.ts - weightedRandom, calculateLaunchVelocity",
+      "src/config/constants.ts - GRAVITY, GAME_WIDTH, GAME_HEIGHT"
+    ]
+  },
+  "risks": [
+    {
+      "risk": "Breaking existing gameplay",
+      "mitigation": "Keep existing SpawnSystem API compatible, only extend with new features",
+      "severity": "medium"
+    },
+    {
+      "risk": "Object pooling complexity with Monster subclasses",
+      "mitigation": "Ensure reset() method properly handles all subclass-specific state",
+      "severity": "low"
+    },
+    {
+      "risk": "Performance regression with multi-edge spawning",
+      "mitigation": "Profile before and after, use object pooling",
+      "severity": "low"
+    }
+  ],
+  "qa_checklist": {
+    "unit_tests": [
+      "SpawnSystem initialization with config",
+      "Weighted type selection distribution",
+      "Spawn rate progression over time",
+      "Edge position calculation bounds checking"
+    ],
+    "integration_tests": [
+      "Spawner integrates with GameScene lifecycle",
+      "Spawned monsters have correct physics",
+      "Config values applied correctly"
+    ],
+    "browser_verification": [
+      "Monsters spawn from all edges",
+      "Arc trajectories are smooth",
+      "Spawn rate increases visibly",
+      "All monster types appear",
+      "60 FPS with 15+ monsters"
+    ],
+    "performance_checks": [
+      "Frame rate consistent during spawns",
+      "Memory usage stable over 5 minutes",
+      "Object pool prevents memory growth"
+    ]
+  },
+  "qa_signoff": {
+    "status": "pending",
+    "tests_passed": null,
+    "issues": null
+  }
+}

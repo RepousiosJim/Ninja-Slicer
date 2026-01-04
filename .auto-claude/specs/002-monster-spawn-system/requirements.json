@@ -1,0 +1,4 @@
+{
+  "task_description": "# Monster Spawn System\n\nImplement the spawning system that launches monsters from screen edges with varying trajectories, speeds, and spawn rates based on difficulty progression.\n\n## Rationale\nMonsters need to appear in a natural, game-like manner (similar to fruit in Fruit Ninja). Proper arc trajectories and varied spawn patterns keep gameplay dynamic.\n\n## User Stories\n- As a player, I want monsters to fly up from the edges in satisfying arcs so that I can anticipate and slash them\n\n## Acceptance Criteria\n- [ ] Monsters spawn from bottom/sides of screen with arc trajectories\n- [ ] Spawn rate increases gradually within a level\n- [ ] Multiple monster types (Zombie, Vampire, Ghost) spawn with different frequencies\n- [ ] Monsters have gravity and fall back down after reaching peak\n- [ ] Spawn patterns feel natural and not overwhelming\n",
+  "workflow_type": "feature"
+}
