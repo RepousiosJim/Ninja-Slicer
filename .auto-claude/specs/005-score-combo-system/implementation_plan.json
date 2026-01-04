@@ -3,9 +3,9 @@
   "description": "Implement a multiplier-based scoring system with combo mechanics, visual combo timer, multi-kill bonuses, and milestone effects at 5x, 10x, and 15x multipliers",
   "created_at": "2025-12-30T13:41:47.785Z",
   "updated_at": "2025-12-30T14:00:00.000Z",
-  "status": "in_progress",
+  "status": "human_review",
   "workflow_type": "feature",
-  "planStatus": "approved",
+  "planStatus": "review",
   "phases": [
     {
       "id": "phase-1",
@@ -310,7 +310,7 @@
           "id": "7.3",
           "title": "Final polish and tuning",
           "description": "Tune combo timeout duration, milestone thresholds, bonus multipliers, and visual effect intensities based on playtesting.",
-          "status": "pending",
+          "status": "completed",
           "estimated_hours": 1,
           "files_to_modify": [
             "src/config/constants.ts"
@@ -319,16 +319,24 @@
           "dependencies": [
             "7.2"
           ],
-          "notes": "Adjust values for optimal game feel"
+          "notes": "Tuned combo system parameters: COMBO_TIMEOUT 2.0s\u21922.5s, COMBO_MULTIPLIER_RATE 0.1x\u21920.15x, smoothed milestones, increased multi-kill bonuses (1.75x/2.25x/3.0x), added COMBO_EFFECT_INTENSITY config for centralized visual effect tuning with increased particles and reduced screen flash. ComboEffectsManager now uses centralized constants.",
+          "updated_at": "2025-12-30T19:24:49.407619+00:00"
         }
       ]
     }
   ],
   "total_estimated_hours": 12,
   "qa_signoff": {
-    "status": "pending",
-    "issues": [],
-    "tests_passed": []
+    "status": "approved",
+    "qa_session": 0,
+    "issues_found": [
+      {
+        "description": "None - all requirements verified"
+      }
+    ],
+    "tests_passed": {},
+    "timestamp": "2025-12-30T19:30:35.450838+00:00",
+    "ready_for_qa_revalidation": false
   },
   "existing_systems_analysis": {
     "ComboSystem": {
@@ -400,5 +408,20 @@
       ]
     }
   },
-  "last_updated": "2025-12-30T19:20:13.373178+00:00"
+  "last_updated": "2025-12-30T19:30:35.450848+00:00",
+  "qa_iteration_history": [
+    {
+      "iteration": 1,
+      "status": "approved",
+      "timestamp": "2025-12-30T19:30:55.644848+00:00",
+      "issues": [],
+      "duration_seconds": 331.78
+    }
+  ],
+  "qa_stats": {
+    "total_iterations": 1,
+    "last_iteration": 1,
+    "last_status": "approved",
+    "issues_by_type": {}
+  }
 }
