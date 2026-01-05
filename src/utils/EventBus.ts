@@ -10,15 +10,15 @@
  *   // Emit an event
  *   EventBus.emit('player-died', { score: 1000 });
  *
- *     // Listen for an event
-  *   EventBus.on('player-died', (data) => { debugLog(data.score); });
+ *   // Listen for an event
+ *   EventBus.on('player-died', (data) => { console.log(data.score); });
  *
  *   // Remove listener (important for cleanup!)
  *   EventBus.off('player-died', myCallback);
  */
 
 import Phaser from 'phaser';
-import type {
+import {
   SlashEnergyChangedEvent,
   SlashPowerChangedEvent,
   SlashPatternDetectedEvent,

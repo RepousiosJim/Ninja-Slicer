@@ -4,7 +4,7 @@
  * Displays game information such as score, lives, combo, souls, and power-up indicators.
  */
 
-import type Phaser from 'phaser';
+import Phaser from 'phaser';
 import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT, SLASH_ENERGY } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { EventBus } from '../utils/EventBus';
@@ -45,19 +45,6 @@ export class HUD {
   private energyBarLabel!: Phaser.GameObjects.Text;
   private currentEnergy: number = SLASH_ENERGY.maxEnergy;
 
-  /**
-   * Initialize HUD with scene reference
-   * Call create() after constructor to build UI elements
-   * 
-   * @param scene - The Phaser scene this HUD belongs to
-   * 
-   * @example
-   * ```typescript
-   * const hud = new HUD(this);
-   * hud.create();
-   * hud.showTimer(true);
-   * ```
-   */
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
   }
@@ -482,6 +469,10 @@ export class HUD {
     this.eventListeners.forEach(({ event, handler }) => {
       EventBus.on(event, handler);
     });
+
+    EventBus.on('slash-energy-changed', (data: { current: number; max: number }) => {
+      this.updateEnergy(data.current, data.max);
+    });
   }
 
   /**
@@ -735,7 +726,68 @@ export class HUD {
    * hud.updatePauseState(false);
    * ```
    */
-  updatePauseState(isPaused: boolean): void {
+  destroy(): void {
+    // Remove event listeners
+    EventBus.off('score-updated');
+    EventBus.off('souls-updated');
+    EventBus.off('combo-updated');
+    EventBus.off('lives-changed');
+    EventBus.off('powerup-activated');
+    EventBus.off('powerup-ended');
+    EventBus.off('slash-energy-changed');
+
+    // Destroy all elements
+    if (this.scoreText) {
+      this.scoreText.destroy();
+    }
+    if (this.scoreLabel) {
+      this.scoreLabel.destroy();
+    }
+    if (this.livesContainer) {
+      this.livesContainer.destroy();
+    }
+    if (this.comboText) {
+      this.comboText.destroy();
+    }
+    if (this.comboLabel) {
+      this.comboLabel.destroy();
+    }
+    if (this.soulsText) {
+      this.soulsText.destroy();
+    }
+    if (this.soulsLabel) {
+      this.soulsLabel.destroy();
+    }
+    if (this.soulsIcon) {
+      this.soulsIcon.destroy();
+    }
+    if (this.powerUpContainer) {
+      this.powerUpContainer.destroy();
+    }
+    
+    // Destroy campaign mode elements
+    if (this.timerLabel) {
+      this.timerLabel.destroy();
+    }
+    if (this.timerText) {
+      this.timerText.destroy();
+    }
+    if (this.killQuotaLabel) {
+      this.killQuotaLabel.destroy();
+    }
+    if (this.killQuotaText) {
+      this.killQuotaText.destroy();
+    }
+    if (this.bossHealthBarContainer) {
+      this.bossHealthBarContainer.destroy();
+    }
+
+    // Destroy energy bar elements
+    if (this.energyBarContainer) {
+      this.energyBarContainer.destroy();
+    }
+
+    // Destroy pause button
     if (this.pauseButton) {
       this.pauseButton.setActive(!isPaused);
       this.pauseButton.setVisible(!isPaused);

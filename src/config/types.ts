@@ -74,12 +74,7 @@ export enum SlashPatternType {
   CIRCLE = 'circle',
   ZIGZAG = 'zigzag',
   STRAIGHT = 'straight',
-  HORIZONTAL = 'horizontal',
-  VERTICAL = 'vertical',
-  SLASH_DOWN = 'slash_down',
-  SLASH_UP = 'slash_up',
 }
- 
 
 // =============================================================================
 // SAVE DATA
@@ -387,9 +382,7 @@ export interface SlashPatternState {
 
 export interface SlashPatternResult {
   pattern: SlashPatternType;
-  type: SlashPatternType; // alias for compatibility
   confidence: number;
-  difficulty: number; // 1-5 scale
   points: SlashPatternPoint[];
   center?: Vector2;
   radius?: number;

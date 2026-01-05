@@ -12,6 +12,11 @@ import type { SlashPatternPoint, SlashPatternResult, Vector2 } from '../config/t
 import { SlashPatternType } from '../config/types';
 import { SLASH_PATTERN } from '../config/constants';
 
+// Pattern recognition imports
+import type { SlashPatternPoint, SlashPatternResult, Vector2 } from '../config/types';
+import { SlashPatternType } from '../config/types';
+import { SLASH_PATTERN } from '../config/constants';
+
 // =============================================================================
 // MATH HELPERS
 // =============================================================================
@@ -412,6 +417,38 @@ export function perpendicularDistance(
   return distance(point.x, point.y, nearestX, nearestY);
 }
 
+// =============================================================================
+// PATTERN RECOGNITION HELPERS
+// =============================================================================
+
+/**
+ * Perpendicular distance from a point to a line segment
+ * Used by Douglas-Peucker algorithm
+ */
+export function perpendicularDistance(
+  point: { x: number; y: number },
+  lineStart: { x: number; y: number },
+  lineEnd: { x: number; y: number }
+): number {
+  const dx = lineEnd.x - lineStart.x;
+  const dy = lineEnd.y - lineStart.y;
+
+  // If the line is a point, return distance to that point
+  const lineLengthSq = dx * dx + dy * dy;
+  if (lineLengthSq === 0) {
+    return distance(point.x, point.y, lineStart.x, lineStart.y);
+  }
+
+  // Calculate perpendicular distance
+  const t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / lineLengthSq;
+  const clampedT = clamp(t, 0, 1);
+
+  const nearestX = lineStart.x + clampedT * dx;
+  const nearestY = lineStart.y + clampedT * dy;
+
+  return distance(point.x, point.y, nearestX, nearestY);
+}
+
 /**
  * Douglas-Peucker algorithm for path simplification
  * Reduces the number of points while preserving the general shape
@@ -421,9 +458,9 @@ export function perpendicularDistance(
  */
 export function douglasPeucker<T extends { x: number; y: number }>(
   points: T[],
-  epsilon: number,
+  epsilon: number
 ): T[] {
-  if (points.length <3) {
+  if (points.length < 3) {
     return points;
   }
 
@@ -489,7 +526,7 @@ export function calculateCentroid(points: { x: number; y: number }[]): Vector2 {
  */
 export function angleBetweenPoints(
   p1: { x: number; y: number },
-  p2: { x: number; y: number },
+  p2: { x: number; y: number }
 ): number {
   return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
 }
@@ -531,13 +568,11 @@ export function pathLength(points: { x: number; y: number }[]): number {
  * - Minimum radius threshold met
  */
 export function detectCirclePattern(
-  points: SlashPatternPoint[],
+  points: SlashPatternPoint[]
 ): SlashPatternResult {
   const result: SlashPatternResult = {
     pattern: SlashPatternType.NONE,
-    type: SlashPatternType.NONE,
     confidence: 0,
-    difficulty: 0,
     points: points,
   };
 
@@ -554,10 +589,8 @@ export function detectCirclePattern(
 
   // Check if start and end points are close (closed loop)
   const closureDistance = distance(
-    firstPoint.x,
-    firstPoint.y,
-    lastPoint.x,
-    lastPoint.y,
+    firstPoint.x, firstPoint.y,
+    lastPoint.x, lastPoint.y
   );
 
   if (closureDistance > SLASH_PATTERN.circleClosureThreshold) {
@@ -586,42 +619,128 @@ export function detectCirclePattern(
   // Calculate variance from mean radius
   let varianceSum = 0;
   for (const dist of distances) {
-    varianceSum += (dist - meanRadius) ** 2;
+    const deviation = Math.abs(dist - meanRadius) / meanRadius;
+    varianceSum += deviation;
   }
-  const variance = varianceSum / distances.length;
+  const averageVariance = varianceSum / distances.length;
 
-  // Calculate confidence (lower variance = higher confidence)
-  const radiusDeviation = Math.sqrt(variance);
-  const radiusDevPercent = radiusDeviation / meanRadius;
-
-  if (radiusDevPercent < SLASH_PATTERN.circleVarianceThreshold) {
-    result.pattern = SlashPatternType.CIRCLE;
-    result.type = SlashPatternType.CIRCLE;
-    result.difficulty = 3;
-    result.confidence = Math.max(0, 1 - radiusDevPercent / SLASH_PATTERN.circleVarianceThreshold);
+  // Check if variance is within acceptable threshold
+  if (averageVariance > SLASH_PATTERN.circleMaxRadiusVariance) {
+    return result;
   }
+
+  // Calculate confidence based on closure distance and radius variance
+  const closureConfidence = 1 - (closureDistance / SLASH_PATTERN.circleClosureThreshold);
+  const varianceConfidence = 1 - (averageVariance / SLASH_PATTERN.circleMaxRadiusVariance);
+
+  result.pattern = SlashPatternType.CIRCLE;
+  result.confidence = (closureConfidence + varianceConfidence) / 2;
 
   return result;
 }
 
 /**
- * Detect if points form a horizontal line pattern
+ * Detect if points form a zigzag pattern
  * Criteria:
- * - Points form a generally horizontal line
+ * - Multiple significant direction changes
+ * - Each segment has minimum length
+ * - Alternating direction changes
+ */
+export function detectZigzagPattern(
+  points: SlashPatternPoint[]
+): SlashPatternResult {
+  const result: SlashPatternResult = {
+    pattern: SlashPatternType.NONE,
+    confidence: 0,
+    points: points,
+    directionChanges: 0,
+  };
+
+  if (points.length < SLASH_PATTERN.minPointsForDetection) {
+    return result;
+  }
+
+  // Simplify the path first to get key direction changes
+  const simplified = douglasPeucker(points, SLASH_PATTERN.zigzagMinSegmentLength / 2);
+
+  if (simplified.length < 4) {
+    return result;
+  }
+
+  // Calculate angles between consecutive segments
+  const angles: number[] = [];
+  for (let i = 0; i < simplified.length - 1; i++) {
+    const curr = simplified[i];
+    const next = simplified[i + 1];
+    if (!curr || !next) continue;
+
+    angles.push(angleBetweenPoints(curr, next));
+  }
+
+  // Count significant direction changes
+  let directionChanges = 0;
+  let lastChangeDirection: 'left' | 'right' | null = null;
+
+  for (let i = 1; i < angles.length; i++) {
+    const prevAngle = angles[i - 1];
+    const currAngle = angles[i];
+
+    if (prevAngle === undefined || currAngle === undefined) continue;
+
+    const angleDiff = angleDifference(prevAngle, currAngle);
+
+    if (angleDiff >= SLASH_PATTERN.zigzagAngleThreshold) {
+      // Determine direction of change
+      const normalizedDiff = ((currAngle - prevAngle) + 360) % 360;
+      const currentDirection = normalizedDiff > 180 ? 'left' : 'right';
+
+      // For zigzag, direction should alternate
+      if (lastChangeDirection === null || currentDirection !== lastChangeDirection) {
+        directionChanges++;
+        lastChangeDirection = currentDirection;
+      }
+    }
+  }
+
+  result.directionChanges = directionChanges;
+
+  // Check minimum direction changes
+  if (directionChanges < SLASH_PATTERN.zigzagMinDirectionChanges) {
+    return result;
+  }
+
+  // Calculate confidence based on number of direction changes
+  const minChanges = SLASH_PATTERN.zigzagMinDirectionChanges;
+  const maxChanges = minChanges * 2; // Higher confidence for more zigzags
+  const changeConfidence = clamp((directionChanges - minChanges) / (maxChanges - minChanges), 0, 1);
+
+  // Also consider path length - zigzag should cover reasonable distance
+  const totalLength = pathLength(points);
+  const lengthConfidence = clamp(totalLength / (SLASH_PATTERN.zigzagMinSegmentLength * 4), 0, 1);
+
+  result.pattern = SlashPatternType.ZIGZAG;
+  result.confidence = (changeConfidence * 0.7) + (lengthConfidence * 0.3);
+
+  return result;
+}
+
+/**
+ * Detect if points form a straight line pattern
+ * Criteria:
+ * - Minimal deviation from ideal line between start and end
  * - Minimum length threshold met
  */
-export function detectHorizontalLinePattern(
-  points: SlashPatternPoint[],
+export function detectStraightPattern(
+  points: SlashPatternPoint[]
 ): SlashPatternResult {
   const result: SlashPatternResult = {
     pattern: SlashPatternType.NONE,
-    type: SlashPatternType.NONE,
     confidence: 0,
-    difficulty: 0,
     points: points,
+    straightLineDeviation: 0,
   };
 
-  if (points.length < SLASH_PATTERN.minPointsForDetection) {
+  if (points.length < 3) {
     return result;
   }
 
@@ -632,315 +751,105 @@ export function detectHorizontalLinePattern(
     return result;
   }
 
-  // Calculate line angle
-  const angle = angleBetweenPoints(firstPoint, lastPoint);
-  const normalizedAngle = angle < 0 ? angle + 360 : angle;
-
-  // Check if roughly horizontal (0-30 degrees or 150-210 degrees)
-  const isHorizontal =
-    (normalizedAngle < SLASH_PATTERN.horizontalAngleTolerance) ||
-    (normalizedAngle > 180 - SLASH_PATTERN.horizontalAngleTolerance &&
-      normalizedAngle < 180 + SLASH_PATTERN.horizontalAngleTolerance) ||
-    (normalizedAngle > 360 - SLASH_PATTERN.horizontalAngleTolerance);
-
-  if (!isHorizontal) {
-    return result;
-  }
-
-  // Calculate path length
-  const length = pathLength(points);
-
-  if (length < SLASH_PATTERN.horizontalMinLength) {
-    return result;
-  }
-
-  // Calculate deviation from the best-fit horizontal line
-  let deviationSum = 0;
-  const avgY = (firstPoint.y + lastPoint.y) / 2;
-
-  for (const point of points) {
-    deviationSum += Math.abs(point.y - avgY);
-  }
-
-  const avgDeviation = deviationSum / points.length;
-  const maxDeviation = Math.max(
-    Math.abs(firstPoint.y - avgY),
-    Math.abs(lastPoint.y - avgY),
+  // Calculate line length
+  const lineLength = distance(
+    firstPoint.x, firstPoint.y,
+    lastPoint.x, lastPoint.y
   );
 
-  // Confidence based on deviation (lower = better)
-  const deviationThreshold = SLASH_PATTERN.horizontalVarianceThreshold * length;
-  if (maxDeviation <= deviationThreshold) {
-    result.pattern = SlashPatternType.HORIZONTAL;
-    result.type = SlashPatternType.HORIZONTAL;
-    result.difficulty = 1;
-    result.confidence = Math.max(
-      0,
-      1 - (avgDeviation / deviationThreshold) * 0.5,
-    );
-  }
-
-  return result;
-}
-
-/**
- * Detect if points form a vertical line pattern
- * Criteria:
- * - Points form a generally vertical line
- * - Minimum length threshold met
- */
-export function detectVerticalLinePattern(
-  points: SlashPatternPoint[],
-): SlashPatternResult {
-  const result: SlashPatternResult = {
-    pattern: SlashPatternType.NONE,
-    type: SlashPatternType.NONE,
-    confidence: 0,
-    difficulty: 0,
-    points: points,
-  };
-
-  if (points.length < SLASH_PATTERN.minPointsForDetection) {
+  // Check minimum length
+  if (lineLength < SLASH_PATTERN.straightLineMinLength) {
     return result;
   }
 
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
+  // Calculate average perpendicular distance from the ideal line
+  let totalDeviation = 0;
+  let maxDeviation = 0;
 
-  if (!firstPoint || !lastPoint) {
+  for (let i = 1; i < points.length - 1; i++) {
+    const point = points[i];
+    if (!point) continue;
+
+    const deviation = perpendicularDistance(point, firstPoint, lastPoint);
+    totalDeviation += deviation;
+    maxDeviation = Math.max(maxDeviation, deviation);
+  }
+
+  const averageDeviation = totalDeviation / (points.length - 2);
+  result.straightLineDeviation = averageDeviation;
+
+  // Check if deviation is within threshold
+  if (maxDeviation > SLASH_PATTERN.straightLineMaxDeviation * 2) {
+    // Max deviation too high
     return result;
   }
 
-  // Calculate line angle
-  const angle = angleBetweenPoints(firstPoint, lastPoint);
-  const normalizedAngle = angle < 0 ? angle + 360 : angle;
-
-  // Check if roughly vertical (60-120 degrees or 240-300 degrees)
-  const isVertical =
-    (normalizedAngle > 90 - SLASH_PATTERN.verticalAngleTolerance &&
-      normalizedAngle < 90 + SLASH_PATTERN.verticalAngleTolerance) ||
-    (normalizedAngle > 270 - SLASH_PATTERN.verticalAngleTolerance &&
-      normalizedAngle < 270 + SLASH_PATTERN.verticalAngleTolerance);
-
-  if (!isVertical) {
+  if (averageDeviation > SLASH_PATTERN.straightLineMaxDeviation) {
     return result;
   }
 
-  // Calculate path length
-  const length = pathLength(points);
-
-  if (length < SLASH_PATTERN.verticalMinLength) {
-    return result;
-  }
-
-  // Calculate deviation from the best-fit vertical line
-  let deviationSum = 0;
-  const avgX = (firstPoint.x + lastPoint.x) / 2;
-
-  for (const point of points) {
-    deviationSum += Math.abs(point.x - avgX);
-  }
-
-  const avgDeviation = deviationSum / points.length;
-  const maxDeviation = Math.max(
-    Math.abs(firstPoint.x - avgX),
-    Math.abs(lastPoint.x - avgX),
+  // Calculate confidence based on deviation and length
+  const deviationConfidence = 1 - (averageDeviation / SLASH_PATTERN.straightLineMaxDeviation);
+  const lengthConfidence = clamp(
+    (lineLength - SLASH_PATTERN.straightLineMinLength) / SLASH_PATTERN.straightLineMinLength,
+    0,
+    1
   );
 
-  // Confidence based on deviation (lower = better)
-  const deviationThreshold = SLASH_PATTERN.verticalVarianceThreshold * length;
-  if (maxDeviation <= deviationThreshold) {
-    result.pattern = SlashPatternType.VERTICAL;
-    result.type = SlashPatternType.VERTICAL;
-    result.difficulty = 1;
-    result.confidence = Math.max(
-      0,
-      1 - (avgDeviation / deviationThreshold) * 0.5,
-    );
-  }
+  result.pattern = SlashPatternType.STRAIGHT;
+  result.confidence = (deviationConfidence * 0.7) + (lengthConfidence * 0.3);
 
-  return result;
-}
-
-/**
- * Detect if points form a diagonal slash pattern (top-left to bottom-right)
- */
-export function detectSlashDownPattern(
-  points: SlashPatternPoint[],
-): SlashPatternResult {
-  const result: SlashPatternResult = {
-    pattern: SlashPatternType.NONE,
-    type: SlashPatternType.NONE,
-    confidence: 0,
-    difficulty: 0,
-    points: points,
+  // Calculate center point of the line
+  result.center = {
+    x: (firstPoint.x + lastPoint.x) / 2,
+    y: (firstPoint.y + lastPoint.y) / 2,
   };
 
-  if (points.length < SLASH_PATTERN.minPointsForDetection) {
-    return result;
-  }
-
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
-
-  if (!firstPoint || !lastPoint) {
-    return result;
-  }
-
-  // Calculate line angle
-  const angle = angleBetweenPoints(firstPoint, lastPoint);
-  const normalizedAngle = angle < 0 ? angle + 360 : angle;
-
-  // Check if roughly diagonal (315-45 degrees or similar range)
-  const isDiagonal =
-    (normalizedAngle > 360 - SLASH_PATTERN.slashAngleTolerance) ||
-    (normalizedAngle < SLASH_PATTERN.slashAngleTolerance) ||
-    (normalizedAngle > 180 - SLASH_PATTERN.slashAngleTolerance &&
-      normalizedAngle < 180 + SLASH_PATTERN.slashAngleTolerance);
-
-  if (!isDiagonal) {
-    return result;
-  }
-
-  // Must go from top-left to bottom-right or vice versa
-  const dx = lastPoint.x - firstPoint.x;
-  const dy = lastPoint.y - firstPoint.y;
-
-  if ((dx > 0 && dy > 0) || (dx < 0 && dy < 0)) {
-    // This is a valid slash-down pattern
-    const length = pathLength(points);
-
-    if (length >= SLASH_PATTERN.slashMinLength) {
-      result.pattern = SlashPatternType.SLASH_DOWN;
-      result.type = SlashPatternType.SLASH_DOWN;
-      result.difficulty = 2;
-      result.confidence = 0.8;
-    }
-  }
-
   return result;
 }
 
 /**
- * Detect if points form a diagonal slash pattern (top-right to bottom-left)
- */
-export function detectSlashUpPattern(
-  points: SlashPatternPoint[],
-): SlashPatternResult {
-  const result: SlashPatternResult = {
-    pattern: SlashPatternType.NONE,
-    type: SlashPatternType.NONE,
-    confidence: 0,
-    difficulty: 0,
-    points: points,
-  };
-
-  if (points.length < SLASH_PATTERN.minPointsForDetection) {
-    return result;
-  }
-
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
-
-  if (!firstPoint || !lastPoint) {
-    return result;
-  }
-
-  // Calculate line angle
-  const angle = angleBetweenPoints(firstPoint, lastPoint);
-  const normalizedAngle = angle < 0 ? angle + 360 : angle;
-
-  // Check if roughly diagonal (135-225 degrees range)
-  const isDiagonal =
-    normalizedAngle > 135 - SLASH_PATTERN.slashAngleTolerance &&
-    normalizedAngle < 225 + SLASH_PATTERN.slashAngleTolerance;
-
-  if (!isDiagonal) {
-    return result;
-  }
-
-  // Must go from top-right to bottom-left or vice versa
-  const dx = lastPoint.x - firstPoint.x;
-  const dy = lastPoint.y - firstPoint.y;
-
-  if ((dx < 0 && dy > 0) || (dx > 0 && dy < 0)) {
-    // This is a valid slash-up pattern
-    const length = pathLength(points);
-
-    if (length >= SLASH_PATTERN.slashMinLength) {
-      result.pattern = SlashPatternType.SLASH_UP;
-      result.type = SlashPatternType.SLASH_UP;
-      result.difficulty = 2;
-      result.confidence = 0.8;
-    }
-  }
-
-  return result;
-}
-
-/**
- * Recognize a pattern from an array of points
- * Tests against all known patterns and returns the best match
- */
-export function recognizeSlashPattern(
-  points: SlashPatternPoint[],
-): SlashPatternResult {
-  // Simplify the path first
-  const simplifiedPoints = douglasPeucker(points, SLASH_PATTERN.simplificationEpsilon);
-
-  if (simplifiedPoints.length < SLASH_PATTERN.minPointsForDetection) {
-    return {
-      pattern: SlashPatternType.NONE,
-      type: SlashPatternType.NONE,
-      confidence: 0,
-      difficulty: 0,
-      points: points,
-    };
-  }
-
-  // Test all patterns
-  const patterns: SlashPatternResult[] = [
-    detectCirclePattern(simplifiedPoints),
-    detectHorizontalLinePattern(simplifiedPoints),
-    detectVerticalLinePattern(simplifiedPoints),
-    detectSlashDownPattern(simplifiedPoints),
-    detectSlashUpPattern(simplifiedPoints),
-  ];
-
-  // Return the pattern with highest confidence
-  let bestPattern = patterns[0];
-  if (!bestPattern) {
-    return {
-      pattern: SlashPatternType.NONE,
-      type: SlashPatternType.NONE,
-      confidence: 0,
-      difficulty: 0,
-      points: points,
-    };
-  }
-
-  for (const pattern of patterns) {
-    if (pattern.confidence > bestPattern.confidence) {
-      bestPattern = pattern;
-    }
-  }
-
-  return bestPattern;
-}
-
-/**
- * Detect slash pattern (wrapper for recognizeSlashPattern)
- * Used by SlashSystem
+ * Main pattern detection function
+ * Attempts to detect all patterns and returns the best match
+ * Priority: Circle > Zigzag > Straight (based on complexity)
  */
 export function detectSlashPattern(
-  points: SlashPatternPoint[],
+  points: SlashPatternPoint[]
 ): SlashPatternResult {
-  return recognizeSlashPattern(points);
+  if (points.length < SLASH_PATTERN.minPointsForDetection) {
+    return {
+      pattern: SlashPatternType.NONE,
+      confidence: 0,
+      points: points,
+    };
+  }
+
+  // Try to detect each pattern
+  const circleResult = detectCirclePattern(points);
+  const zigzagResult = detectZigzagPattern(points);
+  const straightResult = detectStraightPattern(points);
+
+  // Find the pattern with highest confidence
+  const results = [circleResult, zigzagResult, straightResult];
+  let bestResult: SlashPatternResult = {
+    pattern: SlashPatternType.NONE,
+    confidence: 0,
+    points: points,
+  };
+
+  for (const result of results) {
+    if (result.pattern !== SlashPatternType.NONE && result.confidence > bestResult.confidence) {
+      bestResult = result;
+    }
+  }
+
+  return bestResult;
 }
 
 /**
- * Check if a pattern type is valid (not NONE)
+ * Check if a pattern detection result is valid
+ * Used to filter out low-confidence detections
  */
-export function isValidPattern(pattern: SlashPatternType): boolean {
-  return pattern !== SlashPatternType.NONE;
+export function isValidPattern(result: SlashPatternResult, minConfidence: number = 0.5): boolean {
+  return result.pattern !== SlashPatternType.NONE && result.confidence >= minConfidence;
 }

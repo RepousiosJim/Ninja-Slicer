@@ -108,13 +108,14 @@ export class GameplayScene extends BaseScene {
       // Create background
       this.createBackground();
 
-      // Initialize all managers
-      this.weaponManager = WeaponManager.getInstance();
-      this.upgradeManager = UpgradeManager.getInstance();
-      this.levelManager = LevelManager.getInstance();
-      this.slashEnergyManager = SlashEnergyManager.getInstance();
-      this.slashEnergyManager.initialize(this);
-      this.slashEnergyManager.setUpgradeManager(this.upgradeManager);
+    // Initialize all managers
+    this.weaponManager = WeaponManager.getInstance();
+    this.upgradeManager = UpgradeManager.getInstance();
+    this.saveManager = new SaveManager();
+    this.levelManager = LevelManager.getInstance();
+    this.slashEnergyManager = SlashEnergyManager.getInstance();
+    this.slashEnergyManager.initialize(this);
+    this.slashEnergyManager.setUpgradeManager(this.upgradeManager);
 
       // Load data
       this.loadProgressionData();
@@ -129,12 +130,12 @@ export class GameplayScene extends BaseScene {
       this.powerUpManager.setUpgradeManager(this.upgradeManager);
       this.hud = new HUD(this);
 
-      // Connect systems
-      this.slashSystem.setComboSystem(this.comboSystem);
-      this.slashSystem.setPowerUpManager(this.powerUpManager);
-      this.slashSystem.setWeaponManager(this.weaponManager);
-      this.slashSystem.setUpgradeManager(this.upgradeManager);
-      this.slashSystem.setEnergyManager(this.slashEnergyManager);
+    // Connect systems
+    this.slashSystem.setComboSystem(this.comboSystem);
+    this.slashSystem.setPowerUpManager(this.powerUpManager);
+    this.slashSystem.setWeaponManager(this.weaponManager);
+    this.slashSystem.setUpgradeManager(this.upgradeManager);
+    this.slashSystem.setEnergyManager(this.slashEnergyManager);
 
       // Apply starting lives from upgrade
       const playerStats = this.upgradeManager.getPlayerStats();
@@ -789,10 +790,58 @@ export class GameplayScene extends BaseScene {
     };
 
     // Emit game over event
-    EventBus.emit('game-over', {
-      score: finalStats.score,
-      souls: finalStats.souls,
-      stats: finalStats,
+    EventBus.emit('game-over', finalStats);
+
+    // Save game state
+    this.saveManager.save();
+
+    // Transition to game over scene
+    this.scene.start('GameOverScene', finalStats);
+  }
+
+  /**
+   * Restart game
+   */
+  private restart(): void {
+    console.log('Restarting game...');
+
+    // Reset all systems
+    this.slashTrail.clear();
+    this.spawnSystem.reset();
+    this.slashSystem.resetScore();
+    this.comboSystem.reset();
+    this.comboSystem.resetMaxCombo();
+    this.powerUpManager.reset();
+    this.slashEnergyManager.reset();
+    this.hud.updateScore(0);
+
+    // Reset game state
+    this.lives = DEFAULT_STARTING_LIVES;
+    this.isGameOver = false;
+    this.gameOverTimer = 0;
+
+    // Reset campaign mode state
+    if (this.isCampaignMode) {
+      this.levelTimer = 0;
+      this.currentKills = 0;
+      this.bossSpawned = false;
+      if (this.boss) {
+        this.boss.destroy();
+        this.boss = null;
+      }
+      // this.hud.showTimer(true);
+      // this.hud.showKillQuota(true);
+      // this.hud.showBossHealthBar(false);
+      if (this.currentLevelConfig) {
+        // this.hud.updateTimer(0, this.currentLevelConfig.duration);
+        // this.hud.updateKillQuota(0, this.killQuota);
+      }
+    }
+
+    // Emit lives changed event
+    EventBus.emit('lives-changed', {
+      lives: this.lives,
+      delta: 0,
     });
 
     // Show game over screen after brief delay

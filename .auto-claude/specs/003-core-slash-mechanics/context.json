@@ -1,0 +1,36 @@
+{
+  "task_description": "003-core-slash-mechanics",
+  "scoped_services": ["main"],
+  "files_to_modify": {
+    "main": [
+      "src/systems/SlashSystem.ts",
+      "src/entities/SlashTrail.ts",
+      "src/scenes/GameplayScene.ts",
+      "src/ui/HUD.ts",
+      "src/config/constants.ts",
+      "src/config/types.ts",
+      "src/utils/helpers.ts"
+    ]
+  },
+  "files_to_reference": [
+    "src/systems/ComboSystem.ts",
+    "src/managers/PowerUpManager.ts",
+    "src/managers/UpgradeManager.ts",
+    "src/utils/EventBus.ts",
+    "src/systems/ParticleSystem.ts"
+  ],
+  "patterns": {
+    "event_driven_communication": "All system interactions use EventBus.emit() and EventBus.on() for loose coupling between components",
+    "singleton_manager": "Managers use private constructor with getInstance() for global state (see PowerUpManager.ts)",
+    "multi_layer_rendering": "Graphics use clear() each frame, then multiple lineStyle() calls for layered glow effects (outer→inner)",
+    "time_based_updates": "Systems use deltaTime accumulator pattern for frame-independent behavior (see ComboSystem update method)",
+    "collision_detection": "Line-circle intersection using lineIntersectsCircle() helper from utils/helpers.ts"
+  },
+  "existing_implementations": {
+    "slash_trail": "SlashTrail.ts already implements velocity-based activation, multi-layer glow rendering, cursor indicator, and configurable styles",
+    "slash_system": "SlashSystem.ts handles collision detection, score/souls calculation, combo integration, power-up effects, and event emission",
+    "combo_system": "ComboSystem.ts tracks streak multipliers with timeout-based reset - pattern to follow for energy regeneration",
+    "hud_display": "HUD.ts uses EventBus listeners to update UI, creates graphics with theme colors, and uses tween animations"
+  },
+  "created_at": "2025-12-30T08:30:00.000Z"
+}

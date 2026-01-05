@@ -16,14 +16,14 @@ import Phaser from 'phaser';
 import {
   SLASH_VELOCITY_THRESHOLD,
   SLASH_TRAIL_MAX_LENGTH,
+  SLASH_TRAIL_FADE_RATE,
   SLASH_TRAIL_WIDTH,
   SLASH_TRAIL_GLOW_WIDTH,
   SLASH_POWER,
   SLASH_POWER_COLORS,
   SLASH_POWER_WIDTH_MULTIPLIERS
 } from '@config/constants';
-import type { SlashPowerState } from '@config/types';
-import { SlashPowerLevel } from '@config/types';
+import { SlashPowerLevel, SlashPowerState } from '@config/types';
 import { EventBus } from '@utils/EventBus';
 
 /**
@@ -85,6 +85,7 @@ export class SlashTrail {
   // Dirty flags for optimization - track what needs redrawing
   private trailDirty: boolean = true;
   private cursorDirty: boolean = true;
+  private chargeDirty: boolean = true;
   private lastCursorX: number = 0;
   private lastCursorY: number = 0;
   private lastPointCount: number = 0;
@@ -178,6 +179,7 @@ export class SlashTrail {
 
     // Update previous position
     this.previousPosition.copy(this.currentPosition);
+    this.lastUpdateTime = this.scene.time.now;
 
     // Track point count changes for dirty detection
     if (this.points.length !== this.lastPointCount) {
@@ -245,7 +247,7 @@ export class SlashTrail {
   }
 
   /**
-   * Render trail with batched draw calls and multi-layered glow
+   * Render trail with batched draw calls
    * Combines glow and main trail rendering efficiently
    */
   private renderTrailBatched(): void {
@@ -255,31 +257,13 @@ export class SlashTrail {
 
     if (!firstPoint) return;
 
-    // ENHANCED: Multi-layered glow effect for dramatic impact
-    // Layer 1: Outer glow (widest, most transparent)
-    this.glowGraphics.lineStyle(this.trailGlowWidth * 2, this.trailGlow, 0.2);
-    this.glowGraphics.beginPath();
-    this.glowGraphics.moveTo(firstPoint.x, firstPoint.y);
-    for (let i = 1; i < len; i++) {
-      const point = points[i];
-      this.glowGraphics.lineTo(point.x, point.y);
-    }
-    this.glowGraphics.strokePath();
-
-    // Layer 2: Middle glow
-    this.glowGraphics.lineStyle(this.trailGlowWidth * 1.5, this.trailGlow, 0.4);
-    this.glowGraphics.beginPath();
-    this.glowGraphics.moveTo(firstPoint.x, firstPoint.y);
-    for (let i = 1; i < len; i++) {
-      const point = points[i];
-      this.glowGraphics.lineTo(point.x, point.y);
-    }
-    this.glowGraphics.strokePath();
-
-    // Layer 3: Inner glow (original - brightest)
+    // Batch 1: Draw glow trail in a single path
+    // Using a single beginPath/strokePath for the entire glow
     this.glowGraphics.lineStyle(this.trailGlowWidth, this.trailGlow, 0.6);
     this.glowGraphics.beginPath();
     this.glowGraphics.moveTo(firstPoint.x, firstPoint.y);
+
+    // Use standard loop for better performance than forEach
     for (let i = 1; i < len; i++) {
       const point = points[i];
       this.glowGraphics.lineTo(point.x, point.y);
@@ -372,6 +356,7 @@ export class SlashTrail {
     // Reset dirty flags
     this.trailDirty = true;
     this.cursorDirty = true;
+    this.chargeDirty = true;
     this.lastPointCount = 0;
   }
 
@@ -484,77 +469,65 @@ export class SlashTrail {
 
   /**
    * Stop charging and release the accumulated power
-   * @returns Current power level that was released
+   * @returns The power level that was accumulated
    */
   stopCharging(): SlashPowerLevel {
-    const releasedLevel = this.powerState.level;
+    const powerLevel = this.powerState.level;
+
+    // Reset charging state
     this.powerState.isCharging = false;
     this.powerState.chargeProgress = 0;
     this.chargeAnimationTime = 0;
     this.chargeGraphics.clear();
 
-    return releasedLevel;
-  }
-
-  /**
-   * Update visual effects based on power level
-   * Applies color and width multipliers from power config
-   */
-  private updatePowerVisuals(level: SlashPowerLevel): void {
-    const powerColors = SLASH_POWER_COLORS as any;
-    
-    if (powerColors[level]?.color) {
-      this.trailColor = powerColors[level].color;
-      this.trailGlow = powerColors[level].glow;
-    } else {
-      this.trailColor = this.baseTrailColor;
-      this.trailGlow = this.baseTrailGlow;
+    // Emit power charged event if any power was accumulated
+    if (powerLevel > SlashPowerLevel.NONE) {
+      EventBus.emit('slash-power-charged', {
+        level: powerLevel,
+        previousLevel: SlashPowerLevel.NONE,
+        chargeProgress: 1,
+        isFullyCharged: powerLevel >= SLASH_POWER.maxPowerLevel,
+      });
     }
 
-    this.trailDirty = true;
+    return powerLevel;
   }
 
   /**
-   * Draw visual indicator for charge progress
-   * Shows ring that fills as power charges
+   * Reset power level after slash is completed
    */
-  private drawChargeIndicator(): void {
+  resetPower(): void {
+    const previousLevel = this.powerState.level;
+    this.powerState.level = SlashPowerLevel.NONE;
+    this.powerState.chargeProgress = 0;
+    this.powerState.isCharging = false;
+    this.chargeAnimationTime = 0;
     this.chargeGraphics.clear();
 
-    if (!this.powerState.isCharging || this.powerState.chargeProgress <= 0) {
-      return;
+    // Reset trail width to base
+    this.trailWidth = this.baseTrailWidth;
+    this.trailGlowWidth = this.trailWidth * 2;
+
+    // Reset trail colors to base
+    this.trailColor = this.baseTrailColor;
+    this.trailGlow = this.baseTrailGlow;
+
+    // Emit reset event
+    if (previousLevel !== SlashPowerLevel.NONE) {
+      EventBus.emit('slash-power-changed', {
+        level: SlashPowerLevel.NONE,
+        previousLevel,
+        chargeProgress: 0,
+        isFullyCharged: false,
+      });
     }
+  }
 
-    const x = this.currentPosition.x;
-    const y = this.currentPosition.y;
-    const radius = 20;
-    const ringWidth = 2;
-
-    // Outer ring outline
-    this.chargeGraphics.lineStyle(ringWidth, 0xffffff, 0.5);
-    this.chargeGraphics.strokeCircle(x, y, radius);
-
-    // Inner filled arc showing charge progress
-    const startAngle = -Math.PI / 2;
-    const endAngle = startAngle + (this.powerState.chargeProgress * 2 * Math.PI);
-
-    this.chargeGraphics.lineStyle(ringWidth, this.trailGlow, 0.8);
-    this.chargeGraphics.beginPath();
-    
-    // Draw arc from start angle to end angle
-    const segments = Math.ceil(this.powerState.chargeProgress * 64);
-    for (let i = 0; i <= segments; i++) {
-      const angle = startAngle + (i / segments) * (endAngle - startAngle);
-      const px = x + radius * Math.cos(angle);
-      const py = y + radius * Math.sin(angle);
-
-      if (i === 0) {
-        this.chargeGraphics.moveTo(px, py);
-      } else {
-        this.chargeGraphics.lineTo(px, py);
-      }
-    }
-    this.chargeGraphics.strokePath();
+  /**
+   * Get current power level
+   */
+  getPowerLevel(): SlashPowerLevel {
+    return this.powerState.level;
   }
 
   /**
@@ -572,25 +545,143 @@ export class SlashTrail {
   }
 
   /**
-   * Get current power level
+   * Update trail visual effects based on power level
+   * @param powerLevel - The current power level
    */
-  getPowerLevel(): SlashPowerLevel {
-    return this.powerState.level;
+  private updatePowerVisuals(powerLevel: SlashPowerLevel): void {
+    // Get color for current power level
+    const powerColor = SLASH_POWER_COLORS[powerLevel as keyof typeof SLASH_POWER_COLORS];
+
+    if (powerLevel === SlashPowerLevel.NONE) {
+      // Reset to base colors when no power
+      this.trailColor = this.baseTrailColor;
+      this.trailGlow = this.baseTrailGlow;
+    } else {
+      // Set trail color based on power level
+      this.trailColor = powerColor;
+      // Create a slightly brighter/saturated glow variant
+      this.trailGlow = this.createGlowColor(powerColor);
+    }
+
+    // Mark trail as dirty to redraw with new colors
+    this.trailDirty = true;
+  }
+
+  /**
+   * Create a glow color variant from a base color
+   * Shifts toward white for a glowing effect
+   * @param baseColor - The base color to create glow from
+   * @returns The glow color
+   */
+  private createGlowColor(baseColor: number): number {
+    // Extract RGB components
+    const r = (baseColor >> 16) & 0xff;
+    const g = (baseColor >> 8) & 0xff;
+    const b = baseColor & 0xff;
+
+    // Blend with white for glow effect (70% original, 30% white)
+    const glowR = Math.min(255, Math.floor(r * 0.7 + 255 * 0.3));
+    const glowG = Math.min(255, Math.floor(g * 0.7 + 255 * 0.3));
+    const glowB = Math.min(255, Math.floor(b * 0.7 + 255 * 0.3));
+
+    return (glowR << 16) | (glowG << 8) | glowB;
+  }
+
+  /**
+   * Draw the charge indicator around the cursor
+   * Optimized with batched draw calls grouped by style
+   */
+  private drawChargeIndicator(): void {
+    this.chargeGraphics.clear();
+
+    if (!this.powerState.isCharging) return;
+
+    const x = this.currentPosition.x;
+    const y = this.currentPosition.y;
+    const powerLevel = this.powerState.level;
+    const progress = this.powerState.chargeProgress;
+    const maxLevel = SLASH_POWER.maxPowerLevel;
+
+    // Pre-calculate colors once
+    const currentColor = SLASH_POWER_COLORS[powerLevel as keyof typeof SLASH_POWER_COLORS];
+    const nextColor = SLASH_POWER_COLORS[
+      Math.min(powerLevel + 1, maxLevel) as keyof typeof SLASH_POWER_COLORS
+    ];
+
+    // Pre-calculate radius values
+    const baseRadius = 20 + powerLevel * 8;
+    const pulseAmount = Math.sin(this.chargeAnimationTime * 8) * 3;
+    const radius = baseRadius + pulseAmount;
+    const indicatorRadius = 4;
+    const indicatorDistance = radius + 14;
+
+    // Pre-calculate alpha values
+    const glowAlpha = 0.3 + Math.sin(this.chargeAnimationTime * 6) * 0.15;
+
+    // Pre-calculate indicator positions (avoid recalculating in loop)
+    const angleStep = Math.PI * 2 / maxLevel;
+    const startAngle = -Math.PI / 2;
+
+    // ========== BATCH 1: Stroke operations with currentColor ==========
+    // Group all currentColor strokes together to minimize state changes
+    this.chargeGraphics.lineStyle(8, currentColor, glowAlpha);
+    this.chargeGraphics.strokeCircle(x, y, radius + 6);
+
+    this.chargeGraphics.lineStyle(4, currentColor, 0.8);
+    this.chargeGraphics.strokeCircle(x, y, radius);
+
+    // ========== BATCH 2: Progress arc (if not at max) ==========
+    if (powerLevel < maxLevel) {
+      const endAngle = startAngle + (progress * Math.PI * 2);
+      this.chargeGraphics.lineStyle(3, nextColor, 0.9);
+      this.chargeGraphics.beginPath();
+      this.chargeGraphics.arc(x, y, radius - 4, startAngle, endAngle, false);
+      this.chargeGraphics.strokePath();
+    }
+
+    // ========== BATCH 3: Empty indicator circles (same style) ==========
+    // Draw all empty indicators first in one batch
+    this.chargeGraphics.lineStyle(2, 0xffffff, 0.4);
+    for (let i = powerLevel + 1; i <= maxLevel; i++) {
+      const angle = startAngle + (i * angleStep);
+      const ix = x + Math.cos(angle) * indicatorDistance;
+      const iy = y + Math.sin(angle) * indicatorDistance;
+      this.chargeGraphics.strokeCircle(ix, iy, indicatorRadius);
+    }
+
+    // ========== BATCH 4: Filled indicators (grouped by color) ==========
+    // Draw filled indicators - batch by power level color
+    for (let i = 0; i <= powerLevel; i++) {
+      const indicatorColor = SLASH_POWER_COLORS[i as keyof typeof SLASH_POWER_COLORS];
+      const angle = startAngle + (i * angleStep);
+      const ix = x + Math.cos(angle) * indicatorDistance;
+      const iy = y + Math.sin(angle) * indicatorDistance;
+      this.chargeGraphics.fillStyle(indicatorColor, 1);
+      this.chargeGraphics.fillCircle(ix, iy, indicatorRadius);
+    }
+
+    // ========== BATCH 5: Inner glow (power level indicator) ==========
+    if (powerLevel > SlashPowerLevel.NONE) {
+      const innerGlowAlpha = 0.4 + Math.sin(this.chargeAnimationTime * 10) * 0.2;
+      this.chargeGraphics.fillStyle(currentColor, innerGlowAlpha);
+      this.chargeGraphics.fillCircle(x, y, 8 + powerLevel * 2);
+    }
   }
 
   /**
    * Destroy slash trail and clean up resources
+   * Returns all pooled Vector2 objects before cleanup
    */
   destroy(): void {
+    // Release all points back to the pool before destroying
+    if (this.points.length > 0) {
+      SlashTrail.vectorPool.releaseAll(this.points);
+    }
+
     this.graphics.destroy();
     this.glowGraphics.destroy();
     this.cursorGraphics.destroy();
     this.chargeGraphics.destroy();
-    
-    // Release all pooled points
-    if (this.points.length > 0) {
-      SlashTrail.vectorPool.releaseAll(this.points);
-    }
     this.points = [];
   }
 }

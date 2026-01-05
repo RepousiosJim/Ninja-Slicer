@@ -540,6 +540,112 @@ export const SLASH_PATTERN_VISUAL = {
 } as const;
 
 // =============================================================================
+// SLASH ENERGY SYSTEM
+// =============================================================================
+
+export const SLASH_ENERGY = {
+  maxEnergy: 100, // maximum energy capacity
+  baseCostPerDistance: 0.1, // energy cost per pixel of slash distance
+  minCostPerSlash: 5, // minimum energy cost per slash
+  regenRatePerSecond: 10, // energy regeneration rate per second
+  regenDelay: 0.5, // seconds to wait before regeneration starts
+  lowEnergyThreshold: 25, // percentage below which energy is considered low
+  minEffectiveness: 0.3, // minimum damage/score multiplier at zero energy
+} as const;
+
+// =============================================================================
+// SLASH POWER/CHARGE SYSTEM
+// =============================================================================
+
+export const SLASH_POWER = {
+  chargeTimePerLevel: 0.5, // seconds to charge each power level
+  maxPowerLevel: 3, // maximum power level (HIGH)
+} as const;
+
+export const SLASH_POWER_DAMAGE_MULTIPLIERS = {
+  0: 1.0, // NONE - normal damage
+  1: 1.25, // LOW - 25% bonus
+  2: 1.5, // MEDIUM - 50% bonus
+  3: 2.0, // HIGH - 100% bonus
+} as const;
+
+export const SLASH_POWER_SCORE_MULTIPLIERS = {
+  0: 1.0, // NONE - normal score
+  1: 1.15, // LOW - 15% bonus
+  2: 1.35, // MEDIUM - 35% bonus
+  3: 1.75, // HIGH - 75% bonus
+} as const;
+
+export const SLASH_POWER_WIDTH_MULTIPLIERS = {
+  0: 1.0, // NONE - normal width
+  1: 1.15, // LOW - 15% wider
+  2: 1.35, // MEDIUM - 35% wider
+  3: 1.6, // HIGH - 60% wider
+} as const;
+
+// Power level visual colors (for trail effects)
+export const SLASH_POWER_COLORS = {
+  0: 0xffffff, // NONE - white/default
+  1: 0xffff00, // LOW - yellow
+  2: 0xff8c00, // MEDIUM - orange
+  3: 0xff0000, // HIGH - red
+} as const;
+
+// =============================================================================
+// SLASH PATTERN RECOGNITION
+// =============================================================================
+
+export const SLASH_PATTERN = {
+  minPointsForDetection: 8, // minimum trail points to attempt pattern detection
+  patternTimeout: 1.5, // seconds before pattern detection resets
+  // Circle detection
+  circleClosureThreshold: 50, // max distance between start and end points for circle
+  circleMinRadius: 40, // minimum radius for valid circle
+  circleMaxRadiusVariance: 0.35, // max variance from mean radius (35%)
+  // Zigzag detection
+  zigzagMinDirectionChanges: 3, // minimum direction changes for zigzag
+  zigzagAngleThreshold: 60, // degrees - minimum angle change for direction switch
+  zigzagMinSegmentLength: 30, // minimum length per zigzag segment
+  // Straight line detection
+  straightLineMaxDeviation: 15, // max perpendicular distance from ideal line
+  straightLineMinLength: 150, // minimum length for straight line recognition
+} as const;
+
+// Pattern bonus values
+export const SLASH_PATTERN_BONUSES = {
+  none: {
+    scoreMultiplier: 1.0,
+    bonusScore: 0,
+    damageMultiplier: 1.0,
+  },
+  circle: {
+    scoreMultiplier: 2.0, // double score for circle
+    bonusScore: 100, // flat bonus
+    damageMultiplier: 1.5, // 50% more damage
+    effectDescription: 'Area damage burst',
+  },
+  zigzag: {
+    scoreMultiplier: 1.75, // 75% more score
+    bonusScore: 75, // flat bonus
+    damageMultiplier: 1.3, // 30% more damage
+    effectDescription: 'Multi-hit combo',
+  },
+  straight: {
+    scoreMultiplier: 1.5, // 50% more score
+    bonusScore: 50, // flat bonus
+    damageMultiplier: 2.0, // double damage (precision strike)
+    effectDescription: 'Piercing strike',
+  },
+} as const;
+
+// Pattern visual feedback timing
+export const SLASH_PATTERN_VISUAL = {
+  confirmationDuration: 0.8, // seconds to show pattern confirmation
+  flashCount: 3, // number of flashes for pattern confirmation
+  flashInterval: 0.1, // seconds between flashes
+} as const;
+
+// =============================================================================
 // EVENTS
 // =============================================================================
 
@@ -554,7 +660,7 @@ export const EVENTS = {
   bossHit: 'boss-hit',
   bossPhaseChange: 'boss-phase-change',
   bossDefeated: 'boss-defeated',
-  
+
   // State events
   scoreUpdated: 'score-updated',
   soulsUpdated: 'souls-updated',
@@ -562,12 +668,17 @@ export const EVENTS = {
   livesChanged: 'lives-changed',
   levelComplete: 'level-complete',
   gameOver: 'game-over',
+
+  // Slash mechanics events
   slashEnergyChanged: 'slash-energy-changed',
   slashEnergyDepleted: 'slash-energy-depleted',
   slashEnergyLow: 'slash-energy-low',
   slashPowerChanged: 'slash-power-changed',
+  slashPowerCharged: 'slash-power-charged',
   slashPatternDetected: 'slash-pattern-detected',
-  
+  slashPatternStarted: 'slash-pattern-started',
+  slashPatternFailed: 'slash-pattern-failed',
+
   // System events
   saveCompleted: 'save-completed',
   settingsChanged: 'settings-changed',
