@@ -5,11 +5,12 @@
  */
 
 import Phaser from 'phaser';
-import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT, SLASH_ENERGY } from '../config/constants';
+import { FONT_SIZES, COLORS, DEFAULT_STARTING_LIVES, GAME_WIDTH, GAME_HEIGHT, COMBO_TIMEOUT } from '../config/constants';
 import { DARK_GOTHIC_THEME } from '../config/theme';
 import { EventBus } from '../utils/EventBus';
 import { Button, ButtonStyle } from './Button';
 import { ResponsiveUtils } from '../utils/ResponsiveUtils';
+import { ComboSystem } from '../systems/ComboSystem';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -19,14 +20,22 @@ export class HUD {
   private hearts: Phaser.GameObjects.Sprite[] = [];
   private comboText!: Phaser.GameObjects.Text;
   private comboLabel!: Phaser.GameObjects.Text;
+  private comboTimerBarContainer!: Phaser.GameObjects.Container;
+  private comboTimerBarBackground!: Phaser.GameObjects.Rectangle;
+  private comboTimerBarFill!: Phaser.GameObjects.Rectangle;
+  private comboTimerBarWidth: number = 200;
+  private comboTimerBarHeight: number = 8;
   private soulsText!: Phaser.GameObjects.Text;
   private soulsLabel!: Phaser.GameObjects.Text;
   private soulsIcon!: Phaser.GameObjects.Sprite;
   private powerUpContainer!: Phaser.GameObjects.Container;
   private powerUpIcons: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private pauseButton: Button | null = null;
-  private eventListeners: Array<{ event: string; handler: Function }> = [];
-  
+
+  // Score animation tracking
+  private previousScore: number = 0;
+  private scorePopTween: Phaser.Tweens.Tween | null = null;
+
   // Campaign mode elements
   private timerText!: Phaser.GameObjects.Text;
   private timerLabel!: Phaser.GameObjects.Text;
@@ -140,6 +149,34 @@ export class HUD {
     }).setOrigin(0.5, 0);
     this.comboText.setVisible(false);
 
+    // Combo timer bar (below combo text) - shows time remaining before combo expires
+    this.comboTimerBarContainer = this.scene.add.container(GAME_WIDTH / 2, 270);
+    this.comboTimerBarContainer.setDepth(1000);
+    this.comboTimerBarContainer.setVisible(false);
+
+    // Combo timer bar background
+    this.comboTimerBarBackground = this.scene.add.rectangle(
+      0,
+      0,
+      this.comboTimerBarWidth,
+      this.comboTimerBarHeight,
+      0x000000,
+      0.8
+    );
+    this.comboTimerBarBackground.setStrokeStyle(2, DARK_GOTHIC_THEME.colors.warning);
+    this.comboTimerBarContainer.add(this.comboTimerBarBackground);
+
+    // Combo timer bar fill - depletes from right to left
+    this.comboTimerBarFill = this.scene.add.rectangle(
+      -this.comboTimerBarWidth / 2 + 2,
+      0,
+      this.comboTimerBarWidth - 4,
+      this.comboTimerBarHeight - 4,
+      DARK_GOTHIC_THEME.colors.warning
+    );
+    this.comboTimerBarFill.setOrigin(0, 0.5);
+    this.comboTimerBarContainer.add(this.comboTimerBarFill);
+
     // Power-up container (bottom)
     this.powerUpContainer = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 40);
 
@@ -218,18 +255,20 @@ export class HUD {
   }
 
   /**
-   * Add a pause button to the HUD
-   * Button is positioned at top-right of screen
-   * 
-   * @param callback - Function to call when pause button is clicked
-   * 
-   * @example
-   * ```typescript
-   * hud.addPauseButton(() => {
-   *   this.scene.pause();
-   *   this.scene.launch('pauseScene');
-   * });
-   * ```
+   * Update HUD elements that need continuous updates
+   * @param delta - Time since last update in milliseconds
+   * @param comboSystem - The combo system to get timer state from
+   */
+  update(delta: number, comboSystem: ComboSystem): void {
+    // Update combo timer bar based on remaining time
+    if (comboSystem.isActive()) {
+      const remainingTime = comboSystem.getRemainingTime();
+      this.updateComboTimerBar(remainingTime);
+    }
+  }
+
+  /**
+   * Add pause button to HUD
    */
   addPauseButton(callback: () => void): void {
     this.pauseButton = new Button(
@@ -493,18 +532,68 @@ export class HUD {
   }
 
   /**
-   * Update the score display with formatted number
-   * 
-   * @param score - The new score value to display
-   * 
-   * @example
-   * ```typescript
-   * hud.updateScore(1000);
-   * // Display shows: 1000
-   * ```
+   * Update score display with pulse animation
+   * Animation intensity scales based on point gain
    */
   updateScore(score: number): void {
+    const pointsGained = score - this.previousScore;
+    this.previousScore = score;
     this.scoreText.setText(score.toString());
+
+    // Only animate if points were gained (not on reset or initialization)
+    if (pointsGained > 0) {
+      this.playScorePopAnimation(pointsGained);
+    }
+  }
+
+  /**
+   * Play score pop/pulse animation with intensity based on points gained
+   * Small gains (1-25): subtle pulse (1.1x scale)
+   * Medium gains (26-50): moderate pulse (1.2x scale)
+   * Large gains (51-100): strong pulse (1.3x scale)
+   * Huge gains (100+): dramatic pulse (1.4x scale)
+   */
+  private playScorePopAnimation(pointsGained: number): void {
+    // Stop any existing tween to prevent overlap
+    if (this.scorePopTween) {
+      this.scorePopTween.stop();
+      this.scoreText.setScale(1);
+    }
+
+    // Calculate scale based on points gained
+    let targetScale: number;
+    let duration: number;
+
+    if (pointsGained >= 100) {
+      // Huge gain - dramatic pulse
+      targetScale = 1.4;
+      duration = DARK_GOTHIC_THEME.animations.duration * 1.5;
+    } else if (pointsGained >= 50) {
+      // Large gain - strong pulse
+      targetScale = 1.3;
+      duration = DARK_GOTHIC_THEME.animations.duration * 1.25;
+    } else if (pointsGained >= 25) {
+      // Medium gain - moderate pulse
+      targetScale = 1.2;
+      duration = DARK_GOTHIC_THEME.animations.duration;
+    } else {
+      // Small gain - subtle pulse
+      targetScale = 1.1;
+      duration = DARK_GOTHIC_THEME.animations.duration * 0.75;
+    }
+
+    // Create pulse animation
+    this.scorePopTween = this.scene.tweens.add({
+      targets: this.scoreText,
+      scale: targetScale,
+      duration: duration,
+      yoyo: true,
+      ease: DARK_GOTHIC_THEME.animations.easing,
+      onComplete: () => {
+        this.scoreText.setScale(1);
+        this.scorePopTween = null;
+      },
+    });
   }
 
   /**
@@ -542,6 +631,10 @@ export class HUD {
       this.comboLabel.setText(`COMBO (${multiplier.toFixed(1)}x)`);
       this.comboText.setVisible(true);
       this.comboLabel.setVisible(true);
+      this.comboTimerBarContainer.setVisible(true);
+
+      // Reset timer bar fill to full on combo increment
+      this.updateComboTimerBar(COMBO_TIMEOUT);
 
       // Pulse effect with theme animation
       this.scene.tweens.add({
@@ -554,7 +647,65 @@ export class HUD {
     } else {
       this.comboText.setVisible(false);
       this.comboLabel.setVisible(false);
+      this.comboTimerBarContainer.setVisible(false);
     }
+  }
+
+  /**
+   * Update combo timer bar based on remaining time
+   * @param remainingTime - Time remaining in seconds before combo expires
+   */
+  updateComboTimerBar(remainingTime: number): void {
+    if (!this.comboTimerBarFill || !this.comboTimerBarContainer) return;
+
+    // Only update if timer bar is visible
+    if (!this.comboTimerBarContainer.visible) return;
+
+    // Calculate fill width based on remaining time percentage
+    const maxWidth = this.comboTimerBarWidth - 4;
+    const timeRatio = Math.max(0, Math.min(1, remainingTime / COMBO_TIMEOUT));
+    const fillWidth = maxWidth * timeRatio;
+
+    // Smooth width update
+    this.comboTimerBarFill.width = fillWidth;
+
+    // Color transition from warning (full) to danger (low) as time depletes
+    if (timeRatio > 0.5) {
+      // Full to medium - stay warning color (orange)
+      this.comboTimerBarFill.setFillStyle(DARK_GOTHIC_THEME.colors.warning);
+    } else if (timeRatio > 0.25) {
+      // Medium to low - transition to danger (red-orange)
+      const blendFactor = (timeRatio - 0.25) / 0.25; // 1.0 at 0.5, 0.0 at 0.25
+      const warningColor = DARK_GOTHIC_THEME.colors.warning; // 0xffaa00
+      const dangerColor = DARK_GOTHIC_THEME.colors.danger; // 0xff4444
+      const blendedColor = this.blendColors(dangerColor, warningColor, blendFactor);
+      this.comboTimerBarFill.setFillStyle(blendedColor);
+    } else {
+      // Low - danger color (red)
+      this.comboTimerBarFill.setFillStyle(DARK_GOTHIC_THEME.colors.danger);
+    }
+  }
+
+  /**
+   * Blend two colors together
+   * @param color1 - First color (hex number)
+   * @param color2 - Second color (hex number)
+   * @param ratio - Blend ratio (0 = color1, 1 = color2)
+   */
+  private blendColors(color1: number, color2: number, ratio: number): number {
+    const r1 = (color1 >> 16) & 0xff;
+    const g1 = (color1 >> 8) & 0xff;
+    const b1 = color1 & 0xff;
+
+    const r2 = (color2 >> 16) & 0xff;
+    const g2 = (color2 >> 8) & 0xff;
+    const b2 = color2 & 0xff;
+
+    const r = Math.round(r1 + (r2 - r1) * ratio);
+    const g = Math.round(g1 + (g2 - g1) * ratio);
+    const b = Math.round(b1 + (b2 - b1) * ratio);
+
+    return (r << 16) | (g << 8) | b;
   }
 
   /**
@@ -736,6 +887,12 @@ export class HUD {
     EventBus.off('powerup-ended');
     EventBus.off('slash-energy-changed');
 
+    // Stop any active tweens
+    if (this.scorePopTween) {
+      this.scorePopTween.stop();
+      this.scorePopTween = null;
+    }
+
     // Destroy all elements
     if (this.scoreText) {
       this.scoreText.destroy();
@@ -751,6 +908,9 @@ export class HUD {
     }
     if (this.comboLabel) {
       this.comboLabel.destroy();
+    }
+    if (this.comboTimerBarContainer) {
+      this.comboTimerBarContainer.destroy();
     }
     if (this.soulsText) {
       this.soulsText.destroy();

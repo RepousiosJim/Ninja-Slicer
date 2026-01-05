@@ -1,0 +1,4 @@
+{
+  "task_description": "# Score & Combo System\n\nTrack player score with a combo multiplier system that rewards consecutive kills and quick successive slashes.\n\n## Rationale\nCombos add depth beyond simple slicing and reward skilled play. This creates emergent skill-based gameplay that web clones (pain-3-2) lack.\n\n## User Stories\n- As a player, I want to build combos for higher scores so that I feel rewarded for skillful play\n\n## Acceptance Criteria\n- [ ] Score increases per monster killed based on monster type\n- [ ] Combo multiplier increases with rapid successive kills\n- [ ] Combo timer visible and resets after timeout\n- [ ] Combo milestones (5x, 10x, 15x) trigger special effects\n- [ ] Multi-kill bonuses for slicing multiple monsters in one swipe\n",
+  "workflow_type": "feature"
+}

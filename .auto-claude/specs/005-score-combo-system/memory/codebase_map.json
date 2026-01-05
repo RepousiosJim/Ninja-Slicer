@@ -1,0 +1,40 @@
+{
+  "discovered_files": {
+    "src/systems/ComboSystem.ts": {
+      "description": "ComboSystem now has milestone detection: checkMilestone() private method checks if combo matches COMBO_MILESTONES array and hasn't been reached yet. Emits 'combo-milestone' event with {milestone, multiplier}. Uses reachedMilestones Set to prevent re-triggering. Has resetMilestones(), fullReset(), hasMilestoneBeenReached(), getReachedMilestones() methods.",
+      "category": "feature",
+      "discovered_at": "2025-12-30T14:34:57.637960+00:00"
+    },
+    "src/ui/HUD.ts": {
+      "description": "HUD now has score pop animation: playScorePopAnimation() method creates scale/pulse effect on score text. Tracks previousScore to calculate point delta, uses 4 intensity tiers (1-25pts=1.1x, 26-50pts=1.2x, 51-100pts=1.3x, 100+pts=1.4x scale). scorePopTween property stores active tween reference for cleanup. Animation uses DARK_GOTHIC_THEME.animations duration/easing with yoyo:true for pulse effect.",
+      "category": "feature",
+      "discovered_at": "2025-12-30T19:03:55.499739+00:00"
+    },
+    "src/systems/SlashSystem.ts": {
+      "description": "Simultaneous kills (multiple monsters killed in same frame) are handled correctly: killsThisCycle counts all kills per update cycle, each kill increments combo individually (later kills benefit from earlier combo increment), scoreThisCycle accumulates for multi-kill bonus calculation at end of cycle (2 kills=1.5x, 3 kills=2.0x, 4+ kills=2.5x bonus)",
+      "category": "edge_case",
+      "discovered_at": "2025-12-30T19:13:13.476327+00:00"
+    },
+    "src/config/constants.ts": {
+      "description": "Added COMBO_EFFECT_INTENSITY config object for centralized visual effect tuning. Contains tiered values for particles, screenFlash alpha, secondaryParticles, and fontSize. ComboEffectsManager now imports and uses these values instead of hardcoded numbers, making future tuning easier.",
+      "category": "configuration",
+      "discovered_at": "2025-12-30T19:24:57.041873+00:00"
+    },
+    "src/systems/ParticleSystem.ts": {
+      "description": "ParticleSystem has robust performance optimization: object pooling with maxEmittersPerType=5, auto-release via scene.time.delayedCall, periodic cleanup in update() method (~1s interval via time.now % 1000 < 20), proper destroy() that clears all Maps/Sets. No memory leak risks for extended gameplay sessions.",
+      "category": "performance",
+      "discovered_at": "2025-12-30T19:20:13.459850+00:00"
+    },
+    "src/managers/ComboEffectsManager.ts": {
+      "description": "New ComboEffectsManager handles combo milestone visual effects. Has MILESTONE_CONFIGS for 5x/10x/15x/20x/25x with escalating effects. Uses ParticleSystem.emit() for particles, Graphics for screen flash. Listens to 'combo-milestone' EventBus events. Methods: setParticleSystem(), triggerMilestoneEffect(), triggerCelebration(), cleanup(), destroy().",
+      "category": "managers",
+      "discovered_at": "2025-12-30T14:39:05.883863+00:00"
+    },
+    "src/scenes/GameplayScene.ts": {
+      "description": "GameplayScene now initializes ComboEffectsManager (line 98-99), connects it to ParticleSystem, and destroys it in shutdown(). ComboEffectsManager automatically handles combo milestone visual effects via EventBus 'combo-milestone' events.",
+      "category": "integration",
+      "discovered_at": "2025-12-30T14:41:46.014575+00:00"
+    }
+  },
+  "last_updated": "2025-12-30T19:24:57.041898+00:00"
+}

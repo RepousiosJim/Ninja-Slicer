@@ -29,6 +29,8 @@ import { HeadlessHorseman } from '../entities/HeadlessHorseman';
 import { VampireLord } from '../entities/VampireLord';
 import { PhantomKing } from '../entities/PhantomKing';
 import { DemonOverlord } from '../entities/DemonOverlord';
+import { ParticleSystem } from '../systems/ParticleSystem';
+import { ComboEffectsManager } from '../managers/ComboEffectsManager';
 
 export class GameplayScene extends BaseScene {
   private slashTrail!: SlashTrail;
@@ -40,7 +42,8 @@ export class GameplayScene extends BaseScene {
   private weaponManager!: WeaponManager;
   private upgradeManager!: UpgradeManager;
   private levelManager!: LevelManager;
-  private audioManager!: AudioManager;
+  private particleSystem!: ParticleSystem;
+  private comboEffectsManager!: ComboEffectsManager;
 
   // Campaign mode properties
   private isCampaignMode: boolean = false;
@@ -120,26 +123,25 @@ export class GameplayScene extends BaseScene {
       // Load data
       this.loadProgressionData();
 
-      // Initialize all systems
-      this.slashTrail = new SlashTrail(this);
-      this.spawnSystem = new SpawnSystem(this);
-      this.slashSystem = new SlashSystem(this);
-      this.comboSystem = new ComboSystem();
-      this.powerUpManager = PowerUpManager.getInstance();
-      this.powerUpManager.initialize(this);
-      this.powerUpManager.setUpgradeManager(this.upgradeManager);
-      this.hud = new HUD(this);
-
-    // Initialize audio manager
-    this.audioManager = new AudioManager(this);
-    this.audioManager.initialize();
+    // Initialize all systems
+    this.slashTrail = new SlashTrail(this);
+    this.spawnSystem = new SpawnSystem(this);
+    this.slashSystem = new SlashSystem(this);
+    this.comboSystem = new ComboSystem();
+    this.powerUpManager = PowerUpManager.getInstance();
+    this.powerUpManager.initialize(this);
+    this.powerUpManager.setUpgradeManager(this.upgradeManager);
+    this.particleSystem = new ParticleSystem(this);
+    this.comboEffectsManager = new ComboEffectsManager(this);
+    this.comboEffectsManager.setParticleSystem(this.particleSystem);
+    this.hud = new HUD(this);
 
     // Connect systems
     this.slashSystem.setComboSystem(this.comboSystem);
     this.slashSystem.setPowerUpManager(this.powerUpManager);
     this.slashSystem.setWeaponManager(this.weaponManager);
     this.slashSystem.setUpgradeManager(this.upgradeManager);
-    this.slashSystem.setAudioManager(this.audioManager);
+    this.slashSystem.setParticleSystem(this.particleSystem);
 
       // Apply starting lives from upgrade
       const playerStats = this.upgradeManager.getPlayerStats();
@@ -549,6 +551,9 @@ export class GameplayScene extends BaseScene {
     // Update combo system
     this.comboSystem.update(time, delta);
 
+    // Update HUD (for combo timer bar animation)
+    this.hud.update(delta, this.comboSystem);
+
     // Update power-up manager
     this.powerUpManager.update(time, delta);
 
@@ -645,6 +650,14 @@ export class GameplayScene extends BaseScene {
       stats: finalStats,
     });
 
+    // Save game state
+    this.saveManager.save();
+
+    // Reset combo and clear milestones before transitioning
+    // (max combo is already captured in finalStats)
+    this.comboSystem.reset();
+    this.comboSystem.resetMilestones();
+
     // Transition to level complete scene
     this.scene.start(SCENE_KEYS.levelComplete, {
       world: this.currentWorld,
@@ -737,37 +750,13 @@ export class GameplayScene extends BaseScene {
       },
     });
 
-    // Enhanced screen shake (stronger than monster hits)
-    this.cameras.main.shake(200, 0.02);
+    // Reset combo and clear milestones (preserve max combo for stats display)
+    this.comboSystem.reset();
+    this.comboSystem.resetMilestones();
 
-    // Floating "-1 LIFE" text at screen center
-    const lifeLossText = this.add.text(
-      GAME_WIDTH / 2,
-      GAME_HEIGHT / 2,
-      '-1 LIFE',
-      {
-        fontFamily: 'Arial',
-        fontSize: '64px',
-        color: '#ff0000',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 8,
-      },
-    );
-    lifeLossText.setOrigin(0.5, 0.5);
-    lifeLossText.setDepth(2001);
-
-    // Animate text floating up and fading
-    this.tweens.add({
-      targets: lifeLossText,
-      y: GAME_HEIGHT / 2 - 100,
-      alpha: 0,
-      scale: 1.2,
-      duration: LIFE_LOSS_ANIMATION_DURATION,
-      ease: 'Quad.easeOut',
-      onComplete: () => {
-        lifeLossText.destroy();
-      },
+    // Dramatic pause before showing game over
+    this.time.delayedCall(1000, () => {
+      this.showGameOver();
     });
   }
 
@@ -813,8 +802,8 @@ export class GameplayScene extends BaseScene {
     this.slashTrail.clear();
     this.spawnSystem.reset();
     this.slashSystem.resetScore();
-    this.comboSystem.reset();
-    this.comboSystem.resetMaxCombo();
+    // Full combo reset: clears combo, max combo, and milestone tracking
+    this.comboSystem.fullReset();
     this.powerUpManager.reset();
     this.slashEnergyManager.reset();
     this.hud.updateScore(0);
@@ -855,21 +844,43 @@ export class GameplayScene extends BaseScene {
   /**
    * Handle game over update
    */
-  private handleGameOverUpdate(delta: number): void {
-    this.gameOverTimer += delta / 1000;
+  private togglePause(): void {
+    if (this.isGameOver) return;
 
-    // After 2 seconds, show game over screen
-    if (this.gameOverTimer > 2) {
-      // Show game over scene
-      this.scene.start(SCENE_KEYS.gameOver);
+    this.isPaused = !this.isPaused;
+
+    if (this.isPaused) {
+      // Pause combo timer
+      this.comboSystem.setPaused(true);
+
+      // Pause physics
+      this.physics.pause();
+
+      // Open pause scene
+      this.scene.pause();
+      this.scene.launch(SCENE_KEYS.pause, {
+        levelId: this.isCampaignMode ? `${this.currentWorld}-${this.currentLevel}` : null,
+      });
+    } else {
+      // Resume combo timer
+      this.comboSystem.setPaused(false);
+
+      // Resume physics
+      this.physics.resume();
     }
   }
 
   /**
    * Restart the game
    */
-  private restart(): void {
-    this.scene.restart();
+  public resume(): void {
+    this.isPaused = false;
+
+    // Resume combo timer
+    this.comboSystem.setPaused(false);
+
+    // Resume physics
+    this.physics.resume();
   }
 
   /**
@@ -894,6 +905,24 @@ export class GameplayScene extends BaseScene {
     EventBus.off('monster-missed');
     EventBus.off('monster-sliced');
     EventBus.off('boss-hit');
-     EventBus.off('boss-defeated');
-   }
+    EventBus.off('boss-defeated');
+
+    // Full reset combo system (clears combo, max combo, and milestones)
+    // This ensures clean state when returning to this scene
+    this.comboSystem.fullReset();
+
+    // Destroy all systems
+    this.slashTrail.destroy();
+    this.spawnSystem.destroy();
+    this.slashSystem.destroy();
+    this.hud.destroy();
+    this.particleSystem.destroy();
+    this.comboEffectsManager.destroy();
+
+    // Destroy boss if exists
+    if (this.boss) {
+      this.boss.destroy();
+      this.boss = null;
+    }
+  }
 }

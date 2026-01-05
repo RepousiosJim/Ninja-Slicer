@@ -16,14 +16,30 @@ import type { Villager } from '../entities/Villager';
 import type { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
 import { MonsterType } from '@config/types';
-import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS } from '@config/constants';
-import { lineIntersectsCircle, lineCircleIntersectionPoint } from '../utils/helpers';
+import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS, getMultiKillBonus } from '@config/constants';
+import { lineIntersectsCircle } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
-import { AudioManager } from '../managers/AudioManager';
+import { ParticleSystem, ParticleType } from './ParticleSystem';
+
+// Multi-kill display text configuration
+const MULTI_KILL_TEXT: { [key: number]: { text: string; color: string } } = {
+  2: { text: 'DOUBLE KILL!', color: '#ffff00' },
+  3: { text: 'TRIPLE KILL!', color: '#ff9900' },
+  4: { text: 'MEGA KILL!', color: '#ff6600' },
+  5: { text: 'ULTRA KILL!', color: '#ff0066' },
+};
+
+// Floating score text color configuration based on point value thresholds
+const SCORE_TEXT_COLORS: { threshold: number; color: string }[] = [
+  { threshold: 100, color: '#ff00ff' }, // Purple for 100+ points
+  { threshold: 50, color: '#ff9900' },  // Orange for 50-99 points
+  { threshold: 25, color: '#ffff00' },  // Yellow for 25-49 points
+  { threshold: 0, color: '#ffffff' },   // White for base scores
+];
 
 export class SlashSystem {
   private scene: Phaser.Scene;
@@ -38,6 +54,14 @@ export class SlashSystem {
   private weaponManager: WeaponManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
   private audioManager: AudioManager | null = null;
+
+  // Multi-kill tracking for current update cycle
+  private killsThisCycle: number = 0;
+  private lastMultiKillCount: number = 0;
+  private scoreThisCycle: number = 0;
+  private lastMultiKillBonus: number = 0;
+  private killPositionsThisCycle: { x: number; y: number }[] = [];
+  private particleSystem: ParticleSystem | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -78,10 +102,10 @@ export class SlashSystem {
   }
 
   /**
-   * Set audio manager reference
+   * Set particle system reference
    */
-  setAudioManager(audioManager: AudioManager): void {
-    this.audioManager = audioManager;
+  setParticleSystem(particleSystem: ParticleSystem): void {
+    this.particleSystem = particleSystem;
   }
 
   /**
@@ -100,6 +124,16 @@ export class SlashSystem {
 
   /**
    * Update slash system and check for collisions
+   *
+   * MULTI-KILL / SIMULTANEOUS KILLS HANDLING:
+   * When multiple monsters are killed in the same frame (update cycle):
+   * - Each kill increments the combo counter individually
+   * - Each kill's score is calculated with its own combo multiplier
+   *   (subsequent kills in same frame benefit from earlier kills' combo increment)
+   * - All kills are counted toward killsThisCycle for multi-kill bonus
+   * - At the end of the update cycle, multi-kill bonus is applied to the
+   *   total score accumulated this cycle (2+ kills = bonus multiplier)
+   *
    * @param slashTrail - The slash trail to check
    * @param monsters - Array of active monsters
    * @param villagers - Array of active villagers
@@ -150,43 +184,65 @@ export class SlashSystem {
       return;
     }
 
-    // Get the current power level from the slash trail
-    this.currentPowerLevel = slashTrail.getPowerLevel();
+    // Reset multi-kill counters at the start of each update cycle
+    // This ensures we track kills per-frame for multi-kill bonus calculation
+    this.killsThisCycle = 0;
+    this.scoreThisCycle = 0;
+    this.killPositionsThisCycle = [];
 
     const slashPoints = slashTrail.getSlashPoints();
 
-    // Buffer points for pattern recognition
-    this.bufferSlashPoints(slashPoints);
-
-    // Calculate slash distance and consume energy
-    const currentDistance = this.calculateSlashDistance(slashPoints);
-    if (currentDistance > this.lastSlashDistance && this.energyManager) {
-      const distanceDelta = currentDistance - this.lastSlashDistance;
-      this.currentEnergyEffectiveness = this.energyManager.consumeEnergy(distanceDelta);
-    }
-    this.lastSlashDistance = currentDistance;
-
-    // Populate spatial grids with active entities
-    // Clear grids and rebuild each frame (entities move)
-    this.monsterGrid.clear();
-    this.villagerGrid.clear();
-    this.powerUpGrid.clear();
-    this.monsterGrid.populate(monsters);
-    this.villagerGrid.populate(villagers);
-    this.powerUpGrid.populate(powerUps);
-
-    // Check each line segment in slash trail using spatial partitioning
+    // Check each line segment in slash trail
     for (let i = 1; i < slashPoints.length; i++) {
       const prevPoint = slashPoints[i - 1];
       const currentPoint = slashPoints[i];
 
       if (!prevPoint || !currentPoint) continue;
 
-      // Query spatial grids for nearby entities and check collisions
-      // This reduces collision checks from O(all entities) to O(entities in nearby cells)
-      this.checkMonsterCollisionsSpatial(prevPoint, currentPoint);
-      this.checkVillagerCollisionsSpatial(prevPoint, currentPoint);
-      this.checkPowerUpCollisionsSpatial(prevPoint, currentPoint);
+      // Check collision with monsters
+      this.checkMonsterCollisions(prevPoint, currentPoint, monsters);
+
+      // Check collision with villagers
+      this.checkVillagerCollisions(prevPoint, currentPoint, villagers);
+
+      // Check collision with power-ups
+      this.checkPowerUpCollisions(prevPoint, currentPoint, powerUps);
+    }
+
+    // Check for multi-kill at end of update cycle
+    // Multi-kill bonus is applied AFTER all individual kill scores are calculated
+    // This ensures simultaneous kills are properly rewarded with bonus multiplier
+    if (this.killsThisCycle >= 2) {
+      this.lastMultiKillCount = this.killsThisCycle;
+
+      // Calculate and apply multi-kill bonus based on how many monsters killed this frame
+      // 2 kills = 1.5x, 3 kills = 2.0x, 4+ kills = 2.5x (see getMultiKillBonus)
+      const bonusMultiplier = getMultiKillBonus(this.killsThisCycle);
+      // Bonus is the EXTRA score from the multiplier (multiplier - 1.0 since base score already added)
+      const bonusScore = Math.floor(this.scoreThisCycle * (bonusMultiplier - 1.0));
+
+      if (bonusScore > 0) {
+        this.score += bonusScore;
+        this.lastMultiKillBonus = bonusScore;
+
+        // Emit score updated event with bonus
+        EventBus.emit('score-updated', {
+          score: this.score,
+          delta: bonusScore,
+          isMultiKillBonus: true,
+        });
+      }
+
+      // Emit multi-kill event for external systems to react to
+      EventBus.emit('multi-kill', {
+        killCount: this.killsThisCycle,
+        bonusMultiplier: bonusMultiplier,
+        bonusScore: bonusScore,
+        totalCycleScore: this.scoreThisCycle + bonusScore,
+      });
+
+      // Create multi-kill visual feedback
+      this.createMultiKillEffect(this.killsThisCycle, bonusScore);
     }
   }
 
@@ -492,15 +548,13 @@ export class SlashSystem {
         // Monster was hit
         monster.slice();
         this.monstersSliced++;
+        // Increment kill counter for multi-kill tracking (counts ALL kills in same frame)
+        this.killsThisCycle++;
 
-        // Play monster-type-specific death sound effect
-        const monsterType = monster.getMonsterType();
-        if (this.audioManager) {
-          const sfxKey = `sfx_${monsterType}_death`;
-          this.audioManager.playSFX(sfxKey);
-        }
+        // Track kill position for multi-kill effect visual feedback
+        this.killPositionsThisCycle.push({ x: monster.x, y: monster.y });
 
-        // Apply weapon effects at impact point
+        // Apply weapon effects
         if (this.weaponManager) {
           this.weaponManager.applyWeaponEffects(
             { position: { x: impactPoint.x, y: impactPoint.y } },
@@ -522,11 +576,15 @@ export class SlashSystem {
         }
 
         // Calculate score with combo multiplier
+        // NOTE: For simultaneous kills, each kill gets the current multiplier THEN increments combo
+        // This means later kills in the same frame benefit from earlier kills' combo increment
         const basePoints = monster.getPoints();
         let multiplier = 1.0;
 
         if (this.comboSystem) {
+          // Get multiplier BEFORE incrementing (fair scoring for this kill)
           multiplier = this.comboSystem.getMultiplier();
+          // Increment combo for this kill (benefits subsequent kills in same frame)
           this.comboSystem.increment();
         }
 
@@ -555,7 +613,9 @@ export class SlashSystem {
 
         const finalScore = Math.floor(basePoints * multiplier);
         this.score += finalScore;
-
+        // Accumulate score for multi-kill bonus calculation (all kills in same frame)
+        this.scoreThisCycle += finalScore;
+        
         // Calculate souls
         const baseSouls = MONSTER_SOULS[monsterType] || 5;
         let finalSouls: number = baseSouls;
@@ -592,9 +652,12 @@ export class SlashSystem {
           souls: this.souls,
           delta: finalSouls,
         });
+        
+        // Create visual feedback
+        this.createHitEffect(monster.x, monster.y, isCritical);
 
-        // Create visual feedback at exact impact point
-        this.createHitEffect(impactPoint.x, impactPoint.y, isCritical);
+        // Create floating score text at monster death position
+        this.createFloatingScoreText(monster.x, monster.y, finalScore, multiplier, isCritical);
       }
     }
     
@@ -1200,6 +1263,101 @@ export class SlashSystem {
   }
 
   /**
+   * Create floating score text at monster death position
+   * Shows "+X" with optional multiplier display, scaled based on point value
+   */
+  private createFloatingScoreText(
+    x: number,
+    y: number,
+    points: number,
+    multiplier: number,
+    isCritical: boolean
+  ): void {
+    // Determine text color based on point value
+    let textColor = '#ffffff';
+    for (const colorConfig of SCORE_TEXT_COLORS) {
+      if (points >= colorConfig.threshold) {
+        textColor = colorConfig.color;
+        break;
+      }
+    }
+
+    // Critical hits get red color override
+    if (isCritical) {
+      textColor = '#ff0000';
+    }
+
+    // Scale font size based on point value (min 18px, max 36px)
+    const baseFontSize = 18;
+    const scaleFactor = Math.min(points / 100, 1); // Cap at 100 points for scaling
+    const fontSize = Math.floor(baseFontSize + scaleFactor * 18);
+
+    // Build score text with multiplier display if applicable
+    let scoreText = `+${points}`;
+    if (multiplier > 1.0) {
+      // Show multiplier with 1 decimal place
+      const multiplierDisplay = multiplier.toFixed(1);
+      scoreText = `+${points} x${multiplierDisplay}`;
+    }
+
+    // Create the floating score text
+    const floatingText = this.scene.add.text(x, y - 30, scoreText, {
+      fontSize: `${fontSize}px`,
+      color: textColor,
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: Math.floor(fontSize / 6),
+      shadow: {
+        offsetX: 1,
+        offsetY: 1,
+        color: '#000000',
+        blur: 2,
+        fill: true,
+      },
+    });
+    floatingText.setOrigin(0.5);
+    floatingText.setDepth(100);
+
+    // Scale up animation on spawn
+    floatingText.setScale(0);
+    this.scene.tweens.add({
+      targets: floatingText,
+      scale: 1,
+      duration: 100,
+      ease: 'Back.easeOut',
+    });
+
+    // Add slight horizontal movement for visual interest
+    const horizontalOffset = Phaser.Math.Between(-20, 20);
+
+    // Float up and fade out animation
+    this.scene.tweens.add({
+      targets: floatingText,
+      y: y - 100,
+      x: x + horizontalOffset,
+      alpha: 0,
+      duration: 800,
+      delay: 100,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        floatingText.destroy();
+      },
+    });
+
+    // For critical hits, add extra scale pulse
+    if (isCritical) {
+      this.scene.tweens.add({
+        targets: floatingText,
+        scale: { from: 1.0, to: 1.3 },
+        duration: 100,
+        delay: 100,
+        yoyo: true,
+        ease: 'Sine.easeInOut',
+      });
+    }
+  }
+
+  /**
    * Create visual effect when shield is consumed
    */
   private createShieldConsumedEffect(x: number, y: number): void {
@@ -1632,6 +1790,140 @@ export class SlashSystem {
   }
 
   /**
+   * Create visual effect for multi-kill events
+   * Shows floating text and particle effects
+   */
+  private createMultiKillEffect(killCount: number, bonusScore: number): void {
+    // Calculate average position of all kills
+    if (this.killPositionsThisCycle.length === 0) return;
+
+    const avgX = this.killPositionsThisCycle.reduce((sum, pos) => sum + pos.x, 0) / this.killPositionsThisCycle.length;
+    const avgY = this.killPositionsThisCycle.reduce((sum, pos) => sum + pos.y, 0) / this.killPositionsThisCycle.length;
+
+    // Get multi-kill text configuration (use highest available for 5+)
+    const textConfig = MULTI_KILL_TEXT[Math.min(killCount, 5)] || MULTI_KILL_TEXT[5];
+    const fontSize = Math.min(32 + (killCount - 2) * 8, 56); // Scale font size with kill count
+
+    // Create multi-kill text
+    const multiKillText = this.scene.add.text(
+      avgX,
+      avgY - 60,
+      textConfig.text,
+      {
+        fontSize: `${fontSize}px`,
+        color: textConfig.color,
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 6,
+        shadow: {
+          offsetX: 2,
+          offsetY: 2,
+          color: '#000000',
+          blur: 4,
+          fill: true,
+        },
+      }
+    );
+    multiKillText.setOrigin(0.5);
+
+    // Scale up animation on spawn
+    multiKillText.setScale(0);
+    this.scene.tweens.add({
+      targets: multiKillText,
+      scale: 1,
+      duration: 150,
+      ease: 'Back.easeOut',
+    });
+
+    // Float up and fade out
+    this.scene.tweens.add({
+      targets: multiKillText,
+      y: avgY - 180,
+      alpha: 0,
+      duration: 1200,
+      delay: 300,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        multiKillText.destroy();
+      },
+    });
+
+    // Create bonus score text below multi-kill text
+    if (bonusScore > 0) {
+      const bonusText = this.scene.add.text(
+        avgX,
+        avgY - 20,
+        `+${bonusScore} BONUS!`,
+        {
+          fontSize: '24px',
+          color: '#00ff00',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4,
+        }
+      );
+      bonusText.setOrigin(0.5);
+
+      // Float up and fade out
+      this.scene.tweens.add({
+        targets: bonusText,
+        y: avgY - 140,
+        alpha: 0,
+        duration: 1000,
+        delay: 200,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          bonusText.destroy();
+        },
+      });
+    }
+
+    // Create particle effects at each kill position
+    if (this.particleSystem) {
+      for (const pos of this.killPositionsThisCycle) {
+        this.particleSystem.emit({
+          type: ParticleType.SPARKLE,
+          x: pos.x,
+          y: pos.y,
+          count: 8 + killCount * 2,
+          scale: { start: 0.6, end: 0 },
+          lifespan: 600,
+        });
+      }
+
+      // Create extra burst at the center for higher kill counts
+      if (killCount >= 3) {
+        this.particleSystem.emit({
+          type: ParticleType.FIRE,
+          x: avgX,
+          y: avgY,
+          count: killCount * 5,
+          scale: { start: 0.5, end: 0.1 },
+          lifespan: 800,
+        });
+      }
+    }
+
+    // Create screen flash for high kill counts
+    if (killCount >= 4) {
+      const flash = this.scene.add.graphics();
+      flash.fillStyle(0xffffff, 0.3);
+      flash.fillRect(0, 0, this.scene.cameras.main.width, this.scene.cameras.main.height);
+      flash.setScrollFactor(0);
+      flash.setDepth(1000);
+
+      this.scene.tweens.add({
+        targets: flash,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+          flash.destroy();
+        },
+      });
+    }
+  }
+
+  /**
    * Get current score
    */
   getScore(): number {
@@ -1667,6 +1959,34 @@ export class SlashSystem {
   }
 
   /**
+   * Get the number of kills in the current update cycle
+   */
+  getKillsThisCycle(): number {
+    return this.killsThisCycle;
+  }
+
+  /**
+   * Get the last multi-kill count (only set when >= 2 kills in one cycle)
+   */
+  getLastMultiKillCount(): number {
+    return this.lastMultiKillCount;
+  }
+
+  /**
+   * Check if the current cycle is a multi-kill (2+ kills)
+   */
+  isMultiKill(): boolean {
+    return this.killsThisCycle >= 2;
+  }
+
+  /**
+   * Get the last multi-kill bonus score awarded
+   */
+  getLastMultiKillBonus(): number {
+    return this.lastMultiKillBonus;
+  }
+
+  /**
    * Reset score and stats
    */
   resetScore(): void {
@@ -1675,26 +1995,11 @@ export class SlashSystem {
     this.monstersSliced = 0;
     this.villagersSliced = 0;
     this.powerUpsCollected = 0;
-
-    // Reset energy tracking
-    this.lastSlashDistance = 0;
-    this.currentEnergyEffectiveness = 1.0;
-
-    // Reset power level tracking
-    this.currentPowerLevel = SlashPowerLevel.NONE;
-
-    // Reset pattern recognition tracking
-    this.resetPatternBuffer();
-    this.resetSlashSession();
-    this.wasSlashActive = false;
-  }
-
-  /**
-   * Get current power level
-   * @returns Current slash power level (0-3)
-   */
-  getCurrentPowerLevel(): SlashPowerLevel {
-    return this.currentPowerLevel;
+    this.killsThisCycle = 0;
+    this.lastMultiKillCount = 0;
+    this.scoreThisCycle = 0;
+    this.lastMultiKillBonus = 0;
+    this.killPositionsThisCycle = [];
   }
 
   /**

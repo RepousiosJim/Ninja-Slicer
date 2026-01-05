@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "004-hit-detection-slicing-feedback",
+  "spec": "005-score-combo-system",
   "state": "complete",
   "subtasks": {
-    "completed": 6,
-    "total": 6,
+    "completed": 17,
+    "total": 17,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "End-to-End Integration",
+    "current": "Testing & QA",
     "id": null,
-    "total": 1
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 6,
-    "started_at": "2025-12-30T16:23:04.647467"
+    "number": 1770,
+    "started_at": "2025-12-30T16:05:18.592686"
   },
-  "last_update": "2025-12-30T16:43:46.786449"
+  "last_update": "2025-12-30T21:25:23.828466"
 }
