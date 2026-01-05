@@ -1,0 +1,382 @@
+{
+  "feature": "Refactor duplicate code",
+  "description": "Identify and refactor duplicate code patterns into reusable utility functions or components. This will reduce code duplication, make the codebase easier to maintain, and reduce the likelihood of bugs.",
+  "created_at": "2026-01-01T12:55:01.366Z",
+  "updated_at": "2026-01-01T13:30:00.000Z",
+  "status": "in_progress",
+  "planStatus": "approved",
+  "workflow_type": "development",
+  "services_involved": ["entities", "scenes", "ui", "utils"],
+  "spec_file": "spec.md",
+  "total_subtasks": 16,
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Gameplay Scene Refactoring",
+      "description": "Extract shared logic between GameplayScene and EndlessGameplayScene into a base class",
+      "subtasks": [
+        {
+          "id": "1.1",
+          "title": "Create BaseGameplayScene abstract class",
+          "description": "Extract common functionality from GameplayScene and EndlessGameplayScene into a new BaseGameplayScene abstract class. This includes: setupInput(), setupKeyboard(), createBackground(), handleInput(), loseLife(), togglePause(), and the core update loop structure. Keep campaign-specific and endless-specific logic in their respective subclasses.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/scenes/BaseGameplayScene.ts",
+            "src/scenes/GameplayScene.ts",
+            "src/scenes/EndlessGameplayScene.ts"
+          ],
+          "acceptance_criteria": [
+            "New BaseGameplayScene.ts file created with shared methods",
+            "GameplayScene extends BaseGameplayScene",
+            "EndlessGameplayScene extends BaseGameplayScene",
+            "No duplicate code between the two gameplay scenes",
+            "Both scenes function identically to before refactoring",
+            "TypeScript compiles without errors"
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "Refactor shutdown and cleanup methods",
+          "description": "Consolidate the shutdown() methods between gameplay scenes. Create a base shutdown() method that handles common cleanup (EventBus.off calls, system destruction) and allow subclasses to add their own cleanup via a protected cleanupSubclass() method.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/scenes/BaseGameplayScene.ts",
+            "src/scenes/GameplayScene.ts",
+            "src/scenes/EndlessGameplayScene.ts"
+          ],
+          "acceptance_criteria": [
+            "Base shutdown() method handles common cleanup",
+            "Subclass-specific cleanup is handled via override or hook method",
+            "No resource leaks on scene shutdown",
+            "Event listeners properly removed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Monster Split Effect Refactoring",
+      "description": "Extract duplicate monster split/halves effect into reusable utility",
+      "subtasks": [
+        {
+          "id": "2.1",
+          "title": "Create MonsterSplitEffect utility class",
+          "description": "Both Zombie.createHalves() and Vampire.createHalves() have similar logic for creating two halves that fall with physics. Extract this into a reusable MonsterSplitEffect utility that can be configured with textures, velocities, and cleanup timing.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/utils/MonsterSplitEffect.ts",
+            "src/entities/Zombie.ts",
+            "src/entities/Vampire.ts"
+          ],
+          "acceptance_criteria": [
+            "New MonsterSplitEffect utility class created",
+            "Zombie uses MonsterSplitEffect for split effect",
+            "Vampire uses MonsterSplitEffect for split effect",
+            "Configurable textures, velocities, and angular velocities",
+            "Automatic cleanup handled by the utility",
+            "Both monsters split correctly in gameplay"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "PowerUp Pattern Refactoring",
+      "description": "Reduce duplication in PowerUp subclasses activation/deactivation patterns",
+      "subtasks": [
+        {
+          "id": "3.1",
+          "title": "Create PowerUpIndicator utility class",
+          "description": "FrenzyPowerUp, ShieldPowerUp, and SlowMotionPowerUp all create similar UI indicators (borders, icons, overlays) with similar tween animations. Create a PowerUpIndicator utility that handles creating, animating, and destroying these indicators.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/utils/PowerUpIndicator.ts",
+            "src/entities/FrenzyPowerUp.ts",
+            "src/entities/ShieldPowerUp.ts",
+            "src/entities/SlowMotionPowerUp.ts",
+            "src/entities/SoulMagnetPowerUp.ts"
+          ],
+          "acceptance_criteria": [
+            "New PowerUpIndicator utility class created",
+            "Supports border indicators (like FrenzyPowerUp)",
+            "Supports icon indicators (like ShieldPowerUp)",
+            "Supports overlay indicators (like SlowMotionPowerUp)",
+            "Handles fade in/out animations",
+            "Handles pulse animations",
+            "All power-ups use the new utility",
+            "Visual appearance unchanged"
+          ]
+        },
+        {
+          "id": "3.2",
+          "title": "Refactor PowerUp base class deactivation pattern",
+          "description": "Add a standardized deactivation pattern to the base PowerUp class that handles the common EventBus emit pattern and timer cleanup. Subclasses only need to implement their specific effect activation/deactivation logic.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/entities/PowerUp.ts",
+            "src/entities/FrenzyPowerUp.ts",
+            "src/entities/ShieldPowerUp.ts",
+            "src/entities/SlowMotionPowerUp.ts"
+          ],
+          "acceptance_criteria": [
+            "Base PowerUp class has protected scheduleDeactivation() method",
+            "Base PowerUp class emits powerup-activated on activate()",
+            "Base PowerUp class emits powerup-ended on deactivate()",
+            "Subclasses implement onActivate() and onDeactivate() hooks",
+            "Timer management moved to base class",
+            "Power-ups function identically to before"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Collision Detection Utility",
+      "description": "Extract duplicate collision detection code into reusable utilities",
+      "subtasks": [
+        {
+          "id": "4.1",
+          "title": "Create CollisionUtils utility",
+          "description": "Extract the duplicate distance-based collision checking from Vampire (checkVillagerCollision, checkPowerUpCollision) into a reusable CollisionUtils utility. Include circle-circle collision, point-circle collision, and any other commonly used collision checks.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/utils/CollisionUtils.ts",
+            "src/entities/Vampire.ts"
+          ],
+          "acceptance_criteria": [
+            "New CollisionUtils utility created",
+            "checkCircleCollision(x1, y1, r1, x2, y2, r2) method",
+            "checkPointInCircle(px, py, cx, cy, radius) method",
+            "getDistance(x1, y1, x2, y2) method",
+            "Vampire uses CollisionUtils",
+            "All collision checks work correctly"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "UI Component Cleanup",
+      "description": "Clean up duplicate/unused UI components and standardize patterns",
+      "subtasks": [
+        {
+          "id": "5.1",
+          "title": "Remove unused Button_new.ts file",
+          "description": "Button_new.ts is essentially empty (1 line). Remove this file and ensure no imports reference it. Consolidate any intended functionality into the main Button.ts if needed.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/ui/Button_new.ts"
+          ],
+          "acceptance_criteria": [
+            "Button_new.ts removed",
+            "No broken imports",
+            "Build still succeeds"
+          ]
+        },
+        {
+          "id": "5.2",
+          "title": "Integrate VolumeSlider component in SettingsScene",
+          "description": "Extract the volume slider creation logic from SettingsScene.createVolumeSlider() into the standalone VolumeSlider component. Ensure the existing VolumeSlider.ts component is fully functional and used by SettingsScene.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/ui/VolumeSlider.ts",
+            "src/scenes/SettingsScene.ts"
+          ],
+          "acceptance_criteria": [
+            "VolumeSlider component handles all slider logic",
+            "SettingsScene uses VolumeSlider component",
+            "Slider drag functionality works",
+            "Value display updates correctly",
+            "onChange callback fires correctly"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Scene Background and Header Patterns",
+      "description": "Standardize common scene setup patterns",
+      "subtasks": [
+        {
+          "id": "6.1",
+          "title": "Create SceneBackground utility",
+          "description": "Multiple scenes create similar backgrounds (gradient fills, decorative circles). Create a SceneBackground utility that provides common background patterns: solid color, gradient, with decorative elements.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/utils/SceneBackground.ts",
+            "src/scenes/GameplayScene.ts",
+            "src/scenes/EndlessGameplayScene.ts",
+            "src/scenes/SettingsScene.ts"
+          ],
+          "acceptance_criteria": [
+            "New SceneBackground utility created",
+            "createSolidBackground(scene, color) method",
+            "createGradientBackground(scene, startColor, endColor) method",
+            "addDecorativeCircles(scene, options) method",
+            "Scenes use SceneBackground utility",
+            "Visual appearance unchanged"
+          ]
+        },
+        {
+          "id": "6.2",
+          "title": "Create SceneHeader component",
+          "description": "Multiple scenes create similar headers/titles with text styling, stroke, and animations. Create a reusable SceneHeader component that standardizes this pattern.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/ui/SceneHeader.ts",
+            "src/scenes/SettingsScene.ts",
+            "src/scenes/ShopScene.ts"
+          ],
+          "acceptance_criteria": [
+            "New SceneHeader component created",
+            "Configurable title text",
+            "Consistent styling across scenes",
+            "Optional fade-in animation",
+            "Scenes use SceneHeader component"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "name": "Death Effect Consolidation",
+      "description": "Consolidate monster death effects and particle systems",
+      "subtasks": [
+        {
+          "id": "7.1",
+          "title": "Create DeathEffects utility class",
+          "description": "Monster.createDeathParticles(), Ghost.createMistEffect(), and similar death effects share common patterns. Create a DeathEffects utility that provides configurable death effect presets.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/utils/DeathEffects.ts",
+            "src/entities/Monster.ts",
+            "src/entities/Ghost.ts"
+          ],
+          "acceptance_criteria": [
+            "New DeathEffects utility created",
+            "createBurstEffect(scene, x, y, color, count) method",
+            "createMistEffect(scene, x, y, color) method",
+            "createFlashEffect(scene, x, y) method",
+            "Monster uses DeathEffects",
+            "Ghost uses DeathEffects",
+            "Visual effects unchanged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-8",
+      "name": "Debug Logging Cleanup",
+      "description": "Remove debug fetch calls from Vampire.ts that appear to be development-only logging",
+      "subtasks": [
+        {
+          "id": "8.1",
+          "title": "Remove agent debug logs from Vampire.ts",
+          "description": "Vampire.ts contains multiple fetch() calls to localhost for debugging (marked with #region agent log). Remove these debug statements as they are not needed in production and could cause issues.",
+          "status": "pending",
+          "notes": "",
+          "files": [
+            "src/entities/Vampire.ts"
+          ],
+          "acceptance_criteria": [
+            "All fetch() debug calls removed from Vampire.ts",
+            "All #region agent log blocks removed",
+            "Vampire functionality unchanged",
+            "No console errors"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-9",
+      "name": "Testing and Verification",
+      "description": "Verify all refactored code works correctly",
+      "subtasks": [
+        {
+          "id": "9.1",
+          "title": "TypeScript type checking",
+          "description": "Run TypeScript compiler to ensure all refactored code compiles without errors.",
+          "status": "pending",
+          "notes": "",
+          "files": [],
+          "acceptance_criteria": [
+            "npm run typecheck passes without errors",
+            "No implicit any types introduced",
+            "All imports resolve correctly"
+          ]
+        },
+        {
+          "id": "9.2",
+          "title": "ESLint verification",
+          "description": "Run ESLint to ensure code quality standards are maintained.",
+          "status": "pending",
+          "notes": "",
+          "files": [],
+          "acceptance_criteria": [
+            "npm run lint passes without errors",
+            "No new ESLint warnings introduced",
+            "Code follows project style guidelines"
+          ]
+        },
+        {
+          "id": "9.3",
+          "title": "Build verification",
+          "description": "Run production build to ensure all refactored code builds successfully.",
+          "status": "pending",
+          "notes": "",
+          "files": [],
+          "acceptance_criteria": [
+            "npm run build succeeds",
+            "No build warnings",
+            "Output bundle size reasonable"
+          ]
+        }
+      ]
+    }
+  ],
+  "dependencies": {
+    "1.2": ["1.1"],
+    "3.2": ["3.1"],
+    "9.1": ["1.1", "1.2", "2.1", "3.1", "3.2", "4.1", "5.1", "5.2", "6.1", "6.2", "7.1", "8.1"],
+    "9.2": ["9.1"],
+    "9.3": ["9.2"]
+  },
+  "estimated_effort": "8-12 hours",
+  "risk_assessment": {
+    "high": [],
+    "medium": [
+      "Gameplay scene refactoring could introduce subtle bugs in game loop timing",
+      "PowerUp refactoring could affect power-up timing and visual effects"
+    ],
+    "low": [
+      "UI component cleanup may have minor visual differences",
+      "Utility extractions are straightforward"
+    ]
+  },
+  "final_acceptance": [
+    "All TypeScript compilation passes",
+    "ESLint passes without errors",
+    "Production build succeeds",
+    "Game plays correctly in both campaign and endless modes",
+    "All power-ups function correctly",
+    "All monsters display correct death effects",
+    "No console errors during gameplay"
+  ],
+  "qa_signoff": {
+    "status": "pending",
+    "tester": "",
+    "tests_passed": "",
+    "issues": ""
+  }
+}
