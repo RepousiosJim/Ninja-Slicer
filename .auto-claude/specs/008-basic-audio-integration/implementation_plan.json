@@ -1,0 +1,376 @@
+{
+  "feature": "Basic Audio Integration",
+  "workflow_type": "feature",
+  "workflow_rationale": "Adding audio capabilities to existing game events (slash, monster death, combo, UI clicks). AudioManager infrastructure already exists - this is an integration task, not building from scratch.",
+  "phases": [
+    {
+      "id": "phase-1-setup",
+      "name": "Audio Assets Setup",
+      "type": "setup",
+      "description": "Create audio directory structure and add placeholder/sample audio files",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create audio directory structure",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "public/assets/audio/combat/swoosh.mp3",
+            "public/assets/audio/monsters/death_zombie.mp3",
+            "public/assets/audio/monsters/death_vampire.mp3",
+            "public/assets/audio/monsters/death_ghost.mp3",
+            "public/assets/audio/combo/milestone_low.mp3",
+            "public/assets/audio/combo/milestone_medium.mp3",
+            "public/assets/audio/combo/milestone_high.mp3",
+            "public/assets/audio/ui/button_click.mp3"
+          ],
+          "patterns_from": [
+            "public/assets/enemies/",
+            "public/assets/ui/"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "ls -la public/assets/audio/combat/ public/assets/audio/monsters/ public/assets/audio/combo/ public/assets/audio/ui/",
+            "expected": "All directories exist with placeholder files"
+          },
+          "status": "pending",
+          "notes": "Use placeholder/free sound effects initially. Real assets can be replaced later. Key is to establish the directory structure and integration points."
+        }
+      ]
+    },
+    {
+      "id": "phase-2-preload",
+      "name": "Audio Asset Loading",
+      "type": "implementation",
+      "description": "Add audio file loading to PreloaderScene",
+      "depends_on": [
+        "phase-1-setup"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Add audio file loading to PreloaderScene",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/PreloaderScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/scenes/PreloaderScene.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Game loads without errors",
+              "Network tab shows audio files loaded",
+              "Console has no 'failed to load' errors"
+            ]
+          },
+          "status": "pending",
+          "notes": "Load all 8 audio files (1 swoosh, 3 monster deaths, 3 combo milestones, 1 button click) using scene.load.audio(key, path)"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-slash-audio",
+      "name": "Slash Sound Integration",
+      "type": "implementation",
+      "description": "Add slash swoosh sound to SlashSystem when slash line is drawn",
+      "depends_on": [
+        "phase-2-preload"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Add AudioManager to SlashSystem and trigger swoosh sound on slash",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/managers/AudioManager.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Slash/swipe gesture triggers swoosh sound",
+              "Sound plays immediately on input",
+              "Multiple rapid slashes don't cause audio distortion"
+            ]
+          },
+          "status": "pending",
+          "notes": "Add AudioManager instance to SlashSystem constructor. Call audioManager.playSFX('slash_swoosh') when slash is detected. Use playSFXWithVariation() for pitch variety."
+        }
+      ]
+    },
+    {
+      "id": "phase-4-monster-audio",
+      "name": "Monster Death Sound Integration",
+      "type": "implementation",
+      "description": "Add type-specific death sounds to Monster class",
+      "depends_on": [
+        "phase-2-preload"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Add AudioManager to Monster and trigger death sounds by type",
+          "service": "main",
+          "files_to_modify": [
+            "src/entities/Monster.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/managers/AudioManager.ts",
+            "src/config/types.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Zombie death plays death_zombie sound",
+              "Vampire death plays death_vampire sound",
+              "Ghost death plays death_ghost sound",
+              "Sound plays during death animation"
+            ]
+          },
+          "status": "pending",
+          "notes": "In Monster.onSliced() method (line 308), get AudioManager from scene and play sound based on this.monsterType. Map MonsterType.ZOMBIE -> 'death_zombie', etc."
+        }
+      ]
+    },
+    {
+      "id": "phase-5-combo-audio",
+      "name": "Combo Milestone Sound Integration",
+      "type": "implementation",
+      "description": "Add escalating combo sounds to ComboSystem at milestones",
+      "depends_on": [
+        "phase-2-preload"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Add AudioManager to ComboSystem and trigger milestone sounds",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/ComboSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/managers/AudioManager.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Combo count 5 plays milestone_low sound",
+              "Combo count 10 plays milestone_medium sound",
+              "Combo count 15+ plays milestone_high sound",
+              "Sounds escalate in intensity/pitch"
+            ]
+          },
+          "status": "pending",
+          "notes": "In ComboSystem.increment() method, check combo thresholds (5, 10, 15) and play escalating sounds. Inject AudioManager via constructor or scene reference."
+        }
+      ]
+    },
+    {
+      "id": "phase-6-ui-audio",
+      "name": "UI Button Click Sound Integration",
+      "type": "implementation",
+      "description": "Add button click sound to Button class",
+      "depends_on": [
+        "phase-2-preload"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Add AudioManager to Button and trigger click sound",
+          "service": "main",
+          "files_to_modify": [
+            "src/ui/Button.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/managers/AudioManager.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "All buttons play click sound on press",
+              "Sound plays in main menu, settings, pause menu",
+              "Click sound is consistent across all UI"
+            ]
+          },
+          "status": "pending",
+          "notes": "In Button.onPress() method (line 174), get AudioManager from scene and play 'button_click' sound. All buttons use this class, so one integration point covers all UI."
+        }
+      ]
+    },
+    {
+      "id": "phase-7-integration",
+      "name": "Audio System Integration & Verification",
+      "type": "integration",
+      "description": "Wire AudioManager to GameplayScene and verify all sounds work together",
+      "depends_on": [
+        "phase-3-slash-audio",
+        "phase-4-monster-audio",
+        "phase-5-combo-audio",
+        "phase-6-ui-audio"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-7-1",
+          "description": "Initialize AudioManager in GameplayScene and apply settings",
+          "service": "main",
+          "files_to_modify": [
+            "src/scenes/GameplayScene.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/managers/AudioManager.ts",
+            "src/managers/SaveManager.ts"
+          ],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Start game from main menu (click sound plays)",
+              "Perform slash gesture (swoosh sound plays)",
+              "Kill zombie (death_zombie sound plays)",
+              "Build combo to 5 (milestone_low sound plays)",
+              "Build combo to 10 (milestone_medium sound plays)",
+              "Open settings and disable audio toggle",
+              "Perform slash (no sound plays)",
+              "Re-enable audio toggle",
+              "Perform slash (swoosh sound plays again)"
+            ]
+          },
+          "status": "pending",
+          "notes": "Create AudioManager instance in GameplayScene.create(), call initialize() and applySettings() from SaveManager. This makes AudioManager available to all systems via scene reference."
+        },
+        {
+          "id": "subtask-7-2",
+          "description": "End-to-end audio verification across all features",
+          "service": "main",
+          "all_services": false,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Play through complete game session: 1) All 5 sound types trigger correctly, 2) Audio toggle works immediately, 3) Settings persist across browser refresh, 4) No console errors, 5) No gameplay regressions"
+          },
+          "status": "pending",
+          "notes": "This is the final acceptance check before marking the feature complete."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 7,
+    "total_subtasks": 9,
+    "services_involved": [
+      "main"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 4,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-3-slash-audio",
+            "phase-4-monster-audio",
+            "phase-5-combo-audio",
+            "phase-6-ui-audio"
+          ],
+          "reason": "All depend only on phase-2-preload and modify different files (SlashSystem, Monster, ComboSystem, Button)"
+        }
+      ],
+      "recommended_workers": 1,
+      "speedup_estimate": "Parallelism possible but limited benefit - sequential execution recommended for simpler coordination"
+    },
+    "startup_command": "cd 'F:\\Desktop\\Ninja Slicer' && npm run dev"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All 5 sound types trigger correctly (slash, death, combo, UI click)",
+      "Audio toggle works immediately without page refresh",
+      "Settings persist across browser sessions",
+      "No console errors during audio playback",
+      "No gameplay regressions (slashing, combos, UI still work)",
+      "No audio distortion from rapid triggering"
+    ],
+    "verification_steps": [
+      {
+        "name": "Browser Manual Testing",
+        "command": "npm run dev",
+        "expected_outcome": "All audio features work as described in acceptance criteria",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk - integrating new audio system into existing gameplay. Manual testing required since this is a user experience feature (sound quality, timing). Integration tests verify event triggering."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": false,
+      "commands": [],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": false,
+      "commands": [],
+      "services_to_test": []
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:5173",
+          "checks": [
+            "Slash swoosh sound plays on swipe",
+            "Monster death sounds play (type-specific)",
+            "Combo milestone sounds escalate",
+            "UI button clicks have audio feedback",
+            "Audio toggle works in settings",
+            "No console errors",
+            "Settings persist across refresh"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": []
+    }
+  },
+  "qa_signoff": null,
+  "status": "human_review",
+  "planStatus": "review",
+  "updated_at": "2025-12-31T05:24:34.060Z"
+}
