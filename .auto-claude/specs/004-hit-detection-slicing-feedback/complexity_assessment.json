@@ -1,0 +1,71 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "Implementing collision detection with visual/audio feedback involves multiple subsystems (collision, particles, audio, camera) but benefits from Phaser's built-in capabilities. Estimated 5-8 files across single service with some Phaser API research needed.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 7,
+      "estimated_services": 1,
+      "is_cross_cutting": true,
+      "notes": "Affects slash trail system, monster handling, particle effects, audio system, and camera shake. All within single Phaser game client."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": true,
+      "notes": "No new external services. Phaser is already a dependency and provides particle emitters, audio manager, collision utilities, and camera shake built-in. Research needed for Phaser.Geom collision APIs and particle emitter configurations."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "May need to add audio asset paths but no infrastructure changes required."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": true,
+      "unfamiliar_tech": [],
+      "notes": "Phaser provides built-in solutions for all required features (particles, audio, camera shake, collision). Research needed for specific Phaser APIs: Phaser.Geom for line-polygon intersection, Phaser.GameObjects.Particles for effects, Phaser.Cameras for screen shake."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Performance: Per-frame collision detection could be CPU-intensive with many monsters",
+        "Game feel: Subjective 'satisfaction' may require iteration on particle intensity/timing",
+        "Timing synchronization: Audio/visual/camera effects must trigger simultaneously",
+        "Precision: Line-to-polygon collision accuracy affects gameplay fairness"
+      ],
+      "notes": "Primary risk is achieving the 'satisfying feel' comparable to Fruit Ninja. Technical implementation is straightforward with Phaser, but tuning particle effects, screen shake intensity, and audio timing for optimal game feel may require iteration."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "research",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": true,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Core gameplay mechanic affecting user experience requires thorough testing. Unit tests for collision detection accuracy, integration tests for feedback systems synchronization. No security concerns as this is client-side game logic."
+  },
+
+  "created_at": "2025-12-30T12:00:00Z"
+}

@@ -1,0 +1,200 @@
+{
+  "integrations_researched": [
+    {
+      "name": "Phaser 3",
+      "type": "library",
+      "verified_package": {
+        "name": "phaser",
+        "install_command": "npm install phaser",
+        "version": "3.80.1",
+        "verified": true,
+        "source": "package.json - already installed"
+      },
+      "api_patterns": {
+        "imports": [
+          "import Phaser from 'phaser';"
+        ],
+        "initialization": "Game framework initialized via main.ts with scene configuration",
+        "key_functions": [
+          "Phaser.GameObjects.Particles.ParticleEmitter.explode(count)",
+          "Phaser.Cameras.Scene2D.Camera.shake(duration, intensity)",
+          "Phaser.Sound.BaseSoundManager.play(key, config)",
+          "Phaser.GameObjects.Graphics (for rendering effects)",
+          "Phaser.Math.Vector2 (for position tracking)",
+          "Phaser.Physics.Arcade.Body (for hitboxes)"
+        ],
+        "verified_against": "Existing codebase implementation in src/systems/ParticleSystem.ts, src/entities/Monster.ts, src/managers/AudioManager.ts"
+      },
+      "configuration": {
+        "env_vars": [],
+        "config_files": [
+          "src/config/constants.ts",
+          "src/config/types.ts"
+        ],
+        "dependencies": [
+          "typescript - for type safety",
+          "vite - build tool"
+        ]
+      },
+      "infrastructure": {
+        "requires_docker": false,
+        "requires_external_service": false,
+        "runtime": "Browser-based (HTML5)"
+      },
+      "existing_implementations": {
+        "collision_detection": {
+          "status": "ALREADY IMPLEMENTED",
+          "location": "src/utils/helpers.ts",
+          "function": "lineIntersectsCircle(lineStart, lineEnd, circleCenter, circleRadius)",
+          "description": "Custom line-to-circle intersection algorithm using quadratic formula",
+          "usage": "Used in src/systems/SlashSystem.ts for slash hit detection",
+          "code_reference": "Lines 106-136 in helpers.ts"
+        },
+        "particle_effects": {
+          "status": "ALREADY IMPLEMENTED",
+          "location": "src/systems/ParticleSystem.ts",
+          "key_methods": [
+            "emit(config: ParticleConfig) - Burst particles at position",
+            "createHitEffect(x, y, weaponType) - Monster hit particles",
+            "createButtonClickEffect(x, y) - UI interaction particles"
+          ],
+          "particle_types": [
+            "BLOOD_SPLATTER - For monster hits",
+            "SOUL_WISP - For souls",
+            "FIRE, ICE, LIGHTNING - For weapon effects",
+            "SPARKLE - For general effects"
+          ],
+          "description": "Full particle system with object pooling for performance",
+          "code_reference": "ParticleSystem.ts lines 1-550"
+        },
+        "screen_shake": {
+          "status": "ALREADY IMPLEMENTED",
+          "location": "src/entities/Monster.ts",
+          "api_call": "this.scene.cameras.main.shake(duration, intensity)",
+          "current_usage": "Monster.onSliced() - shake(100, 0.003)",
+          "description": "Phaser camera shake effect on monster death",
+          "code_reference": "Monster.ts line 319"
+        },
+        "audio_system": {
+          "status": "ALREADY IMPLEMENTED",
+          "location": "src/managers/AudioManager.ts",
+          "key_methods": [
+            "playSFX(key, config) - Play sound effect",
+            "playRandomSFX(keys, config) - Play random variant",
+            "playSFXWithVariation(key, pitchRange) - Play with pitch variation"
+          ],
+          "description": "Full audio manager with volume controls and mobile unlock support",
+          "code_reference": "AudioManager.ts lines 1-402"
+        },
+        "slash_system": {
+          "status": "ALREADY IMPLEMENTED",
+          "location": "src/systems/SlashSystem.ts",
+          "description": "Complete slash detection system with collision checking, scoring, and visual feedback",
+          "key_methods": [
+            "update(slashTrail, monsters, villagers, powerUps) - Main update loop",
+            "checkMonsterCollisions(prevPoint, currentPoint, monsters) - Collision detection",
+            "handleMonsterHit(monster) - Hit event handling",
+            "createHitEffect(x, y, isCritical) - Visual feedback"
+          ],
+          "code_reference": "SlashSystem.ts lines 1-565"
+        },
+        "monster_hitboxes": {
+          "status": "ALREADY IMPLEMENTED",
+          "location": "src/entities/Monster.ts",
+          "api_used": "Phaser.Physics.Arcade.Body.setCircle(radius)",
+          "hitbox_data": "MONSTER_HITBOX_RADIUS constant in src/config/constants.ts",
+          "description": "Circular hitboxes for all monster types",
+          "code_reference": "Monster.ts lines 50-56"
+        },
+        "slash_trail": {
+          "status": "ALREADY IMPLEMENTED",
+          "location": "src/entities/SlashTrail.ts",
+          "data_structure": "Array of Phaser.Math.Vector2 points",
+          "key_methods": [
+            "getSlashPoints() - Returns array of slash points",
+            "isActive() - Check if slash is active",
+            "update(x, y, deltaTime) - Update slash trail"
+          ],
+          "description": "Tracks cursor movement and renders glowing trail",
+          "code_reference": "SlashTrail.ts lines 1-267"
+        }
+      },
+      "gotchas": [
+        "Phaser particle emitters need to be pooled for performance (already implemented)",
+        "Camera shake intensity should be subtle (0.003 works well)",
+        "Audio requires user interaction to unlock on mobile browsers (AudioManager handles this)",
+        "Line-circle collision uses quadratic formula - ensure proper t value clamping (0-1 range)",
+        "Monster hitboxes are circular, not rectangular",
+        "Slash trail points are Vector2 arrays - iterate pairs for line segments"
+      ],
+      "research_sources": [
+        "package.json - Phaser version verification",
+        "src/systems/ParticleSystem.ts - Particle API usage",
+        "src/entities/Monster.ts - Camera shake API",
+        "src/managers/AudioManager.ts - Sound API",
+        "src/systems/SlashSystem.ts - Collision detection implementation",
+        "src/utils/helpers.ts - Geometry helpers",
+        "src/entities/SlashTrail.ts - Trail data structure"
+      ]
+    }
+  ],
+  "unverified_claims": [],
+  "recommendations": [
+    "NO NEW LIBRARIES NEEDED - All required systems already exist in codebase",
+    "Focus on ENHANCEMENT of existing systems rather than new implementations",
+    "Collision detection (lineIntersectsCircle) is already accurate - may only need tuning",
+    "Particle effects system has BLOOD_SPLATTER type ready for impact particles",
+    "Screen shake exists but may need intensity adjustment for better game feel",
+    "Audio system supports per-monster sound effects via AudioManager.playSFX()",
+    "Consider adding monster-type-specific sound keys (e.g., 'slash_zombie', 'slash_vampire')",
+    "Existing ParticleSystem.createHitEffect() method can be enhanced with more dramatic effects",
+    "Camera shake could be intensified for more satisfying feedback (increase from 0.003)",
+    "SlashSystem already emits 'monster-sliced' events with position data - use for particle spawning"
+  ],
+  "implementation_insights": {
+    "priority_1_collision_detection": {
+      "status": "COMPLETE",
+      "location": "SlashSystem.update() already handles this",
+      "enhancement_needed": "Potentially tune hitbox radii or slash width for better feel"
+    },
+    "priority_2_visual_feedback": {
+      "particles": {
+        "status": "PARTIAL - Basic implementation exists",
+        "enhancement": "Make particles more dramatic/abundant for Fruit Ninja feel",
+        "method_to_enhance": "ParticleSystem.createHitEffect()"
+      },
+      "screen_shake": {
+        "status": "PARTIAL - Exists but subtle",
+        "enhancement": "Increase intensity for more visceral feel",
+        "current_value": "0.003",
+        "suggested_value": "0.005-0.01 for stronger impact"
+      }
+    },
+    "priority_3_audio_polish": {
+      "status": "FRAMEWORK READY",
+      "next_step": "Add sound asset files and keys for each monster type",
+      "implementation": "Call AudioManager.playSFX() in SlashSystem.handleMonsterHit()",
+      "monster_type_available": "monster.getMonsterType() returns MonsterType enum"
+    }
+  },
+  "key_files_for_implementation": {
+    "files_to_modify": [
+      "src/systems/SlashSystem.ts - Enhance handleMonsterHit() for audio",
+      "src/systems/ParticleSystem.ts - Enhance createHitEffect() for more particles",
+      "src/entities/Monster.ts - Adjust screen shake intensity in onSliced()",
+      "src/config/constants.ts - May need to tune MONSTER_HITBOX_RADIUS values"
+    ],
+    "files_to_reference": [
+      "src/config/types.ts - MonsterType enum for audio differentiation",
+      "src/managers/AudioManager.ts - Sound playback API",
+      "src/utils/EventBus.ts - Event system for feedback coordination"
+    ]
+  },
+  "no_external_integrations_needed": true,
+  "framework_compatibility": {
+    "phaser_version": "3.80.1",
+    "typescript_version": "5.7.2",
+    "build_tool": "vite 5.4.21"
+  },
+  "created_at": "2024-12-30T00:00:00Z"
+}

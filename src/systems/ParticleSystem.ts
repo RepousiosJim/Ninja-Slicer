@@ -275,18 +275,18 @@ export class ParticleSystem {
       };
       break;
 
-    case ParticleType.BLOOD_SPLATTER:
-      textureKey = 'particle_blood';
-      config = {
-        speed: { min: 150, max: 350 },
-        scale: { start: 0.6, end: 0.1 },
-        alpha: { start: 1, end: 0 },
-        lifespan: 900,
-        quantity: 5,
-        angle: { min: 0, max: 360 },
-        blendMode: 'NORMAL',
-      };
-      break;
+      case ParticleType.BLOOD_SPLATTER:
+        textureKey = 'particle_blood';
+        config = {
+          speed: { min: 150, max: 350 },
+          scale: { start: 0.6, end: 0.1 },
+          alpha: { start: 1, end: 0 },
+          lifespan: 900,
+          quantity: 5,
+          angle: { min: 0, max: 360 },
+          blendMode: 'NORMAL',
+        };
+        break;
 
     case ParticleType.FIRE:
       textureKey = 'particle_fire';

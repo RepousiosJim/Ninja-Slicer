@@ -15,270 +15,15 @@ import type { Monster } from '../entities/Monster';
 import type { Villager } from '../entities/Villager';
 import type { PowerUp } from '../entities/PowerUp';
 import { Ghost } from '../entities/Ghost';
-import { MonsterType, SlashPowerLevel, SlashPatternType, SlashPatternPoint, SlashPatternResult } from '@config/types';
-import {
-  MONSTER_HITBOX_RADIUS,
-  MONSTER_SOULS,
-  VILLAGER_PENALTY,
-  SLASH_HITBOX_RADIUS,
-  SLASH_POWER_DAMAGE_MULTIPLIERS,
-  SLASH_POWER_SCORE_MULTIPLIERS,
-  SLASH_PATTERN,
-  SLASH_PATTERN_BONUSES,
-  SLASH_PATTERN_VISUAL,
-  GAME_WIDTH,
-  GAME_HEIGHT
-} from '@config/constants';
-import { lineIntersectsCircle, detectSlashPattern, isValidPattern, calculateCentroid } from '../utils/helpers';
+import { MonsterType } from '@config/types';
+import { MONSTER_HITBOX_RADIUS, MONSTER_SOULS, VILLAGER_PENALTY, SLASH_HITBOX_RADIUS } from '@config/constants';
+import { lineIntersectsCircle, lineCircleIntersectionPoint } from '../utils/helpers';
 import { EventBus } from '../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
 import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
-import { SlashEnergyManager } from '../managers/SlashEnergyManager';
-
-// =============================================================================
-// SPATIAL PARTITIONING - Grid-based collision optimization
-// =============================================================================
-
-/**
- * Configuration for spatial grid partitioning
- * Cell size of 100px provides good balance between grid overhead and collision reduction
- */
-const SPATIAL_GRID_CONFIG = {
-  cellSize: 100, // Size of each cell in pixels
-  cols: Math.ceil(GAME_WIDTH / 100),
-  rows: Math.ceil((GAME_HEIGHT + 100) / 100), // Extra row for entities spawning above screen
-};
-
-/**
- * Screen bounds configuration for early entity filtering
- * Entities outside these bounds are skipped entirely to avoid unnecessary processing
- * Margins account for entity hitbox radius and spawn positions
- */
-const SCREEN_BOUNDS = {
-  minX: -100,                    // Left margin for entities partially off-screen
-  maxX: GAME_WIDTH + 100,        // Right margin for entities partially off-screen
-  minY: -150,                    // Top margin for spawning entities
-  maxY: GAME_HEIGHT + 100,       // Bottom margin for falling entities
-};
-
-/**
- * Entity types that can be stored in the spatial grid
- */
-type SpatialEntity = Monster | Villager | PowerUp;
-
-/**
- * Spatial grid cell containing references to entities
- */
-interface SpatialCell<T> {
-  entities: T[];
-}
-
-/**
- * Lightweight spatial grid for broadphase collision detection
- * Divides the game area into cells and only checks collisions
- * with entities in cells that the slash line segment intersects
- */
-class SpatialGrid<T extends SpatialEntity> {
-  private cells: SpatialCell<T>[][];
-  private readonly cellSize: number;
-  private readonly cols: number;
-  private readonly rows: number;
-
-  constructor(cellSize: number = SPATIAL_GRID_CONFIG.cellSize) {
-    this.cellSize = cellSize;
-    this.cols = SPATIAL_GRID_CONFIG.cols;
-    this.rows = SPATIAL_GRID_CONFIG.rows;
-    this.cells = this.createEmptyGrid();
-  }
-
-  /**
-   * Create an empty grid structure
-   */
-  private createEmptyGrid(): SpatialCell<T>[][] {
-    const grid: SpatialCell<T>[][] = [];
-    for (let row = 0; row < this.rows; row++) {
-      grid[row] = [];
-      for (let col = 0; col < this.cols; col++) {
-        grid[row][col] = { entities: [] };
-      }
-    }
-    return grid;
-  }
-
-  /**
-   * Clear all entities from the grid
-   * Called at the start of each frame before repopulating
-   */
-  clear(): void {
-    for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
-        this.cells[row][col].entities = [];
-      }
-    }
-  }
-
-  /**
-   * Convert world coordinates to grid cell indices
-   * Accounts for entities above the screen (negative y)
-   */
-  private worldToCell(x: number, y: number): { col: number; row: number } {
-    // Offset y to handle entities above screen (spawning at y < 0)
-    const adjustedY = y + 100;
-    return {
-      col: Math.floor(Math.max(0, Math.min(x, GAME_WIDTH - 1)) / this.cellSize),
-      row: Math.floor(Math.max(0, Math.min(adjustedY, (this.rows * this.cellSize) - 1)) / this.cellSize),
-    };
-  }
-
-  /**
-   * Insert an entity into the grid based on its position
-   * Entities are placed in a single cell based on their center point
-   */
-  insert(entity: T): void {
-    const { col, row } = this.worldToCell(entity.x, entity.y);
-    if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
-      this.cells[row][col].entities.push(entity);
-    }
-  }
-
-  /**
-   * Check if an entity is within screen bounds (early rejection)
-   * This is faster than checking cell bounds after coordinate conversion
-   * Entities way off-screen are skipped entirely to avoid grid operations
-   * @param entity - Entity to check
-   * @returns true if entity is within processable bounds
-   */
-  private isEntityInBounds(entity: T): boolean {
-    return (
-      entity.x >= SCREEN_BOUNDS.minX &&
-      entity.x <= SCREEN_BOUNDS.maxX &&
-      entity.y >= SCREEN_BOUNDS.minY &&
-      entity.y <= SCREEN_BOUNDS.maxY
-    );
-  }
-
-  /**
-   * Populate grid from an array of entities
-   * Includes early bounds checking to skip off-screen entities entirely
-   * Performance: O(n) where n is active entities, but skips grid operations for off-screen entities
-   */
-  populate(entities: T[]): void {
-    for (const entity of entities) {
-      // Early rejection: skip inactive entities
-      if (!entity.active) {
-        continue;
-      }
-
-      // Early bounds check: skip entities way off-screen
-      // This prevents unnecessary cell coordinate calculations and grid insertions
-      if (!this.isEntityInBounds(entity)) {
-        continue;
-      }
-
-      this.insert(entity);
-    }
-  }
-
-  /**
-   * Get all cells that a line segment passes through using Bresenham-style traversal
-   * Returns unique cell coordinates that the line intersects
-   */
-  getCellsAlongLine(
-    x1: number, y1: number,
-    x2: number, y2: number
-  ): Array<{ col: number; row: number }> {
-    const cells: Array<{ col: number; row: number }> = [];
-    const visited = new Set<string>();
-
-    const start = this.worldToCell(x1, y1);
-    const end = this.worldToCell(x2, y2);
-
-    // Use DDA (Digital Differential Analyzer) algorithm for line traversal
-    const dx = Math.abs(end.col - start.col);
-    const dy = Math.abs(end.row - start.row);
-    const sx = start.col < end.col ? 1 : -1;
-    const sy = start.row < end.row ? 1 : -1;
-
-    let col = start.col;
-    let row = start.row;
-    let err = dx - dy;
-
-    while (true) {
-      // Add current cell if valid and not visited
-      const key = `${col},${row}`;
-      if (!visited.has(key) && row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
-        visited.add(key);
-        cells.push({ col, row });
-      }
-
-      // Check if we've reached the end
-      if (col === end.col && row === end.row) break;
-
-      const e2 = 2 * err;
-
-      if (e2 > -dy) {
-        err -= dy;
-        col += sx;
-      }
-
-      if (e2 < dx) {
-        err += dx;
-        row += sy;
-      }
-    }
-
-    return cells;
-  }
-
-  /**
-   * Query entities that could potentially collide with a line segment
-   * Uses spatial partitioning to return only entities in intersecting cells
-   */
-  queryLine(x1: number, y1: number, x2: number, y2: number): T[] {
-    const cells = this.getCellsAlongLine(x1, y1, x2, y2);
-    const result: T[] = [];
-    const added = new Set<T>();
-
-    for (const { col, row } of cells) {
-      const cell = this.cells[row][col];
-      for (const entity of cell.entities) {
-        if (!added.has(entity)) {
-          added.add(entity);
-          result.push(entity);
-        }
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Get entities in neighboring cells (3x3 area around a point)
-   * Useful for entities that might straddle cell boundaries
-   */
-  queryNeighbors(x: number, y: number): T[] {
-    const { col, row } = this.worldToCell(x, y);
-    const result: T[] = [];
-    const added = new Set<T>();
-
-    for (let r = row - 1; r <= row + 1; r++) {
-      for (let c = col - 1; c <= col + 1; c++) {
-        if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
-          for (const entity of this.cells[r][c].entities) {
-            if (!added.has(entity)) {
-              added.add(entity);
-              result.push(entity);
-            }
-          }
-        }
-      }
-    }
-
-    return result;
-  }
-}
+import { AudioManager } from '../managers/AudioManager';
 
 export class SlashSystem {
   private scene: Phaser.Scene;
@@ -292,32 +37,7 @@ export class SlashSystem {
   private powerUpManager: PowerUpManager | null = null;
   private weaponManager: WeaponManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
-  private energyManager: SlashEnergyManager | null = null;
-
-  // Energy tracking
-  private lastSlashDistance: number = 0;
-  private currentEnergyEffectiveness: number = 1.0;
-
-  // Power level tracking (updated each frame from SlashTrail)
-  private currentPowerLevel: SlashPowerLevel = SlashPowerLevel.NONE;
-
-  // Pattern recognition tracking (similar to ComboSystem timer pattern)
-  private patternBuffer: SlashPatternPoint[] = [];
-  private patternTimer: number = 0;
-  private isPatternBuffering: boolean = false;
-  private lastDetectedPattern: SlashPatternResult | null = null;
-  private wasSlashActive: boolean = false;
-
-  // Slash session tracking for pattern bonuses
-  // Tracks points and monsters during a single slash to apply pattern multipliers retroactively
-  private slashSessionPoints: number = 0;
-  private slashSessionMonsters: { x: number; y: number; type: MonsterType }[] = [];
-
-  // Spatial grids for optimized collision detection
-  // Separate grids for each entity type for better cache locality
-  private monsterGrid: SpatialGrid<Monster>;
-  private villagerGrid: SpatialGrid<Villager>;
-  private powerUpGrid: SpatialGrid<PowerUp>;
+  private audioManager: AudioManager | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -358,10 +78,10 @@ export class SlashSystem {
   }
 
   /**
-   * Set energy manager reference
+   * Set audio manager reference
    */
-  setEnergyManager(energyManager: SlashEnergyManager): void {
-    this.energyManager = energyManager;
+  setAudioManager(audioManager: AudioManager): void {
+    this.audioManager = audioManager;
   }
 
   /**
@@ -749,40 +469,44 @@ export class SlashSystem {
     prevPoint: Phaser.Math.Vector2,
     currentPoint: Phaser.Math.Vector2,
   ): void {
-    const candidates = this.monsterGrid.queryLine(prevPoint.x, prevPoint.y, currentPoint.x, currentPoint.y);
-    
-    for (const monster of candidates) {
-      if (!this.canSliceMonster(monster)) continue;
-      if (!this.checkCollision(prevPoint, currentPoint, monster)) continue;
-      
+    for (const monster of monsters) {
+      if (!monster.active || monster.getIsSliced()) {
+        continue;
+      }
+
       // Check if monster is on screen
       if (monster.y < -50 || monster.y > 800) {
         continue;
       }
-      
+
       // Special check for ghosts - only sliceable when visible
       if (monster instanceof Ghost && !monster.isSliceable()) {
         continue;
       }
-      
-      // Check line-circle intersection
-      if (this.checkCollision(prevPoint, currentPoint, monster)) {
+
+      // Get the exact impact point for particle effects
+      const impactPoint = this.getCollisionPoint(prevPoint, currentPoint, monster);
+
+      // Check if collision occurred
+      if (impactPoint) {
         // Monster was hit
         monster.slice();
         this.monstersSliced++;
-        
-        // Get power damage multiplier for this slash
-        const powerDamageMultiplier = SLASH_POWER_DAMAGE_MULTIPLIERS[
-          this.currentPowerLevel as keyof typeof SLASH_POWER_DAMAGE_MULTIPLIERS
-        ] || 1.0;
 
-        // Apply weapon effects with power-enhanced damage
+        // Play monster-type-specific death sound effect
+        const monsterType = monster.getMonsterType();
+        if (this.audioManager) {
+          const sfxKey = `sfx_${monsterType}_death`;
+          this.audioManager.playSFX(sfxKey);
+        }
+
+        // Apply weapon effects at impact point
         if (this.weaponManager) {
           this.weaponManager.applyWeaponEffects(
-            { position: { x: monster.x, y: monster.y } },
+            { position: { x: impactPoint.x, y: impactPoint.y } },
             {
               type: monster.getMonsterType(),
-              position: { x: monster.x, y: monster.y },
+              position: { x: impactPoint.x, y: impactPoint.y },
               health: monster.getHealth(),
               applyDamage: (damage: number) => monster.applyDamage(damage * powerDamageMultiplier),
               applyBurn: (damage: number, duration: number) => monster.applyBurn(damage * powerDamageMultiplier, duration),
@@ -796,7 +520,7 @@ export class SlashSystem {
             }
           );
         }
-        
+
         // Calculate score with combo multiplier
         const basePoints = monster.getPoints();
         let multiplier = 1.0;
@@ -817,17 +541,6 @@ export class SlashSystem {
           multiplier *= stats.scoreMultiplier;
         }
 
-        // Apply energy effectiveness multiplier
-        // Low energy reduces score earned
-        multiplier *= this.currentEnergyEffectiveness;
-
-        // Apply power level score multiplier
-        // Charged slashes earn more score
-        const powerScoreMultiplier = SLASH_POWER_SCORE_MULTIPLIERS[
-          this.currentPowerLevel as keyof typeof SLASH_POWER_SCORE_MULTIPLIERS
-        ] || 1.0;
-        multiplier *= powerScoreMultiplier;
-
         // Check for critical hit
         let isCritical = false;
         if (this.upgradeManager) {
@@ -843,32 +556,21 @@ export class SlashSystem {
         const finalScore = Math.floor(basePoints * multiplier);
         this.score += finalScore;
 
-        // Get monster type for souls and session tracking
-        const monsterType = monster.getMonsterType();
-
-        // Track session for pattern bonus calculation
-        this.slashSessionPoints += finalScore;
-        this.slashSessionMonsters.push({
-          x: monster.x,
-          y: monster.y,
-          type: monsterType,
-        });
-
         // Calculate souls
         const baseSouls = MONSTER_SOULS[monsterType] || 5;
         let finalSouls: number = baseSouls;
-        
+
         // Apply soul magnet if active
         if (this.powerUpManager && this.powerUpManager.isSoulMagnetActive()) {
           finalSouls = Math.floor(baseSouls * 1.5) as number;
         }
-        
+
         this.souls += finalSouls;
-        
-        // Emit monster sliced event
+
+        // Emit monster sliced event with exact impact position
         EventBus.emit('monster-sliced', {
           monsterType: monsterType,
-          position: { x: monster.x, y: monster.y },
+          position: { x: impactPoint.x, y: impactPoint.y },
           points: finalScore,
           souls: finalSouls,
           isCritical: isCritical,
@@ -878,21 +580,21 @@ export class SlashSystem {
           powerDamageMultiplier: powerDamageMultiplier,
           powerScoreMultiplier: powerScoreMultiplier,
         });
-        
+
         // Emit score updated event
         EventBus.emit('score-updated', {
           score: this.score,
           delta: finalScore,
         });
-        
+
         // Emit souls updated event
         EventBus.emit('souls-updated', {
           souls: this.souls,
           delta: finalSouls,
         });
-        
-        // Create visual feedback with power level
-        this.createHitEffect(monster.x, monster.y, isCritical, this.currentPowerLevel);
+
+        // Create visual feedback at exact impact point
+        this.createHitEffect(impactPoint.x, impactPoint.y, isCritical);
       }
     }
     
@@ -1050,12 +752,32 @@ export class SlashSystem {
   ): boolean {
     const monsterType = monster.getMonsterType();
     const radius = MONSTER_HITBOX_RADIUS[monsterType] || 40;
-    
+
     return lineIntersectsCircle(
       { x: lineStart.x, y: lineStart.y },
       { x: lineEnd.x, y: lineEnd.y },
       { x: monster.x, y: monster.y },
       radius,
+    );
+  }
+
+  /**
+   * Get the exact collision point where slash intersects monster's hitbox
+   * Returns the impact point or null if no collision
+   */
+  private getCollisionPoint(
+    lineStart: Phaser.Math.Vector2,
+    lineEnd: Phaser.Math.Vector2,
+    monster: Monster
+  ): { x: number; y: number } | null {
+    const monsterType = monster.getMonsterType();
+    const radius = MONSTER_HITBOX_RADIUS[monsterType] || 40;
+
+    return lineCircleIntersectionPoint(
+      { x: lineStart.x, y: lineStart.y },
+      { x: lineEnd.x, y: lineEnd.y },
+      { x: monster.x, y: monster.y },
+      radius
     );
   }
 

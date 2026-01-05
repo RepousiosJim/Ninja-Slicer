@@ -1,0 +1,25 @@
+{
+  "discovered_files": {
+    "src/systems/ParticleSystem.ts": {
+      "description": "createHitEffect() enhanced with 15-30 random particles, 150-350 speed, 360\u00b0 spread, 900ms lifespan for Fruit Ninja-style splatter effect",
+      "category": "particle_effects",
+      "discovered_at": "2025-12-30T14:25:05.033645+00:00"
+    },
+    "src/systems/SlashSystem.ts": {
+      "description": "Particles now spawn at exact impact point (lineCircleIntersectionPoint) instead of monster center. The getCollisionPoint method returns the precise intersection between slash line and monster hitbox, used for visual effects, weapon effects, and monster-sliced event.",
+      "category": "implementation",
+      "discovered_at": "2025-12-30T14:28:19.687116+00:00"
+    },
+    "src/config/constants.ts": {
+      "description": "MONSTER_HITBOX_RADIUS values (zombie:40, vampire:35, ghost:35, villager:35) are smaller than visual sprites (which are scaled 2.0x). If collision feels imprecise during playtesting, increase each by 5px. SLASH_HITBOX_RADIUS=30 helps compensate.",
+      "category": "configuration",
+      "discovered_at": "2025-12-30T14:38:53.733854+00:00"
+    },
+    "src/managers/AudioManager.ts": {
+      "description": "AudioManager.playSFX() gracefully handles missing audio files with console.warn() - game won't crash if assets are missing. Audio files need to be added to assets/audio/ and preloaded in PreloaderScene.ts for the per-monster-type death sounds to work.",
+      "category": "audio",
+      "discovered_at": "2025-12-30T14:42:58.864359+00:00"
+    }
+  },
+  "last_updated": "2025-12-30T14:42:58.864371+00:00"
+}

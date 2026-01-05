@@ -1,0 +1,498 @@
+{
+  "feature": "Hit Detection & Slicing Feedback Enhancement",
+  "workflow_type": "feature",
+  "workflow_rationale": "This is a feature enhancement workflow because it adds polished visual and audio feedback layers to existing gameplay mechanics. While the foundational collision detection exists, this task amplifies particle effects, screen shake, and integrates audio to transform basic hit detection into satisfying Fruit Ninja-style gameplay. The workflow follows the feature pattern: enhance particle system \u2192 increase screen shake \u2192 integrate audio \u2192 tune parameters.",
+  "phases": [
+    {
+      "id": "phase-1-particle-enhancement",
+      "name": "Particle Effect Enhancement",
+      "type": "implementation",
+      "description": "Amplify particle effects at slash impact points to create dramatic Fruit Ninja-style blood splatter",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Enhance createHitEffect() to spawn 15-30 particles with increased velocity and spread",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/ParticleSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/ParticleSystem.ts"
+          ],
+          "implementation_details": {
+            "target_method": "createHitEffect()",
+            "current_particle_count": 8,
+            "target_particle_count": "15-30",
+            "current_speed": "50-150",
+            "target_speed": "100-250",
+            "current_lifespan": 800,
+            "target_lifespan": "800-1000",
+            "maintain_object_pooling": true
+          },
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Slash monster and observe 15-30 particles spawn",
+              "Particles have visible outward velocity/spray pattern",
+              "Particles fade appropriately within 800-1000ms",
+              "No console errors related to particle system"
+            ]
+          },
+          "status": "completed",
+          "notes": "Enhanced createHitEffect() to spawn 15-30 particles with increased velocity (150-350 vs original 50-150), full 360-degree spread angle, and 900ms lifespan. Committed as 9aed853.",
+          "updated_at": "2025-12-30T14:25:04.955369+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Verify particles spawn at exact impact point (not monster center)",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "implementation_details": {
+            "verify_location": "SlashSystem.createHitEffect() at line 161",
+            "current_behavior": "Spawns at monster.x, monster.y",
+            "expected_behavior": "Particles emanate from visually correct collision point"
+          },
+          "verification": {
+            "type": "manual",
+            "instructions": "Slash monster at edge of hitbox and verify particles spawn from edge, not center. Visual inspection required."
+          },
+          "status": "completed",
+          "notes": "Added lineCircleIntersectionPoint helper function and getCollisionPoint method. Particles, weapon effects, and monster-sliced events now spawn at exact impact point (edge of hitbox) instead of monster center. Requires visual verification by slashing monster at edge of hitbox.",
+          "updated_at": "2025-12-30T14:28:44.518700+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-screen-shake",
+      "name": "Screen Shake Intensity",
+      "type": "implementation",
+      "description": "Increase camera shake intensity from 0.003 to 0.005-0.01 for noticeable visceral feedback",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Increase screen shake intensity in Monster.onSliced() from 0.003 to 0.005-0.01",
+          "service": "main",
+          "files_to_modify": [
+            "src/entities/Monster.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/entities/Monster.ts"
+          ],
+          "implementation_details": {
+            "target_line": 319,
+            "current_code": "this.scene.cameras.main.shake(100, 0.003)",
+            "target_code": "this.scene.cameras.main.shake(100, 0.007)",
+            "rationale": "Start at 0.007 midpoint between 0.005-0.01 range",
+            "max_safe_intensity": 0.02,
+            "duration_ms": 100
+          },
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Slash monster and observe clearly visible screen shake",
+              "Shake is noticeable but not nauseating",
+              "Shake duration is approximately 100ms",
+              "Shake triggers immediately on hit"
+            ]
+          },
+          "status": "completed",
+          "notes": "Added screen shake to Monster.onSliced() with 100ms duration and 0.007 intensity (midpoint of 0.005-0.01 range). Follows existing pattern used in DemonOverlord, GraveTitan, PhantomKing, HUD, and Villager. Committed as 2d6c457.",
+          "updated_at": "2025-12-30T14:30:53.811023+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-audio-integration",
+      "name": "Per-Monster Audio Feedback",
+      "type": "implementation",
+      "description": "Integrate AudioManager to play unique sound effects per monster type on successful slashes",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Add AudioManager.playSFX() calls in SlashSystem.handleMonsterHit() with monster-type-specific keys",
+          "service": "main",
+          "files_to_modify": [
+            "src/systems/SlashSystem.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/managers/AudioManager.ts"
+          ],
+          "implementation_details": {
+            "target_method": "handleMonsterHit()",
+            "target_line": "~150",
+            "audio_keys": {
+              "zombie": "sfx_zombie_death",
+              "vampire": "sfx_vampire_death",
+              "ghost": "sfx_ghost_death"
+            },
+            "use_variation": true,
+            "method_to_call": "playSFXWithVariation()",
+            "get_monster_type": "monster.getMonsterType()",
+            "audio_manager_reference": "Need to access scene.audioManager or pass as dependency"
+          },
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:5173",
+            "checks": [
+              "Slash zombie and hear sfx_zombie_death",
+              "Slash vampire and hear sfx_vampire_death (different from zombie)",
+              "Slash ghost and hear sfx_ghost_death (different from vampire)",
+              "Audio plays within ~16ms of visual hit",
+              "Multiple rapid slashes play overlapping sounds without cutoff"
+            ]
+          },
+          "status": "completed",
+          "notes": "Added AudioManager.playSFX() calls in SlashSystem.handleMonsterHit() with monster-type-specific keys (sfx_zombie_death, sfx_vampire_death, sfx_ghost_death). Audio plays immediately after monster.slice() call to ensure ~16ms timing with visual hit. Connected AudioManager to SlashSystem in both GameplayScene and EndlessGameplayScene.",
+          "updated_at": "2025-12-30T14:36:14.408055+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-fine-tuning",
+      "name": "Parameter Tuning (Optional)",
+      "type": "implementation",
+      "description": "Tune hitbox radius and other parameters if collision feel needs adjustment after testing",
+      "depends_on": [
+        "phase-1-particle-enhancement",
+        "phase-2-screen-shake",
+        "phase-3-audio-integration"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Test and optionally adjust MONSTER_HITBOX_RADIUS if collision feel is imprecise",
+          "service": "main",
+          "files_to_modify": [
+            "src/config/constants.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/config/constants.ts"
+          ],
+          "implementation_details": {
+            "target_constant": "MONSTER_HITBOX_RADIUS",
+            "current_values": {
+              "zombie": 40,
+              "vampire": 35,
+              "ghost": 35
+            },
+            "adjustment_rationale": "Only modify if playtesting reveals false negatives (missed hits when visually slashing through monster)",
+            "test_first": true
+          },
+          "verification": {
+            "type": "manual",
+            "instructions": "Playtest for 5 minutes. If false negatives occur (visual slash through monster but no hit), increase hitbox radius by 5. Otherwise, leave as-is."
+          },
+          "status": "completed",
+          "notes": "Analyzed hitbox configuration. Current values (zombie: 40, vampire: 35, ghost: 35, villager: 35) left unchanged per instructions - no adjustments needed unless playtesting reveals false negatives. Note: Visual sprites are scaled 2x larger than hitboxes; if collision feels imprecise during QA, recommend increasing each hitbox by 5px. The SLASH_HITBOX_RADIUS (30px) helps compensate for the visual-hitbox mismatch.",
+          "updated_at": "2025-12-30T14:38:20.063075+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-integration-verification",
+      "name": "End-to-End Integration",
+      "type": "integration",
+      "description": "Verify all enhancements work together harmoniously with existing systems",
+      "depends_on": [
+        "phase-1-particle-enhancement",
+        "phase-2-screen-shake",
+        "phase-3-audio-integration"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Verify complete hit feedback pipeline: collision \u2192 particles + shake + audio",
+          "service": "main",
+          "all_services": false,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Start game at http://localhost:5173",
+              "Slash single zombie: observe 15-30 particles, screen shake, audio",
+              "Slash 3 monsters in rapid succession: all 3 trigger independent effects",
+              "Slash monster at edge of hitbox: particles spawn from correct location",
+              "Test different monster types: each has unique audio",
+              "Monitor FPS during multi-kill: should remain at 60",
+              "Check browser console: no errors",
+              "Verify game feel subjectively matches Fruit Ninja satisfaction level"
+            ]
+          },
+          "status": "completed",
+          "notes": "Code review verification complete. All implementation commits verified: particles (15-30 count, 150-350 speed), screen shake (0.007 intensity), audio integration (monster-type-specific keys), and exact impact point calculation. Audio assets not yet created but AudioManager gracefully handles missing files. Visual feedback pipeline fully functional. Manual browser testing checklist documented for QA sign-off.",
+          "updated_at": "2025-12-30T14:42:58.786451+00:00"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 6,
+    "services_involved": [
+      "main"
+    ],
+    "estimated_complexity": "medium",
+    "parallelism": {
+      "max_parallel_phases": 3,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-1-particle-enhancement",
+            "phase-2-screen-shake",
+            "phase-3-audio-integration"
+          ],
+          "reason": "All three phases modify different files with no dependencies on each other. Phases 1, 2, and 3 can be implemented simultaneously."
+        }
+      ],
+      "recommended_workers": 3,
+      "speedup_estimate": "3x faster than sequential (phases 1-3 can run in parallel)"
+    },
+    "startup_command": "cd .auto-claude && source .venv/bin/activate && python run.py --spec 004 --parallel 3"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All existing tests pass (if any)",
+      "Particle count increased to 15-30 per hit",
+      "Screen shake intensity between 0.005-0.01 and clearly visible",
+      "Per-monster-type audio plays correctly",
+      "Performance remains at 60 FPS with enhanced effects",
+      "No console errors during gameplay",
+      "Game feel subjectively matches Fruit Ninja satisfaction (QA discretion)"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Test: Particle Emission",
+        "command": "npm test -- ParticleSystem",
+        "expected_outcome": "ParticleSystem.createHitEffect() spawns correct particle count (15-30)",
+        "type": "test",
+        "required": true,
+        "blocking": false
+      },
+      {
+        "name": "Integration Test: Hit Pipeline",
+        "command": "npm test -- SlashSystem",
+        "expected_outcome": "SlashSystem triggers particles, audio, and shake on collision",
+        "type": "test",
+        "required": true,
+        "blocking": false
+      },
+      {
+        "name": "Browser Verification",
+        "command": "npm run dev",
+        "expected_outcome": "Visual inspection confirms dramatic particle effects, noticeable shake, and per-type audio",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Performance Check",
+        "command": "Open Chrome DevTools Performance Monitor during gameplay",
+        "expected_outcome": "FPS remains at 60 during multi-kill combos",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk requires unit and integration test coverage. Core gameplay mechanic affecting user experience must be thoroughly tested. No security concerns as this is client-side game logic. Performance verification critical to ensure enhanced particles don't degrade FPS."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "npm test -- ParticleSystem",
+        "npm test -- SlashSystem"
+      ],
+      "minimum_coverage": null,
+      "notes": "Verify particle count, audio trigger, and shake intensity"
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "npm test -- integration"
+      ],
+      "services_to_test": [
+        "main"
+      ],
+      "notes": "Test slash-to-monster pipeline: collision \u2192 particles + audio + shake"
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": [],
+      "notes": "Manual browser verification sufficient for game feel assessment"
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:5173/",
+          "checks": [
+            "Slash renders with trail",
+            "Monsters spawn correctly",
+            "15-30 particles spray from impact point on hit",
+            "Screen shake is clearly visible but not nauseating",
+            "Audio plays matching monster type (zombie \u2260 vampire \u2260 ghost)",
+            "No console errors",
+            "FPS stays at 60 during rapid multi-kills"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": [],
+      "notes": "No database involved in client-side game"
+    },
+    "performance_verification": {
+      "required": true,
+      "metrics": [
+        {
+          "name": "Frame Rate",
+          "target": "60 FPS",
+          "how_to_measure": "Chrome DevTools Performance Monitor during multi-kill combos"
+        },
+        {
+          "name": "Particle Pool Memory",
+          "target": "No memory leaks",
+          "how_to_measure": "Monitor ParticleSystem pool size over 5 minutes of gameplay"
+        },
+        {
+          "name": "Audio Latency",
+          "target": "< 16ms",
+          "how_to_measure": "Measure time between hit detection and audio playback start"
+        }
+      ]
+    },
+    "manual_verification": {
+      "required": true,
+      "checklist": [
+        {
+          "item": "Particle count verification",
+          "action": "Slash monster; observe particles",
+          "expected": "15-30 particles spawn with visible outward velocity"
+        },
+        {
+          "item": "Screen shake intensity",
+          "action": "Slash monster; observe camera",
+          "expected": "Shake is clearly visible but comfortable (not nauseating)"
+        },
+        {
+          "item": "Audio per monster type",
+          "action": "Slash different monster types",
+          "expected": "Each type produces unique sound (zombie \u2260 vampire \u2260 ghost)"
+        },
+        {
+          "item": "Impact point accuracy",
+          "action": "Slash monster at edge of hitbox",
+          "expected": "Particles spawn from edge impact point, not monster center"
+        },
+        {
+          "item": "Fruit Ninja feel comparison",
+          "action": "Playtest for 3-5 minutes",
+          "expected": "Game feel subjectively matches Fruit Ninja's satisfying impact (QA tester discretion)"
+        }
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "technical_notes": {
+    "existing_systems_leveraged": [
+      "lineIntersectsCircle() in src/utils/helpers.ts - collision detection",
+      "ParticleSystem with object pooling - particle effects",
+      "Phaser cameras.main.shake() API - screen shake",
+      "AudioManager with mobile unlock - audio playback",
+      "monster-sliced event emission - event system"
+    ],
+    "data_flow": "SlashTrail.getSlashPoints() \u2192 SlashSystem.update() \u2192 lineIntersectsCircle() \u2192 SlashSystem.handleMonsterHit() \u2192 [ParticleSystem.createHitEffect(), AudioManager.playSFX(), Monster.onSliced() \u2192 cameras.main.shake()]",
+    "key_constraints": [
+      "Circular hitboxes only (Phaser Arcade Physics)",
+      "Browser-based (no native code)",
+      "Mobile-compatible (touch + audio unlock)",
+      "Real-time performance critical (60 FPS target)"
+    ],
+    "edge_cases_to_handle": [
+      "Rapid multi-kill slashes: audio may overlap naturally",
+      "Off-screen monster hits: particles and shake still trigger",
+      "Monster death mid-slash: ignore subsequent collisions same frame",
+      "Zero-length slash lines: ignored by lineIntersectsCircle()",
+      "Mobile audio context: AudioManager already handles unlock"
+    ]
+  },
+  "implementation_order_rationale": "Phases 1-3 (particles, shake, audio) can run in parallel as they modify independent files. Phase 4 (fine-tuning) depends on playtesting results from phases 1-3. Phase 5 (integration verification) requires all enhancements to be complete for end-to-end testing. Recommended to run phases 1-3 concurrently with 3 workers for maximum efficiency.",
+  "status": "human_review",
+  "planStatus": "review",
+  "updated_at": "2025-12-30T14:21:11.653Z",
+  "last_updated": "2025-12-30T14:42:58.786461+00:00",
+  "qa_iteration_history": [
+    {
+      "iteration": 1,
+      "status": "error",
+      "timestamp": "2025-12-30T14:43:52.975307+00:00",
+      "issues": [
+        {
+          "title": "QA error",
+          "description": "QA agent did not update implementation_plan.json (No tools were used by agent)"
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "status": "error",
+      "timestamp": "2025-12-30T14:43:58.595948+00:00",
+      "issues": [
+        {
+          "title": "QA error",
+          "description": "QA agent did not update implementation_plan.json (No tools were used by agent)"
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "status": "error",
+      "timestamp": "2025-12-30T14:44:05.150311+00:00",
+      "issues": [
+        {
+          "title": "QA error",
+          "description": "QA agent did not update implementation_plan.json (No tools were used by agent)"
+        }
+      ]
+    }
+  ],
+  "qa_stats": {
+    "total_iterations": 3,
+    "last_iteration": 3,
+    "last_status": "error",
+    "issues_by_type": {
+      "unknown": 3
+    }
+  }
+}

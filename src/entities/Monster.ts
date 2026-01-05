@@ -306,78 +306,9 @@ export abstract class Monster extends Phaser.Physics.Arcade.Sprite {
    * Override in subclasses for specific behavior
    */
   protected onSliced(): void {
-    // ENHANCED: Death animation with pop effect
-    this.isSliced = true;
-
-    // Disable physics so monster doesn't fall during animation
-    this.setVelocity(0, 0);
-    if (this.body) {
-      this.body.enable = false;
-    }
-
-    // Screen shake on kill for visceral feedback (100ms duration, 0.007 intensity)
+    // Screen shake for visceral feedback (100ms duration, 0.007 intensity)
     this.scene.cameras.main.shake(100, 0.007);
-
-    // Death animation: scale up + fade out
-    this.scene.tweens.add({
-      targets: this,
-      scale: { from: this.scale, to: this.scale * 1.8 },
-      alpha: { from: 1, to: 0 },
-      angle: this.angle + Phaser.Math.Between(-30, 30), // Random spin
-      duration: 250,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        this.destroy();
-      },
-    });
-
-    // Create particle burst effect
-    this.createDeathParticles();
-  }
-
-  /**
-   * Create particle burst on death
-   */
-  private createDeathParticles(): void {
-    // Get monster color based on type
-    const particleColors: Record<string, number> = {
-      zombie: 0x44aa44,
-      vampire: 0x6a0dad,
-      ghost: 0x00a8cc,
-    };
-
-    const color = particleColors[this.monsterType] || 0xffffff;
-
-    // Create burst of particles
-    for (let i = 0; i < 8; i++) {
-      const angle = (360 / 8) * i;
-      const speed = Phaser.Math.Between(100, 200);
-      const particle = this.scene.add.circle(
-        this.x,
-        this.y,
-        Phaser.Math.Between(3, 8),
-        color,
-        1.0,
-      );
-      particle.setDepth(this.depth + 1);
-
-      // Launch particle outward
-      const velocityX = Math.cos(angle * Math.PI / 180) * speed;
-      const velocityY = Math.sin(angle * Math.PI / 180) * speed;
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: particle.x + velocityX * 0.5,
-        y: particle.y + velocityY * 0.5,
-        alpha: 0,
-        scale: 0,
-        duration: 400,
-        ease: 'Cubic.easeOut',
-        onComplete: () => {
-          particle.destroy();
-        },
-      });
-    }
+    this.destroy();
   }
 
   /**

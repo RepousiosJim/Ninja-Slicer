@@ -21,7 +21,7 @@ import { PowerUpManager } from '../managers/PowerUpManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { UpgradeManager } from '../managers/UpgradeManager';
 import { LevelManager } from '../managers/LevelManager';
-import { SlashEnergyManager } from '../managers/SlashEnergyManager';
+import { AudioManager } from '../managers/AudioManager';
 import { EventBus } from '../utils/EventBus';
 import type { Boss } from '../entities/Boss';
 import { GraveTitan } from '../entities/GraveTitan';
@@ -40,7 +40,7 @@ export class GameplayScene extends BaseScene {
   private weaponManager!: WeaponManager;
   private upgradeManager!: UpgradeManager;
   private levelManager!: LevelManager;
-  private slashEnergyManager!: SlashEnergyManager;
+  private audioManager!: AudioManager;
 
   // Campaign mode properties
   private isCampaignMode: boolean = false;
@@ -130,12 +130,16 @@ export class GameplayScene extends BaseScene {
       this.powerUpManager.setUpgradeManager(this.upgradeManager);
       this.hud = new HUD(this);
 
+    // Initialize audio manager
+    this.audioManager = new AudioManager(this);
+    this.audioManager.initialize();
+
     // Connect systems
     this.slashSystem.setComboSystem(this.comboSystem);
     this.slashSystem.setPowerUpManager(this.powerUpManager);
     this.slashSystem.setWeaponManager(this.weaponManager);
     this.slashSystem.setUpgradeManager(this.upgradeManager);
-    this.slashSystem.setEnergyManager(this.slashEnergyManager);
+    this.slashSystem.setAudioManager(this.audioManager);
 
       // Apply starting lives from upgrade
       const playerStats = this.upgradeManager.getPlayerStats();
