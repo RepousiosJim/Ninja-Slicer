@@ -118,6 +118,13 @@ export interface GameSave {
   lastShopVisit?: string; // ISO timestamp of last shop visit
   weaponUnlockTimes: Record<string, string>; // ISO timestamp of weapon unlock
   testResults?: TestWeaponResult[];
+  // New statistics tracking fields
+  totalSoulsEarned: number;
+  playTimeMs: number;
+  weaponUsageHistory: Record<string, number>;
+  totalMonstersDefeated: number;
+  maxComboEver: number;
+  dailyChallenges?: Record<string, DailyChallenge>;
 }
 
 export interface GameSettings {
@@ -801,4 +808,58 @@ export interface BackgroundLayerConfig {
   radius?: number;
   texture?: string;
   blend?: string;
+}
+
+// =============================================================================
+// UI/UX ENHANCEMENTS
+// =============================================================================
+
+export interface DailyChallenge {
+  date: string; // ISO date
+  challengeId: string;
+  expiresAt: string;
+  rewardMultiplier: number;
+  completed: boolean;
+}
+
+export interface QuickActionConfig {
+  showContinue: boolean;
+  showDailyChallenge: boolean;
+  showQuickSettings: boolean;
+}
+
+export interface ToastConfig {
+  type: 'info' | 'success' | 'warning' | 'error';
+  message: string;
+  icon?: string;
+  duration?: number;
+  dismissible?: boolean;
+}
+
+export interface NumberAnimationConfig {
+  start: number;
+  end: number;
+  duration: number;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+  easing?: string;
+}
+
+export interface MagneticHoverConfig {
+  strength: number;
+  smoothness: number;
+  maxOffset: number;
+}
+
+export interface WeatherConfig {
+  type: 'clear' | 'lightning' | 'fog' | 'embers' | 'bloodMoon';
+  intensity: number; // 0-1
+  transitionDuration: number;
+}
+
+export interface MoonPhaseConfig {
+  phase: number; // 0-7 (8 phases)
+  cycleDuration: number; // ms for full cycle
+  bloodMoonActive: boolean;
 }

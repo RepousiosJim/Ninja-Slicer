@@ -388,6 +388,11 @@ export const DASHBOARD_CARD_CONFIG: DashboardCardConfig = {
   hoverScale: 1.02,   // REDUCED from 1.03 for better control
   hoverGlowIntensity: 15,
 
+  // NEW - Magnetic hover configuration
+  magneticHoverStrength: 15, // pixels of pull
+  magneticHoverSmoothness: 0.1, // interpolation factor (0-1)
+  magneticHoverMaxOffset: 20, // max pixels offset
+
   // Content
   iconSize: 80,
   titleFontSize: 28,
@@ -429,3 +434,34 @@ export const BACKGROUND_LAYERS: Record<string, BackgroundLayerConfig> = {
  * Export the default theme
  */
 export const DEFAULT_THEME = DARK_GOTHIC_THEME;
+
+/**
+ * Toast Notification Styles
+ * Configuration for different toast notification types
+ */
+export const TOAST_STYLES = {
+  info: {
+    backgroundColor: DARK_GOTHIC_THEME.colors.background,
+    textColor: DARK_GOTHIC_THEME.colors.text,
+    borderColor: DARK_GOTHIC_THEME.colors.ghostlyBlue,
+    icon: 'ℹ️',
+  },
+  success: {
+    backgroundColor: DARK_GOTHIC_THEME.colors.background,
+    textColor: DARK_GOTHIC_THEME.colors.text,
+    borderColor: DARK_GOTHIC_THEME.colors.success,
+    icon: '✓',
+  },
+  warning: {
+    backgroundColor: DARK_GOTHIC_THEME.colors.background,
+    textColor: DARK_GOTHIC_THEME.colors.text,
+    borderColor: DARK_GOTHIC_THEME.colors.warning,
+    icon: '⚠️',
+  },
+  error: {
+    backgroundColor: DARK_GOTHIC_THEME.colors.background,
+    textColor: DARK_GOTHIC_THEME.colors.text,
+    borderColor: DARK_GOTHIC_THEME.colors.danger,
+    icon: '✕',
+  },
+} as const;

@@ -20,6 +20,10 @@ import type { ScaledCardConfig } from '../utils/ResponsiveCardScaler';
 import { ResponsiveCardScaler } from '../utils/ResponsiveCardScaler';
 import type { GameSave } from '@config/types';
 import { debugLog, debugWarn, debugError } from '../utils/DebugLogger';
+import { QuickActionsPanel } from '../ui/QuickActionsPanel';
+import { ToastNotificationManager } from '../ui/ToastNotificationManager';
+import { StatsDashboard } from '../ui/StatsDashboard';
+import { DynamicWeatherEffect } from '../ui/DynamicWeatherEffect';
 
 /**
  * Main Menu Scene
@@ -35,6 +39,12 @@ export class MainMenuScene extends Phaser.Scene {
   private loadingOverlay: Phaser.GameObjects.Graphics | null = null;
   private loadingText: Phaser.GameObjects.Text | null = null;
   private isFullyLoaded: boolean = false;
+
+  // NEW - Phase 1 UI components
+  private quickActionsPanel?: QuickActionsPanel;
+  private toastManager?: ToastNotificationManager;
+  private statsDashboard?: StatsDashboard;
+  private weatherEffect?: DynamicWeatherEffect;
 
   // Managers
   private saveManager: SaveManager;
@@ -86,6 +96,12 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Create card dashboard
     this.createCardDashboard();
+
+    // Create NEW Phase 1 UI components
+    this.createQuickActionsPanel();
+    this.createStatsDashboard();
+    this.createToastSystem();
+    this.createWeatherEffect();
 
     // Create souls display
     this.createSoulsDisplay();
@@ -448,6 +464,71 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   /**
+   * Create quick actions panel
+   */
+  private createQuickActionsPanel(): void {
+    this.quickActionsPanel = new QuickActionsPanel(this, this.saveManager, {
+      showContinue: true,
+      showDailyChallenge: true,
+      showQuickSettings: true,
+    });
+    this.add.existing(this.quickActionsPanel);
+    
+    // Handle quick action events
+    this.events.on('quickAction:continue', this.onQuickActionContinue, this);
+    this.events.on('quickAction:settings', this.onQuickActionSettings, this);
+  }
+
+  /**
+   * Create stats dashboard
+   */
+  private createStatsDashboard(): void {
+    this.statsDashboard = new StatsDashboard(this, this.saveManager);
+    this.add.existing(this.statsDashboard);
+  }
+
+  /**
+   * Create toast notification system
+   */
+  private createToastSystem(): void {
+    this.toastManager = new ToastNotificationManager(this);
+    this.add.existing(this.toastManager);
+  }
+
+  /**
+   * Create weather effect
+   */
+  private createWeatherEffect(): void {
+    this.weatherEffect = new DynamicWeatherEffect(this, {
+      type: 'lightning',
+      intensity: 0.5,
+      transitionDuration: 5000,
+    });
+    this.add.existing(this.weatherEffect);
+  }
+
+  /**
+   * Handle quick action continue
+   */
+  private onQuickActionContinue(levelId: string): void {
+    this.audioManager?.playSFX('uiClick');
+    
+    if (levelId && levelId.startsWith('1-')) {
+      this.scene.start(SCENE_KEYS.worldSelect);
+    } else {
+      this.scene.start(SCENE_KEYS.endlessGameplay);
+    }
+  }
+
+  /**
+   * Handle quick action settings
+   */
+  private onQuickActionSettings(): void {
+    this.audioManager?.playSFX('uiClick');
+    this.scene.start(SCENE_KEYS.settings);
+  }
+
+  /**
    * Create loading overlay to prevent premature interaction
    */
   private createLoadingOverlay(): void {
@@ -787,6 +868,12 @@ export class MainMenuScene extends Phaser.Scene {
     this.events.off('resize', this.handleResize, this);
     this.events.off('orientationchange', this.handleOrientationChange, this);
     this.input.keyboard?.off('keydown-D', this.toggleDebugMode, this);
+
+    // Clean up Phase 1 components
+    this.quickActionsPanel?.destroy();
+    this.statsDashboard?.destroy();
+    this.toastManager?.destroy();
+    this.weatherEffect?.destroy();
 
     // Clean up particle background
     this.particleBackground?.destroy();

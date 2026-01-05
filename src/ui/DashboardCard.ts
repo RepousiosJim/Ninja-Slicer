@@ -9,6 +9,8 @@ import { DARK_GOTHIC_THEME, DASHBOARD_CARD_CONFIG } from '../config/theme';
 import { GlowEffect } from './GlowEffect';
 import { TextureGenerator } from '../utils/TextureGenerator';
 import type { ScaledCardConfig } from '../utils/ResponsiveCardScaler';
+import { MagneticHoverEffect, applyMagneticHover } from './MagneticHoverEffect';
+import { createClickFeedback } from './ClickFeedback';
 
 export interface DashboardCardStats {
   label: string;
@@ -60,6 +62,7 @@ export class DashboardCard extends Phaser.GameObjects.Container {
   private magneticVelocity: { x: number; y: number } = { x: 0, y: 0 };
   private lastPointerX: number = 0;
   private lastPointerY: number = 0;
+  private magneticHoverEffect?: MagneticHoverEffect;
 
   constructor(
     scene: Phaser.Scene,
@@ -597,6 +600,13 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       this.hoverTween = undefined;
     }
 
+    // Enable magnetic hover effect
+    if (this.config.locked) {
+      // No magnetic effect on locked cards
+    } else {
+      this.magneticHoverEffect = applyMagneticHover(this);
+    }
+
     // Animate glass overlay smoothly
     this.scene.tweens.add({
       targets: this.glassOverlay,
@@ -653,6 +663,11 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     if (!this.isHovered) return;
     this.isHovered = false;
 
+    // Disable magnetic hover effect
+    if (this.magneticHoverEffect) {
+      this.magneticHoverEffect.disable();
+    }
+
     this.scene.tweens.add({
       targets: this.glassOverlay,
       alpha: 0,
@@ -701,16 +716,22 @@ export class DashboardCard extends Phaser.GameObjects.Container {
       ease: 'Power2.easeIn',
     });
 
-    // Create ripple effect at click position
-    this.createRippleEffect(pointer.x - this.x, pointer.y - this.y);
+    // Use enhanced click feedback
+    const feedback = createClickFeedback(
+      this.scene,
+      pointer.x,
+      pointer.y,
+      {
+        color: this.config.id === 'play' ? 0xff0000 : DARK_GOTHIC_THEME.colors.accent,
+        screenShake: this.config.id === 'play',
+        screenFlash: this.config.id === 'play',
+      }
+    );
 
-    // Create particle burst
-    this.createParticleBurst();
-
-    // Haptic feedback on mobile
-    if (navigator.vibrate) {
-      navigator.vibrate([10, 50, 10]);
-    }
+    // Auto-cleanup feedback after animation
+    this.scene.time.delayedCall(500, () => {
+      feedback.destroy();
+    });
 
     // Screen shake for main play button
     if (this.config.id === 'play') {
@@ -718,47 +739,6 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     }
   }
 
-  private createRippleEffect(x: number, y: number): void {
-    const ripple = this.scene.add.graphics();
-    ripple.lineStyle(3, DARK_GOTHIC_THEME.colors.accent, 1);
-    ripple.strokeCircle(0, 0, 10);
-    ripple.setAlpha(0.6);
-    this.add(ripple);
-
-    this.scene.tweens.add({
-      targets: ripple,
-      scale: 15,
-      alpha: 0,
-      duration: 400,
-      ease: 'Power2.easeOut',
-      onComplete: () => ripple.destroy(),
-    });
-  }
-
-  private createParticleBurst(): void {
-    const particleCount = 10;
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (360 / particleCount) * i;
-      const speed = Phaser.Math.FloatBetween(100, 200);
-      const particle = this.scene.add.circle(0, 0, Phaser.Math.Between(2, 5), DARK_GOTHIC_THEME.colors.accent);
-      particle.setAlpha(Phaser.Math.FloatBetween(0.6, 1));
-      this.add(particle);
-
-      const velocityX = Math.cos(angle * Math.PI / 180) * speed;
-      const velocityY = Math.sin(angle * Math.PI / 180) * speed;
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: particle.x + velocityX,
-        y: particle.y + velocityY,
-        alpha: 0,
-        scale: 0,
-        duration: 400,
-        ease: 'Power2.easeOut',
-        onComplete: () => particle.destroy(),
-      });
-    }
-  }
 
   /**
    * Handle pointer up (release and click)
@@ -841,6 +821,11 @@ export class DashboardCard extends Phaser.GameObjects.Container {
     if (this.hoverTween) {
       this.hoverTween.stop();
       this.hoverTween = undefined;
+    }
+
+    // Clean up magnetic hover effect
+    if (this.magneticHoverEffect) {
+      this.magneticHoverEffect.destroy();
     }
 
     // Remove debug update listener

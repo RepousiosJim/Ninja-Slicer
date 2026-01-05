@@ -10,7 +10,7 @@
  *   const data = saveManager.load();
  */
 
-import type { GameSave, GameSettings } from '@config/types';
+import type { GameSave, GameSettings, DailyChallenge } from '@config/types';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
 
 
@@ -53,6 +53,13 @@ const DEFAULT_SAVE: GameSave = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   weaponUnlockTimes: {},
+  // New statistics tracking fields
+  totalSoulsEarned: 0,
+  playTimeMs: 0,
+  weaponUsageHistory: { basic_sword: 0 },
+  totalMonstersDefeated: 0,
+  maxComboEver: 0,
+  dailyChallenges: {},
 };
 
 // Default settings
@@ -724,6 +731,190 @@ export class SaveManager implements IManager {
   reset(): void {
     this.resetSave();
     this.resetSettings();
+  }
+
+  // ===========================================================================
+  // STATISTICS TRACKING (NEW)
+  // ===========================================================================
+
+  /**
+   * Get total souls earned (lifetime)
+   */
+  getTotalSoulsEarned(): number {
+    return this.saveData.totalSoulsEarned || 0;
+  }
+
+  /**
+   * Add souls to lifetime total
+   */
+  addTotalSoulsEarned(amount: number): void {
+    this.saveData.totalSoulsEarned = (this.saveData.totalSoulsEarned || 0) + amount;
+    this.save();
+  }
+
+  /**
+   * Get total play time in milliseconds
+   */
+  getTimePlayedMs(): number {
+    return this.saveData.playTimeMs || 0;
+  }
+
+  /**
+   * Get play time formatted as readable string
+   */
+  getTimePlayed(): string {
+    const ms = this.getTimePlayedMs();
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  }
+
+  /**
+   * Add play time session
+   */
+  addPlayTime(ms: number): void {
+    this.saveData.playTimeMs = (this.saveData.playTimeMs || 0) + ms;
+    this.save();
+  }
+
+  /**
+   * Get favorite weapon (most used)
+   */
+  getFavoriteWeapon(): string | null {
+    const history = this.saveData.weaponUsageHistory;
+    if (!history || Object.keys(history).length === 0) {
+      return this.saveData.equippedWeapon || null;
+    }
+
+    let maxUses = 0;
+    let favorite = null;
+
+    for (const [weaponId, uses] of Object.entries(history)) {
+      if (uses > maxUses) {
+        maxUses = uses;
+        favorite = weaponId;
+      }
+    }
+
+    return favorite;
+  }
+
+  /**
+   * Record weapon usage
+   */
+  recordWeaponUsage(weaponId: string): void {
+    if (!this.saveData.weaponUsageHistory) {
+      this.saveData.weaponUsageHistory = {};
+    }
+    this.saveData.weaponUsageHistory[weaponId] = (this.saveData.weaponUsageHistory[weaponId] || 0) + 1;
+    this.save();
+  }
+
+  /**
+   * Get completion percentage
+   */
+  getCompletionPercentage(): number {
+    const totalLevels = 25; // 5 worlds * 5 levels each
+    const completedCount = Object.keys(this.saveData.levelStars).filter(
+      (levelId) => (this.saveData.levelStars[levelId] || 0) > 0
+    ).length;
+    return Math.floor((completedCount / totalLevels) * 100);
+  }
+
+  /**
+   * Get total monsters defeated
+   */
+  getTotalMonstersDefeated(): number {
+    return this.saveData.totalMonstersDefeated || 0;
+  }
+
+  /**
+   * Add to monsters defeated count
+   */
+  addMonstersDefeated(count: number): void {
+    this.saveData.totalMonstersDefeated = (this.saveData.totalMonstersDefeated || 0) + count;
+    this.save();
+  }
+
+  /**
+   * Get max combo ever achieved
+   */
+  getMaxComboEver(): number {
+    return this.saveData.maxComboEver || 0;
+  }
+
+  /**
+   * Update max combo if current is higher
+   */
+  updateMaxCombo(combo: number): boolean {
+    const currentMax = this.saveData.maxComboEver || 0;
+    if (combo > currentMax) {
+      this.saveData.maxComboEver = combo;
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get last played level
+   */
+  getLastPlayedLevel(): string | null {
+    const completedLevels = this.saveData.completedLevels || [];
+    if (completedLevels.length === 0) {
+      return '1-1'; // First level default
+    }
+    return completedLevels[completedLevels.length - 1];
+  }
+
+  /**
+   * Get today's daily challenge
+   */
+  getDailyChallenge(): DailyChallenge | null {
+    const today = new Date().toISOString().split('T')[0];
+    return this.saveData.dailyChallenges?.[today] || null;
+  }
+
+  /**
+   * Generate daily challenge for today
+   */
+  generateDailyChallenge(): DailyChallenge {
+    const today = new Date().toISOString().split('T')[0];
+    const challengeTypes = ['endless_survival', 'level_speedrun', 'combo_challenge'];
+    const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
+    
+    const challenge: DailyChallenge = {
+      date: today,
+      challengeId: randomType,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      rewardMultiplier: 2,
+      completed: false,
+    };
+
+    if (!this.saveData.dailyChallenges) {
+      this.saveData.dailyChallenges = {};
+    }
+    this.saveData.dailyChallenges[today] = challenge;
+    this.save();
+    
+    return challenge;
+  }
+
+  /**
+   * Mark daily challenge as completed
+   */
+  setDailyChallengeCompleted(): boolean {
+    const challenge = this.getDailyChallenge();
+    if (challenge && !challenge.completed) {
+      challenge.completed = true;
+      this.save();
+      return true;
+    }
+    return false;
   }
 
   /**
