@@ -521,9 +521,14 @@ export class ShopScene extends Phaser.Scene {
       return;
     }
 
+    const weapon = this.weaponManager.getWeaponConfig(weaponId);
+    const itemName = weapon?.name || 'Unknown Weapon';
+
     this.pendingPurchase = { type: 'weapon', id: weaponId, cost };
-    this.showConfirmation(
-      isUnlocked ? 'Upgrade weapon?' : 'Purchase weapon?',
+    this.showPurchaseConfirmation(
+      isUnlocked ? 'Upgrade Weapon' : 'Purchase Weapon',
+      itemName,
+      cost,
       () => this.confirmPurchase(),
     );
   }

@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "008-basic-audio-integration",
+  "spec": "012-soul-currency-economy",
   "state": "building",
   "subtasks": {
-    "completed": 0,
+    "completed": 6,
     "total": 8,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Audio Assets Setup",
+    "current": "UI Enhancements",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 1,
-    "started_at": "2026-01-01T14:10:20.195770"
+    "number": 17,
+    "started_at": "2026-01-01T14:47:31.001909"
   },
-  "last_update": "2026-01-01T14:10:20.229075"
+  "last_update": "2026-01-01T14:50:23.826933"
 }

@@ -1,0 +1,70 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "Cross-cutting feature affecting 6+ game systems (combat, HUD, menus, save, shop, progression) with 8-10 estimated file changes. Uses standard Unity patterns with no external integrations or infrastructure changes.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 9,
+      "estimated_services": 1,
+      "is_cross_cutting": true,
+      "notes": "Touches combat (award souls), HUD (display), menus (display), save system (persistence), shop (deduction), and level completion (bonuses)"
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "All internal Unity systems, no external APIs or services. Likely uses Unity PlayerPrefs or existing save system."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": true,
+      "notes": "May need ScriptableObjects for soul value configuration per monster type. No infrastructure impact (Unity game project)."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Standard Unity C# patterns (managers, events, PlayerPrefs). Need to explore existing codebase for similar currency or resource systems."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Cross-cutting integration across multiple systems",
+        "Data persistence must be reliable to prevent lost progress",
+        "Shop deduction logic must be accurate for gameplay balance",
+        "HUD and menu UI integration must not break existing displays"
+      ],
+      "notes": "Medium risk due to touching many systems, but mitigated by using standard Unity patterns and no external dependencies."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Cross-cutting feature affecting combat, UI, and persistence systems requires integration testing to verify all components work together. Unit tests for soul calculation logic and integration tests for save/load and shop deduction."
+  },
+
+  "created_at": "2026-01-01T00:00:00Z"
+}

@@ -217,14 +217,19 @@ export class EndlessGameplayScene extends Phaser.Scene {
       this.loseLife();
     });
 
-    // Listen for villager sliced events
-    EventBus.on('villager-sliced', () => {
-      this.loseLife();
-    });
-
-    // Listen for monster sliced events
-    EventBus.on('monster-sliced', () => {
+    // Listen for monster sliced events (award souls and track stats)
+    EventBus.on('monster-sliced', (data: { souls: number; position: { x: number; y: number } }) => {
+      // Track session stats
       this.sessionStats.monstersSliced++;
+
+      // Award souls for the monster kill
+      if (data.souls > 0) {
+        const newTotal = this.saveManager.addSouls(data.souls);
+        EventBus.emit('souls-updated', { souls: newTotal, delta: data.souls });
+
+        // Show floating +souls text at monster death position
+        this.createFloatingSoulsText(data.position.x, data.position.y, data.souls);
+      }
     });
 
     // Listen for combo updates
@@ -232,6 +237,41 @@ export class EndlessGameplayScene extends Phaser.Scene {
       if (data.count > this.sessionStats.maxCombo) {
         this.sessionStats.maxCombo = data.count;
       }
+    });
+  }
+
+  /**
+   * Create floating +souls text animation at the specified position
+   * @param x - X position of the text
+   * @param y - Y position of the text
+   * @param souls - Number of souls to display
+   */
+  private createFloatingSoulsText(x: number, y: number, souls: number): void {
+    const textObj = this.add.text(
+      x,
+      y - 20,
+      `+${souls} souls`,
+      {
+        fontSize: '24px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 3,
+      },
+    );
+    textObj.setOrigin(0.5);
+    textObj.setDepth(1000);
+
+    // Animate text floating up and fading
+    this.tweens.add({
+      targets: textObj,
+      y: y - 80,
+      alpha: 0,
+      duration: 1000,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        textObj.destroy();
+      },
     });
   }
 

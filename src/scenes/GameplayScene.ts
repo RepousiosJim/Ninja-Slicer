@@ -491,17 +491,57 @@ export class GameplayScene extends BaseScene {
       this.loseLife();
     });
 
-    // Listen for villager sliced events
-    EventBus.on('villager-sliced', () => {
-      this.loseLife();
-    });
+    // Listen for monster sliced events (award souls and track kills)
+    EventBus.on('monster-sliced', (data: { souls: number; position: { x: number; y: number } }) => {
+      // Award souls for the monster kill
+      if (data.souls > 0) {
+        const newTotal = this.saveManager.addSouls(data.souls);
+        EventBus.emit('souls-updated', { souls: newTotal, delta: data.souls });
 
-    // Listen for monster sliced events (for kill tracking in campaign)
-    EventBus.on('monster-sliced', () => {
+        // Show floating +souls text at monster death position
+        this.createFloatingSoulsText(data.position.x, data.position.y, data.souls);
+      }
+
+      // Track kill quota in campaign mode
       if (this.isCampaignMode) {
         this.currentKills++;
         this.hud.updateKillQuota(this.currentKills, this.killQuota);
       }
+    });
+  }
+
+  /**
+   * Create floating +souls text animation at the specified position
+   * @param x - X position of the text
+   * @param y - Y position of the text
+   * @param souls - Number of souls to display
+   */
+  private createFloatingSoulsText(x: number, y: number, souls: number): void {
+    const textObj = this.add.text(
+      x,
+      y - 20,
+      `+${souls} souls`,
+      {
+        fontSize: '24px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 3,
+      },
+    );
+    textObj.setOrigin(0.5);
+    textObj.setDepth(1000);
+
+    // Animate text floating up and fading
+    this.tweens.add({
+      targets: textObj,
+      y: y - 80,
+      alpha: 0,
+      duration: 1000,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        textObj.destroy();
+      },
     });
   }
 

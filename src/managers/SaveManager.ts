@@ -12,7 +12,7 @@
 
 import type { GameSave, GameSettings, DailyChallenge } from '@config/types';
 import { debugLog, debugWarn, debugError } from '@utils/DebugLogger';
-
+import { SupabaseService } from '@services/SupabaseService';
 
 import { SAVE_KEY, SETTINGS_KEY, SAVE_VERSION } from '@config/constants';
 import type { IManager } from './IManager';
@@ -81,6 +81,7 @@ export class SaveManager implements IManager {
   private saveData: GameSave;
   private settings: GameSettings;
   private autoSaveInterval: number | null = null;
+  private supabaseService: SupabaseService | null = null;
 
   /**
    * Initialize save manager and load existing save data and settings from localStorage
@@ -97,19 +98,10 @@ export class SaveManager implements IManager {
   }
 
   /**
-   * Initialize manager and reload save data
-   * 
-   * @param scene - Optional Phaser scene (not currently used)
-   * 
-   * @example
-   * ```typescript
-   * const saveManager = new SaveManager();
-   * saveManager.initialize();
-   * ```
+   * Set the SupabaseService instance for cloud sync
    */
-  initialize(scene?: Phaser.Scene): void {
-    this.load();
-    this.loadSettings();
+  setSupabaseService(service: SupabaseService): void {
+    this.supabaseService = service;
   }
 
   // ===========================================================================
@@ -621,12 +613,39 @@ export class SaveManager implements IManager {
 
   /**
    * Start auto-save interval
+   * When cloud save is enabled and SupabaseService is available,
+   * also syncs souls to the cloud on each auto-save interval
    */
   startAutoSave(intervalMs: number = 30000): void {
     this.stopAutoSave();
     this.autoSaveInterval = window.setInterval(() => {
       this.save();
+      this.syncSoulsToCloud();
     }, intervalMs);
+  }
+
+  /**
+   * Sync souls to cloud if cloud save is enabled
+   */
+  private async syncSoulsToCloud(): Promise<void> {
+    // Check if cloud save is enabled in settings
+    if (!this.settings.cloudSaveEnabled) {
+      return;
+    }
+
+    // Check if SupabaseService is available
+    if (!this.supabaseService || !this.supabaseService.isAvailable()) {
+      return;
+    }
+
+    try {
+      const success = await this.supabaseService.updatePlayerSouls(this.saveData.souls);
+      if (success) {
+        debugLog('[SaveManager] Souls synced to cloud:', this.saveData.souls);
+      }
+    } catch (error) {
+      debugError('[SaveManager] Failed to sync souls to cloud:', error);
+    }
   }
 
   /**
